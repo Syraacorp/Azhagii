@@ -3,7 +3,6 @@ package com.pin2fix.controller;
 import com.pin2fix.dto.*;
 import com.pin2fix.model.*;
 import com.pin2fix.service.*;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
@@ -11,9 +10,12 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/organizations")
 @CrossOrigin(origins = "*")
-@RequiredArgsConstructor
 public class OrganizationController {
     private final OrganizationService organizationService;
+
+    public OrganizationController(OrganizationService organizationService) {
+        this.organizationService = organizationService;
+    }
 
     // Government Body endpoints
     @PostMapping("/gov-bodies")

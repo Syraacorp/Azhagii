@@ -2,14 +2,12 @@ package com.pin2fix.service;
 
 import com.pin2fix.model.*;
 import com.pin2fix.repository.*;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 
 @Service
-@RequiredArgsConstructor
 public class IssueService {
     private final IssueRepository issueRepository;
     private final PhotoRepository photoRepository;
@@ -20,6 +18,22 @@ public class IssueService {
     private final ActivityLogRepository activityLogRepository;
     private final NotificationRepository notificationRepository;
     private final FeedbackRepository feedbackRepository;
+
+    public IssueService(IssueRepository issueRepository, PhotoRepository photoRepository,
+                        AssignmentRepository assignmentRepository, WorkEvidenceRepository workEvidenceRepository,
+                        HeadApprovalRepository headApprovalRepository, GovApprovalRepository govApprovalRepository,
+                        ActivityLogRepository activityLogRepository, NotificationRepository notificationRepository,
+                        FeedbackRepository feedbackRepository) {
+        this.issueRepository = issueRepository;
+        this.photoRepository = photoRepository;
+        this.assignmentRepository = assignmentRepository;
+        this.workEvidenceRepository = workEvidenceRepository;
+        this.headApprovalRepository = headApprovalRepository;
+        this.govApprovalRepository = govApprovalRepository;
+        this.activityLogRepository = activityLogRepository;
+        this.notificationRepository = notificationRepository;
+        this.feedbackRepository = feedbackRepository;
+    }
 
     public Issue createIssue(Issue issue) {
         issue.setStatus(IssueStatus.PENDING);
@@ -122,16 +136,17 @@ public class IssueService {
         return photoRepository.findByIssueId(issueId);
     }
 
-    // Statistics
-    public long countByStatus(IssueStatus status) {
-        return issueRepository.countByStatus(status);
+    // Activity log methods
+    public List<ActivityLog> getActivityLogs(Long issueId) {
+        return activityLogRepository.findByIssueIdOrderByCreatedAtDesc(issueId);
     }
 
-    public long countByReporterId(Long reporterId) {
-        return issueRepository.countByReporterId(reporterId);
-    }
-
+    // Count methods for stats
     public long countAll() {
         return issueRepository.count();
+    }
+
+    public long countByStatus(IssueStatus status) {
+        return issueRepository.countByStatus(status);
     }
 }

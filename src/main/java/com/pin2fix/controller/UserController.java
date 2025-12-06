@@ -4,7 +4,6 @@ import com.pin2fix.dto.ApiResponse;
 import com.pin2fix.model.User;
 import com.pin2fix.model.Role;
 import com.pin2fix.service.UserService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
@@ -12,9 +11,12 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/users")
 @CrossOrigin(origins = "*")
-@RequiredArgsConstructor
 public class UserController {
     private final UserService userService;
+
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<User>>> getAllUsers() {

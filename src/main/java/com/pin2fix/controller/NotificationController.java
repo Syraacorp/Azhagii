@@ -3,7 +3,6 @@ package com.pin2fix.controller;
 import com.pin2fix.dto.*;
 import com.pin2fix.model.*;
 import com.pin2fix.service.*;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
@@ -11,9 +10,12 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/notifications")
 @CrossOrigin(origins = "*")
-@RequiredArgsConstructor
 public class NotificationController {
     private final NotificationService notificationService;
+
+    public NotificationController(NotificationService notificationService) {
+        this.notificationService = notificationService;
+    }
 
     @GetMapping("/user/{userId}")
     public ResponseEntity<ApiResponse<List<Notification>>> getNotificationsByUserId(@PathVariable Long userId) {

@@ -3,7 +3,6 @@ package com.pin2fix.controller;
 import com.pin2fix.dto.*;
 import com.pin2fix.model.*;
 import com.pin2fix.service.*;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -12,10 +11,14 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/issues")
 @CrossOrigin(origins = "*")
-@RequiredArgsConstructor
 public class IssueController {
     private final IssueService issueService;
     private final FileStorageService fileStorageService;
+
+    public IssueController(IssueService issueService, FileStorageService fileStorageService) {
+        this.issueService = issueService;
+        this.fileStorageService = fileStorageService;
+    }
 
     @PostMapping
     public ResponseEntity<ApiResponse<Issue>> createIssue(@RequestBody IssueRequest request) {
@@ -139,12 +142,18 @@ public class IssueController {
 
     @GetMapping("/stats")
     public ResponseEntity<ApiResponse<Object>> getStats() {
-        return ResponseEntity.ok(ApiResponse.success(new Object() {
-            public final long total = issueService.countAll();
-            public final long pending = issueService.countByStatus(IssueStatus.PENDING);
-            public final long inProgress = issueService.countByStatus(IssueStatus.IN_PROGRESS);
-            public final long completed = issueService.countByStatus(IssueStatus.COMPLETED);
-            public final long reopened = issueService.countByStatus(IssueStatus.REOPENED);
-        }));
+        long total = issueService.countAll();
+        long pending = issueService.countByStatus(IssueStatus.PENDING);
+        long inProgress = issueService.countByStatus(IssueStatus.IN_PROGRESS);
+        long completed = issueService.countByStatus(IssueStatus.COMPLETED);
+        long reopened = issueService.countByStatus(IssueStatus.REOPENED);
+        
+        return ResponseEntity.ok(ApiResponse.success(new java.util.HashMap<String, Long>() {{
+            put("total", total);
+            put("pending", pending);
+            put("inProgress", inProgress);
+            put("completed", completed);
+            put("reopened", reopened);
+        }}));
     }
 }

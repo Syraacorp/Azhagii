@@ -3,7 +3,6 @@ package com.pin2fix.controller;
 import com.pin2fix.dto.*;
 import com.pin2fix.model.*;
 import com.pin2fix.service.*;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -12,10 +11,14 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/evidence")
 @CrossOrigin(origins = "*")
-@RequiredArgsConstructor
 public class WorkEvidenceController {
     private final WorkEvidenceService workEvidenceService;
     private final FileStorageService fileStorageService;
+
+    public WorkEvidenceController(WorkEvidenceService workEvidenceService, FileStorageService fileStorageService) {
+        this.workEvidenceService = workEvidenceService;
+        this.fileStorageService = fileStorageService;
+    }
 
     @PostMapping
     public ResponseEntity<ApiResponse<WorkEvidence>> submitEvidence(

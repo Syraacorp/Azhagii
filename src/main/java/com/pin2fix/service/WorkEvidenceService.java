@@ -2,13 +2,11 @@ package com.pin2fix.service;
 
 import com.pin2fix.model.*;
 import com.pin2fix.repository.*;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
 public class WorkEvidenceService {
     private final WorkEvidenceRepository workEvidenceRepository;
     private final AssignmentRepository assignmentRepository;
@@ -16,6 +14,17 @@ public class WorkEvidenceService {
     private final ActivityLogRepository activityLogRepository;
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
+
+    public WorkEvidenceService(WorkEvidenceRepository workEvidenceRepository, AssignmentRepository assignmentRepository,
+                               IssueRepository issueRepository, ActivityLogRepository activityLogRepository,
+                               NotificationRepository notificationRepository, UserRepository userRepository) {
+        this.workEvidenceRepository = workEvidenceRepository;
+        this.assignmentRepository = assignmentRepository;
+        this.issueRepository = issueRepository;
+        this.activityLogRepository = activityLogRepository;
+        this.notificationRepository = notificationRepository;
+        this.userRepository = userRepository;
+    }
 
     @Transactional
     public WorkEvidence submitEvidence(Long assignmentId, Long workerId, String url, String notes) {

@@ -2,14 +2,12 @@ package com.pin2fix.service;
 
 import com.pin2fix.model.*;
 import com.pin2fix.repository.*;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 
 @Service
-@RequiredArgsConstructor
 public class ApprovalService {
     private final HeadApprovalRepository headApprovalRepository;
     private final GovApprovalRepository govApprovalRepository;
@@ -18,6 +16,19 @@ public class ApprovalService {
     private final ActivityLogRepository activityLogRepository;
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
+
+    public ApprovalService(HeadApprovalRepository headApprovalRepository, GovApprovalRepository govApprovalRepository,
+                           AssignmentRepository assignmentRepository, IssueRepository issueRepository,
+                           ActivityLogRepository activityLogRepository, NotificationRepository notificationRepository,
+                           UserRepository userRepository) {
+        this.headApprovalRepository = headApprovalRepository;
+        this.govApprovalRepository = govApprovalRepository;
+        this.assignmentRepository = assignmentRepository;
+        this.issueRepository = issueRepository;
+        this.activityLogRepository = activityLogRepository;
+        this.notificationRepository = notificationRepository;
+        this.userRepository = userRepository;
+    }
 
     @Transactional
     public HeadApproval submitHeadApproval(Long assignmentId, Long approvedBy, ApprovalStatus status, String comment) {
@@ -37,7 +48,7 @@ public class ApprovalService {
 
         if (status == ApprovalStatus.APPROVED) {
             // Move to government body approval
-            issue.setStatus(IssueStatus.PENDING_GOV_APPROVAL);
+            issue.setStatus(IssueStatus.HEAD_APPROVED);
             issueRepository.save(issue);
 
             // Notify government body users
@@ -105,12 +116,12 @@ public class ApprovalService {
         issue.setStatus(IssueStatus.COMPLETED);
         issueRepository.save(issue);
 
-        // Notify the citizen who reported the issue
+        // Notify the citizen
         if (issue.getReporterId() != null) {
             Notification notification = Notification.builder()
                     .userId(issue.getReporterId())
                     .issueId(issueId)
-                    .title("Issue Resolved - Feedback Required")
+                    .title("Issue Resolved!")
                     .message("Your reported issue '" + issue.getTitle() + "' has been resolved. Please provide your feedback.")
                     .isRead(false)
                     .build();
@@ -122,7 +133,7 @@ public class ApprovalService {
                 .issueId(issueId)
                 .actorId(approvedBy)
                 .action("GOV_APPROVAL")
-                .details("Government body approved the work completion. Comment: " + comment)
+                .details("Government body approved the work. Issue completed. Comment: " + comment)
                 .build();
         activityLogRepository.save(log);
 

@@ -3,7 +3,6 @@ package com.pin2fix.controller;
 import com.pin2fix.dto.*;
 import com.pin2fix.model.*;
 import com.pin2fix.service.*;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
@@ -11,9 +10,12 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/assignments")
 @CrossOrigin(origins = "*")
-@RequiredArgsConstructor
 public class AssignmentController {
     private final AssignmentService assignmentService;
+
+    public AssignmentController(AssignmentService assignmentService) {
+        this.assignmentService = assignmentService;
+    }
 
     @PostMapping
     public ResponseEntity<ApiResponse<Assignment>> createAssignment(@RequestBody AssignmentRequest request) {
@@ -76,12 +78,18 @@ public class AssignmentController {
 
     @GetMapping("/assignee/{assigneeId}/stats")
     public ResponseEntity<ApiResponse<Object>> getAssigneeStats(@PathVariable Long assigneeId) {
-        return ResponseEntity.ok(ApiResponse.success(new Object() {
-            public final long total = assignmentService.countByAssigneeId(assigneeId);
-            public final long assigned = assignmentService.countByAssigneeIdAndStatus(assigneeId, AssignmentStatus.ASSIGNED);
-            public final long inProgress = assignmentService.countByAssigneeIdAndStatus(assigneeId, AssignmentStatus.IN_PROGRESS);
-            public final long completed = assignmentService.countByAssigneeIdAndStatus(assigneeId, AssignmentStatus.COMPLETED);
-            public final long reopened = assignmentService.countByAssigneeIdAndStatus(assigneeId, AssignmentStatus.REOPENED);
-        }));
+        long total = assignmentService.countByAssigneeId(assigneeId);
+        long assigned = assignmentService.countByAssigneeIdAndStatus(assigneeId, AssignmentStatus.ASSIGNED);
+        long inProgress = assignmentService.countByAssigneeIdAndStatus(assigneeId, AssignmentStatus.IN_PROGRESS);
+        long completed = assignmentService.countByAssigneeIdAndStatus(assigneeId, AssignmentStatus.COMPLETED);
+        long reopened = assignmentService.countByAssigneeIdAndStatus(assigneeId, AssignmentStatus.REOPENED);
+        
+        return ResponseEntity.ok(ApiResponse.success(new java.util.HashMap<String, Long>() {{
+            put("total", total);
+            put("assigned", assigned);
+            put("inProgress", inProgress);
+            put("completed", completed);
+            put("reopened", reopened);
+        }}));
     }
 }

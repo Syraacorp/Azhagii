@@ -2,20 +2,28 @@ package com.pin2fix.service;
 
 import com.pin2fix.model.*;
 import com.pin2fix.repository.*;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 
 @Service
-@RequiredArgsConstructor
 public class FeedbackService {
     private final FeedbackRepository feedbackRepository;
     private final IssueRepository issueRepository;
     private final AssignmentRepository assignmentRepository;
     private final ActivityLogRepository activityLogRepository;
     private final NotificationRepository notificationRepository;
+
+    public FeedbackService(FeedbackRepository feedbackRepository, IssueRepository issueRepository,
+                           AssignmentRepository assignmentRepository, ActivityLogRepository activityLogRepository,
+                           NotificationRepository notificationRepository) {
+        this.feedbackRepository = feedbackRepository;
+        this.issueRepository = issueRepository;
+        this.assignmentRepository = assignmentRepository;
+        this.activityLogRepository = activityLogRepository;
+        this.notificationRepository = notificationRepository;
+    }
 
     @Transactional
     public Feedback submitFeedback(Long issueId, Long userId, Integer rating, String message, Boolean isPositive) {

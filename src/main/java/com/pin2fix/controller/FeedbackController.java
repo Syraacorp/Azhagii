@@ -3,7 +3,6 @@ package com.pin2fix.controller;
 import com.pin2fix.dto.*;
 import com.pin2fix.model.*;
 import com.pin2fix.service.*;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
@@ -11,9 +10,12 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/feedback")
 @CrossOrigin(origins = "*")
-@RequiredArgsConstructor
 public class FeedbackController {
     private final FeedbackService feedbackService;
+
+    public FeedbackController(FeedbackService feedbackService) {
+        this.feedbackService = feedbackService;
+    }
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<Feedback>>> getAllFeedback() {

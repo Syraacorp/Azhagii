@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Review Issue - Pin2Fix</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="/gov/dashboard.html" class="navbar-brand">
+            <i class="fas fa-map-marker-alt"></i>
+            Pin2Fix - Gov
+        </a>
+        <ul class="navbar-nav">
+            <li class="nav-user">
+                <span class="user-name" id="user-name">Government</span>
+                <a href="#" onclick="Nav.logout()" class="btn btn-outline btn-sm">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <ul class="sidebar-nav">
+                <li>
+                    <a href="/gov/dashboard.html">
+                        <i class="fas fa-home"></i> Dashboard
+                    </a>
+                </li>
+                <li>
+                    <a href="/gov/pending-issues.html" class="active">
+                        <i class="fas fa-inbox"></i> Pending Issues
+                    </a>
+                </li>
+                <li>
+                    <a href="/gov/pending-approval.html">
+                        <i class="fas fa-check-circle"></i> Pending Approval
+                    </a>
+                </li>
+                <li>
+                    <a href="/gov/all-issues.html">
+                        <i class="fas fa-list"></i> All Issues
+                    </a>
+                </li>
+            </ul>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1 class="page-title">Review Issue</h1>
+                <a href="/gov/pending-issues.html" class="btn btn-outline">
+                    <i class="fas fa-arrow-left"></i> Back
+                </a>
+            </div>
+
+            <div class="d-flex gap-3" style="flex-wrap: wrap;">
+                <!-- Left Column -->
+                <div style="flex: 2; min-width: 300px;">
+                    <!-- Issue Details -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title" id="issue-title">Loading...</h2>
+                            <span class="status-badge" id="issue-status">-</span>
+                        </div>
+                        <div id="issue-details">
+                            <!-- Details will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Evidence Photos -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Evidence Photos</h2>
+                        </div>
+                        <div class="file-preview" id="photos-container">
+                            <!-- Photos will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Forward to Department -->
+                    <div class="card" id="forward-section">
+                        <div class="card-header">
+                            <h2 class="card-title">Forward to Department</h2>
+                        </div>
+                        <form id="forwardForm">
+                            <div class="form-group">
+                                <label class="form-label">Select Department *</label>
+                                <select id="department" class="form-select" required>
+                                    <option value="">-- Select Department --</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane"></i> Forward Issue
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Right Column -->
+                <div style="flex: 1; min-width: 300px;">
+                    <!-- Map -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Location</h2>
+                        </div>
+                        <div class="map-container" id="map" style="height: 250px;"></div>
+                        <p class="mt-2" id="address-text" style="color: var(--text-light);"></p>
+                    </div>
+
+                    <!-- Reporter Info -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Reporter Information</h2>
+                        </div>
+                        <div id="reporter-info">
+                            <!-- Reporter info will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script>
+        // Auth check
+        if (!AuthGuard.check(['GOV_BODY'])) {
+            // Redirect handled by AuthGuard
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const issueId = urlParams.get('id');
+        const user = Session.get();
+        let map;
+        let currentIssue;
+
+        if (!issueId) {
+            Alert.error('Error', 'Invalid issue ID').then(() => {
+                Nav.to('/gov/pending-issues.html');
+            });
+        }
+
+        async function loadIssue() {
+            try {
+                const response = await Api.get(`/issues/${issueId}`);
+                if (response.success) {
+                    currentIssue = response.data;
+                    displayIssue(response.data);
+                    loadPhotos();
+                    loadReporterInfo(response.data.reporterId);
+                    loadDepartments();
+                } else {
+                    Alert.error('Error', response.message);
+                }
+            } catch (error) {
+                console.error('Error loading issue:', error);
+            }
+        }
+
+        function displayIssue(issue) {
+            document.getElementById('issue-title').textContent = issue.title;
+            document.getElementById('issue-status').textContent = StatusHelper.getLabel(issue.status);
+            document.getElementById('issue-status').className = `status-badge ${StatusHelper.getClass(issue.status)}`;
+
+            document.getElementById('issue-details').innerHTML = `
+                <div style="margin-bottom: 1rem;">
+                    <strong>Description:</strong>
+                    <p style="margin-top: 0.5rem;">${issue.description}</p>
+                </div>
+                <div class="d-flex gap-3" style="flex-wrap: wrap;">
+                    <div>
+                        <strong>Issue ID:</strong>
+                        <p>#${issue.issueId}</p>
+                    </div>
+                    <div>
+                        <strong>Severity:</strong>
+                        <p>${getSeverityText(issue.severity)}</p>
+                    </div>
+                    <div>
+                        <strong>Created:</strong>
+                        <p>${DateHelper.format(issue.createdAt)}</p>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('address-text').textContent = issue.addressText || 'No address provided';
+
+            // Initialize map
+            initMap(issue.latitude, issue.longitude);
+
+            // Hide forward section if already forwarded
+            if (issue.status !== 'PENDING') {
+                document.getElementById('forward-section').style.display = 'none';
+            }
+        }
+
+        function getSeverityText(severity) {
+            const texts = ['', 'Low', 'Medium-Low', 'Medium', 'Medium-High', 'High'];
+            return texts[severity] || 'Unknown';
+        }
+
+        function initMap(lat, lng) {
+            map = L.map('map').setView([lat, lng], 15);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            L.marker([lat, lng]).addTo(map);
+        }
+
+        async function loadPhotos() {
+            try {
+                const response = await Api.get(`/issues/${issueId}/photos`);
+                if (response.success && response.data.length > 0) {
+                    const container = document.getElementById('photos-container');
+                    container.innerHTML = response.data.map(photo => `
+                        <img src="${photo.url}" alt="${photo.caption || 'Evidence'}" 
+                             style="cursor: pointer;" onclick="viewImage('${photo.url}')">
+                    `).join('');
+                } else {
+                    document.getElementById('photos-container').innerHTML = '<p style="color: var(--text-light);">No photos uploaded</p>';
+                }
+            } catch (error) {
+                console.error('Error loading photos:', error);
+            }
+        }
+
+        async function loadReporterInfo(reporterId) {
+            if (!reporterId) {
+                document.getElementById('reporter-info').innerHTML = '<p style="color: var(--text-light);">Anonymous reporter</p>';
+                return;
+            }
+
+            try {
+                const response = await Api.get(`/auth/users/${reporterId}`);
+                if (response.success) {
+                    const reporter = response.data;
+                    document.getElementById('reporter-info').innerHTML = `
+                        <div>
+                            <p><strong>Name:</strong> ${reporter.name}</p>
+                            <p><strong>Email:</strong> ${reporter.email}</p>
+                            <p><strong>Phone:</strong> ${reporter.phone || 'N/A'}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading reporter info:', error);
+            }
+        }
+
+        async function loadDepartments() {
+            try {
+                const response = await Api.get('/organizations/departments');
+                if (response.success) {
+                    const select = document.getElementById('department');
+                    response.data.forEach(dept => {
+                        const option = document.createElement('option');
+                        option.value = dept.deptId;
+                        option.textContent = dept.name;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading departments:', error);
+            }
+        }
+
+        function viewImage(url) {
+            Swal.fire({
+                imageUrl: url,
+                imageAlt: 'Image',
+                showConfirmButton: false,
+                showCloseButton: true
+            });
+        }
+
+        // Forward form submission
+        document.getElementById('forwardForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const deptId = document.getElementById('department').value;
+            if (!deptId) {
+                Alert.warning('Required', 'Please select a department');
+                return;
+            }
+
+            Alert.loading('Forwarding issue...');
+
+            try {
+                const response = await Api.post('/issues/forward', {
+                    issueId: parseInt(issueId),
+                    deptId: parseInt(deptId),
+                    govId: user.govId || 1,
+                    actorId: user.userId
+                });
+                Alert.close();
+
+                if (response.success) {
+                    Alert.success('Issue Forwarded', 'The issue has been forwarded to the selected department.').then(() => {
+                        Nav.to('/gov/pending-issues.html');
+                    });
+                } else {
+                    Alert.error('Error', response.message);
+                }
+            } catch (error) {
+                Alert.close();
+                Alert.error('Error', 'Failed to forward issue');
+            }
+        });
+
+        // Load issue on page load
+        loadIssue();
+    </script>
+</body>
+</html>

@@ -4,16 +4,20 @@ import com.pin2fix.model.GovernmentBody;
 import com.pin2fix.model.Department;
 import com.pin2fix.repository.GovernmentBodyRepository;
 import com.pin2fix.repository.DepartmentRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 
 @Service
-@RequiredArgsConstructor
 public class OrganizationService {
     private final GovernmentBodyRepository governmentBodyRepository;
     private final DepartmentRepository departmentRepository;
+
+    public OrganizationService(GovernmentBodyRepository governmentBodyRepository, 
+                               DepartmentRepository departmentRepository) {
+        this.governmentBodyRepository = governmentBodyRepository;
+        this.departmentRepository = departmentRepository;
+    }
 
     // Government Body methods
     public GovernmentBody createGovBody(GovernmentBody govBody) {

@@ -3,7 +3,6 @@ package com.pin2fix.controller;
 import com.pin2fix.dto.*;
 import com.pin2fix.model.*;
 import com.pin2fix.service.*;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
@@ -11,9 +10,12 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/approvals")
 @CrossOrigin(origins = "*")
-@RequiredArgsConstructor
 public class ApprovalController {
     private final ApprovalService approvalService;
+
+    public ApprovalController(ApprovalService approvalService) {
+        this.approvalService = approvalService;
+    }
 
     @PostMapping("/head")
     public ResponseEntity<ApiResponse<HeadApproval>> submitHeadApproval(@RequestBody ApprovalRequest request) {

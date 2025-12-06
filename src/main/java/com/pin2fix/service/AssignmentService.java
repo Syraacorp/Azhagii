@@ -2,19 +2,25 @@ package com.pin2fix.service;
 
 import com.pin2fix.model.*;
 import com.pin2fix.repository.*;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 
 @Service
-@RequiredArgsConstructor
 public class AssignmentService {
     private final AssignmentRepository assignmentRepository;
     private final IssueRepository issueRepository;
     private final ActivityLogRepository activityLogRepository;
     private final NotificationRepository notificationRepository;
+
+    public AssignmentService(AssignmentRepository assignmentRepository, IssueRepository issueRepository,
+                             ActivityLogRepository activityLogRepository, NotificationRepository notificationRepository) {
+        this.assignmentRepository = assignmentRepository;
+        this.issueRepository = issueRepository;
+        this.activityLogRepository = activityLogRepository;
+        this.notificationRepository = notificationRepository;
+    }
 
     @Transactional
     public Assignment createAssignment(Long issueId, Long assignedBy, Long assigneeId, Role roleAssignee, String comment) {
@@ -98,7 +104,7 @@ public class AssignmentService {
                 .issueId(assignment.getIssueId())
                 .actorId(actorId)
                 .action("ASSIGNMENT_STATUS_UPDATED")
-                .details("Assignment status changed to: " + newStatus)
+                .details("Assignment status updated to: " + newStatus)
                 .build();
         activityLogRepository.save(log);
 
