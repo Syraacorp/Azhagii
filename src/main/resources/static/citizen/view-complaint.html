@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Complaint - Pin2Fix</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="/citizen/dashboard.html" class="navbar-brand">
+            <i class="fas fa-map-marker-alt"></i>
+            Pin2Fix
+        </a>
+        <ul class="navbar-nav">
+            <li>
+                <a href="/citizen/notifications.html" class="notification-badge">
+                    <i class="fas fa-bell"></i>
+                    <span class="badge" id="notification-count" style="display: none;">0</span>
+                </a>
+            </li>
+            <li class="nav-user">
+                <span class="user-name" id="user-name">User</span>
+                <a href="#" onclick="Nav.logout()" class="btn btn-outline btn-sm">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <ul class="sidebar-nav">
+                <li>
+                    <a href="/citizen/dashboard.html">
+                        <i class="fas fa-home"></i> Dashboard
+                    </a>
+                </li>
+                <li>
+                    <a href="/citizen/new-complaint.html">
+                        <i class="fas fa-plus-circle"></i> New Complaint
+                    </a>
+                </li>
+                <li>
+                    <a href="/citizen/my-complaints.html" class="active">
+                        <i class="fas fa-list"></i> My Complaints
+                    </a>
+                </li>
+                <li>
+                    <a href="/citizen/notifications.html">
+                        <i class="fas fa-bell"></i> Notifications
+                    </a>
+                </li>
+            </ul>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1 class="page-title">Complaint Details</h1>
+                <a href="/citizen/my-complaints.html" class="btn btn-outline">
+                    <i class="fas fa-arrow-left"></i> Back
+                </a>
+            </div>
+
+            <div class="d-flex gap-3" style="flex-wrap: wrap;">
+                <!-- Left Column -->
+                <div style="flex: 2; min-width: 300px;">
+                    <!-- Issue Details -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title" id="issue-title">Loading...</h2>
+                            <span class="status-badge" id="issue-status">-</span>
+                        </div>
+                        <div id="issue-details">
+                            <!-- Details will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Evidence Photos -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Evidence Photos</h2>
+                        </div>
+                        <div class="file-preview" id="photos-container">
+                            <!-- Photos will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Feedback Section (for completed issues) -->
+                    <div class="card" id="feedback-section" style="display: none;">
+                        <div class="card-header">
+                            <h2 class="card-title">Your Feedback</h2>
+                        </div>
+                        <div id="feedback-content">
+                            <!-- Feedback will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column -->
+                <div style="flex: 1; min-width: 300px;">
+                    <!-- Map -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Location</h2>
+                        </div>
+                        <div class="map-container" id="map" style="height: 250px;"></div>
+                        <p class="mt-2" id="address-text" style="color: var(--text-light);"></p>
+                    </div>
+
+                    <!-- Work Evidence (if available) -->
+                    <div class="card" id="work-evidence-section" style="display: none;">
+                        <div class="card-header">
+                            <h2 class="card-title">Work Completion Evidence</h2>
+                        </div>
+                        <div id="work-evidence-content">
+                            <!-- Work evidence will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script>
+        // Auth check
+        if (!AuthGuard.check(['CITIZEN'])) {
+            // Redirect handled by AuthGuard
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const issueId = urlParams.get('id');
+        let map;
+
+        if (!issueId) {
+            Alert.error('Error', 'Invalid complaint ID').then(() => {
+                Nav.to('/citizen/my-complaints.html');
+            });
+        }
+
+        async function loadIssue() {
+            try {
+                const response = await Api.get(`/issues/${issueId}`);
+                if (response.success) {
+                    displayIssue(response.data);
+                    loadPhotos();
+                    loadAssignments();
+                    loadFeedback();
+                } else {
+                    Alert.error('Error', response.message);
+                }
+            } catch (error) {
+                console.error('Error loading issue:', error);
+                Alert.error('Error', 'Failed to load complaint details');
+            }
+        }
+
+        function displayIssue(issue) {
+            document.getElementById('issue-title').textContent = issue.title;
+            document.getElementById('issue-status').textContent = StatusHelper.getLabel(issue.status);
+            document.getElementById('issue-status').className = `status-badge ${StatusHelper.getClass(issue.status)}`;
+
+            document.getElementById('issue-details').innerHTML = `
+                <div style="margin-bottom: 1rem;">
+                    <strong>Description:</strong>
+                    <p style="margin-top: 0.5rem;">${issue.description}</p>
+                </div>
+                <div class="d-flex gap-3" style="flex-wrap: wrap;">
+                    <div>
+                        <strong>Issue ID:</strong>
+                        <p>#${issue.issueId}</p>
+                    </div>
+                    <div>
+                        <strong>Severity:</strong>
+                        <p>${getSeverityText(issue.severity)}</p>
+                    </div>
+                    <div>
+                        <strong>Created:</strong>
+                        <p>${DateHelper.format(issue.createdAt)}</p>
+                    </div>
+                    <div>
+                        <strong>Last Updated:</strong>
+                        <p>${DateHelper.format(issue.updatedAt)}</p>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('address-text').textContent = issue.addressText || 'No address provided';
+
+            // Initialize map
+            initMap(issue.latitude, issue.longitude);
+        }
+
+        function getSeverityText(severity) {
+            const texts = ['', 'Low', 'Medium-Low', 'Medium', 'Medium-High', 'High'];
+            return texts[severity] || 'Unknown';
+        }
+
+        function initMap(lat, lng) {
+            map = L.map('map').setView([lat, lng], 15);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            L.marker([lat, lng]).addTo(map);
+        }
+
+        async function loadPhotos() {
+            try {
+                const response = await Api.get(`/issues/${issueId}/photos`);
+                if (response.success && response.data.length > 0) {
+                    const container = document.getElementById('photos-container');
+                    container.innerHTML = response.data.map(photo => `
+                        <img src="${photo.url}" alt="${photo.caption || 'Evidence'}" 
+                             style="cursor: pointer;" onclick="viewImage('${photo.url}')">
+                    `).join('');
+                } else {
+                    document.getElementById('photos-container').innerHTML = '<p style="color: var(--text-light);">No photos uploaded</p>';
+                }
+            } catch (error) {
+                console.error('Error loading photos:', error);
+            }
+        }
+
+        async function loadAssignments() {
+            try {
+                const response = await Api.get(`/assignments/issue/${issueId}`);
+                if (response.success && response.data.length > 0) {
+                    const latestAssignment = response.data[response.data.length - 1];
+                    await loadWorkEvidence(latestAssignment.assignmentId);
+                }
+            } catch (error) {
+                console.error('Error loading assignments:', error);
+            }
+        }
+
+        async function loadWorkEvidence(assignmentId) {
+            try {
+                const response = await Api.get(`/evidence/assignment/${assignmentId}`);
+                if (response.success && response.data.length > 0) {
+                    const section = document.getElementById('work-evidence-section');
+                    const content = document.getElementById('work-evidence-content');
+                    section.style.display = 'block';
+
+                    content.innerHTML = response.data.map(evidence => `
+                        <div style="margin-bottom: 1rem;">
+                            <img src="${evidence.url}" alt="Work Evidence" 
+                                 style="width: 100%; border-radius: 8px; cursor: pointer;" 
+                                 onclick="viewImage('${evidence.url}')">
+                            <p style="margin-top: 0.5rem; color: var(--text-light);">
+                                ${evidence.notes || 'No notes provided'}
+                            </p>
+                            <small style="color: var(--text-light);">
+                                Uploaded: ${DateHelper.format(evidence.uploadedAt)}
+                            </small>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Error loading work evidence:', error);
+            }
+        }
+
+        async function loadFeedback() {
+            const userId = Session.getUserId();
+            try {
+                const response = await Api.get(`/feedback/issue/${issueId}/user/${userId}`);
+                if (response.success && response.data) {
+                    const section = document.getElementById('feedback-section');
+                    const content = document.getElementById('feedback-content');
+                    section.style.display = 'block';
+
+                    const feedback = response.data;
+                    content.innerHTML = `
+                        <div>
+                            <div style="margin-bottom: 0.5rem;">
+                                <strong>Satisfied:</strong> ${feedback.isPositive ? 'Yes' : 'No'}
+                            </div>
+                            <div style="margin-bottom: 0.5rem;">
+                                <strong>Rating:</strong> ${getStarsHtml(feedback.rating)}
+                            </div>
+                            <div>
+                                <strong>Comments:</strong>
+                                <p style="margin-top: 0.5rem;">${feedback.message || 'No comments'}</p>
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                // No feedback yet - that's okay
+            }
+        }
+
+        function getStarsHtml(rating) {
+            let stars = '';
+            for (let i = 0; i < 5; i++) {
+                if (i < rating) {
+                    stars += '<i class="fas fa-star" style="color: #fbbf24;"></i>';
+                } else {
+                    stars += '<i class="far fa-star" style="color: #d1d5db;"></i>';
+                }
+            }
+            return stars;
+        }
+
+        function viewImage(url) {
+            Swal.fire({
+                imageUrl: url,
+                imageAlt: 'Image',
+                showConfirmButton: false,
+                showCloseButton: true
+            });
+        }
+
+        // Load issue on page load
+        loadIssue();
+    </script>
+</body>
+</html>

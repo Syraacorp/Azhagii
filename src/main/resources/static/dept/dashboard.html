@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Department Head Dashboard - Pin2Fix</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="/dept/dashboard.html" class="navbar-brand">
+            <i class="fas fa-map-marker-alt"></i>
+            Pin2Fix - Dept
+        </a>
+        <ul class="navbar-nav">
+            <li>
+                <a href="/dept/notifications.html" class="notification-badge">
+                    <i class="fas fa-bell"></i>
+                    <span class="badge" id="notification-count" style="display: none;">0</span>
+                </a>
+            </li>
+            <li class="nav-user">
+                <span class="user-name" id="user-name">Dept Head</span>
+                <a href="#" onclick="Nav.logout()" class="btn btn-outline btn-sm">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <ul class="sidebar-nav">
+                <li>
+                    <a href="/dept/dashboard.html" class="active">
+                        <i class="fas fa-home"></i> Dashboard
+                    </a>
+                </li>
+                <li>
+                    <a href="/dept/new-issues.html">
+                        <i class="fas fa-inbox"></i> New Issues
+                    </a>
+                </li>
+                <li>
+                    <a href="/dept/pending-approval.html">
+                        <i class="fas fa-check-circle"></i> Pending Approval
+                    </a>
+                </li>
+                <li>
+                    <a href="/dept/all-issues.html">
+                        <i class="fas fa-list"></i> All Issues
+                    </a>
+                </li>
+                <li>
+                    <a href="/dept/notifications.html">
+                        <i class="fas fa-bell"></i> Notifications
+                    </a>
+                </li>
+            </ul>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1 class="page-title">Department Dashboard</h1>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon warning">
+                        <i class="fas fa-inbox"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="stat-new">0</h3>
+                        <p>New Issues</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon primary">
+                        <i class="fas fa-clipboard-check"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="stat-approval">0</h3>
+                        <p>Pending Approval</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon primary">
+                        <i class="fas fa-spinner"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="stat-progress">0</h3>
+                        <p>In Progress</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon success">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="stat-completed">0</h3>
+                        <p>Completed</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- New Issues to Assign -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">New Issues to Assign</h2>
+                    <a href="/dept/new-issues.html" class="btn btn-outline btn-sm">View All</a>
+                </div>
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Title</th>
+                                <th>Location</th>
+                                <th>Severity</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="new-issues-body">
+                            <!-- Issues will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Issues Pending Your Approval -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Issues Pending Your Approval</h2>
+                    <a href="/dept/pending-approval.html" class="btn btn-outline btn-sm">View All</a>
+                </div>
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Title</th>
+                                <th>Worker</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="approval-issues-body">
+                            <!-- Issues will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script>
+        // Auth check
+        if (!AuthGuard.check(['DEPT_HEAD'])) {
+            // Redirect handled by AuthGuard
+        }
+
+        const user = Session.get();
+
+        async function loadDashboard() {
+            try {
+                // Load new issues (triaged - assigned to dept but not to worker)
+                const triagedResponse = await Api.get('/issues/status/TRIAGED');
+                if (triagedResponse.success) {
+                    const deptIssues = user.deptId ? 
+                        triagedResponse.data.filter(i => i.deptId === user.deptId) : 
+                        triagedResponse.data;
+                    document.getElementById('stat-new').textContent = deptIssues.length;
+                    displayNewIssues(deptIssues.slice(0, 5));
+                }
+
+                // Load issues pending head approval
+                const approvalResponse = await Api.get('/issues/status/WORK_COMPLETED_PENDING_HEAD_APPROVAL');
+                if (approvalResponse.success) {
+                    const deptIssues = user.deptId ? 
+                        approvalResponse.data.filter(i => i.deptId === user.deptId) : 
+                        approvalResponse.data;
+                    document.getElementById('stat-approval').textContent = deptIssues.length;
+                    displayApprovalIssues(deptIssues.slice(0, 5));
+                }
+
+                // Load in progress count
+                const progressResponse = await Api.get('/issues/status/IN_PROGRESS');
+                if (progressResponse.success) {
+                    const deptIssues = user.deptId ? 
+                        progressResponse.data.filter(i => i.deptId === user.deptId) : 
+                        progressResponse.data;
+                    document.getElementById('stat-progress').textContent = deptIssues.length;
+                }
+
+                // Load completed count
+                const completedResponse = await Api.get('/issues/status/COMPLETED');
+                if (completedResponse.success) {
+                    const deptIssues = user.deptId ? 
+                        completedResponse.data.filter(i => i.deptId === user.deptId) : 
+                        completedResponse.data;
+                    document.getElementById('stat-completed').textContent = deptIssues.length;
+                }
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+            }
+        }
+
+        function displayNewIssues(issues) {
+            const tbody = document.getElementById('new-issues-body');
+            if (issues.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center">No new issues</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = issues.map(issue => `
+                <tr>
+                    <td>#${issue.issueId}</td>
+                    <td>${issue.title}</td>
+                    <td>${issue.addressText || 'N/A'}</td>
+                    <td>${issue.severity}</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" onclick="assignIssue(${issue.issueId})">
+                            <i class="fas fa-user-plus"></i> Assign
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function displayApprovalIssues(issues) {
+            const tbody = document.getElementById('approval-issues-body');
+            if (issues.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center">No issues pending approval</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = issues.map(issue => `
+                <tr>
+                    <td>#${issue.issueId}</td>
+                    <td>${issue.title}</td>
+                    <td>-</td>
+                    <td><span class="status-badge ${StatusHelper.getClass(issue.status)}">${StatusHelper.getLabel(issue.status)}</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" onclick="reviewWork(${issue.issueId})">
+                            <i class="fas fa-eye"></i> Review
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function assignIssue(issueId) {
+            // Load workers
+            const workersResponse = await Api.get(`/auth/users/role/WORKER`);
+            
+            if (!workersResponse.success || workersResponse.data.length === 0) {
+                Alert.warning('No Workers', 'No workers available for assignment');
+                return;
+            }
+
+            const workers = workersResponse.data;
+            const workerOptions = workers.reduce((acc, w) => {
+                acc[w.userId] = w.name;
+                return acc;
+            }, {});
+
+            const { value: formValues } = await Swal.fire({
+                title: 'Assign to Worker',
+                html: `
+                    <div style="text-align: left;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Select Worker *</label>
+                        <select id="swal-worker" class="swal2-select" style="width: 100%; padding: 0.5rem; margin-bottom: 1rem;">
+                            ${Object.entries(workerOptions).map(([id, name]) => `<option value="${id}">${name}</option>`).join('')}
+                        </select>
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Comments</label>
+                        <textarea id="swal-comment" class="swal2-textarea" placeholder="Instructions for the worker..." style="width: 100%;"></textarea>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Assign',
+                confirmButtonColor: '#2563eb',
+                preConfirm: () => {
+                    return {
+                        workerId: document.getElementById('swal-worker').value,
+                        comment: document.getElementById('swal-comment').value
+                    };
+                }
+            });
+
+            if (formValues) {
+                Alert.loading('Assigning task...');
+                try {
+                    const response = await Api.post('/assignments', {
+                        issueId: issueId,
+                        assignedBy: user.userId,
+                        assigneeId: parseInt(formValues.workerId),
+                        roleAssignee: 'WORKER',
+                        comment: formValues.comment
+                    });
+                    Alert.close();
+
+                    if (response.success) {
+                        Alert.success('Assigned!', 'The task has been assigned to the worker.');
+                        loadDashboard();
+                    } else {
+                        Alert.error('Error', response.message);
+                    }
+                } catch (error) {
+                    Alert.close();
+                    Alert.error('Error', 'Failed to assign task');
+                }
+            }
+        }
+
+        async function reviewWork(issueId) {
+            // Load issue and evidence
+            const assignmentsResponse = await Api.get(`/assignments/issue/${issueId}`);
+            let evidenceHtml = '<p>No work evidence found</p>';
+            let assignmentId = null;
+
+            if (assignmentsResponse.success && assignmentsResponse.data.length > 0) {
+                const latestAssignment = assignmentsResponse.data[assignmentsResponse.data.length - 1];
+                assignmentId = latestAssignment.assignmentId;
+                const evidenceResponse = await Api.get(`/evidence/assignment/${latestAssignment.assignmentId}`);
+                if (evidenceResponse.success && evidenceResponse.data.length > 0) {
+                    evidenceHtml = evidenceResponse.data.map(e => `
+                        <div style="margin-bottom: 1rem;">
+                            <img src="${e.url}" style="max-width: 100%; border-radius: 8px;">
+                            <p style="color: var(--text-light); margin-top: 0.5rem;">${e.notes || 'No notes'}</p>
+                        </div>
+                    `).join('');
+                }
+            }
+
+            const { value: action } = await Swal.fire({
+                title: 'Review Work Evidence',
+                html: `
+                    <div style="text-align: left; max-height: 400px; overflow-y: auto;">
+                        <h4>Work Evidence</h4>
+                        ${evidenceHtml}
+                    </div>
+                `,
+                width: '600px',
+                showCancelButton: true,
+                showDenyButton: true,
+                confirmButtonText: 'Approve',
+                denyButtonText: 'Reject',
+                cancelButtonText: 'Close',
+                confirmButtonColor: '#22c55e',
+                denyButtonColor: '#ef4444'
+            });
+
+            if (action === true && assignmentId) {
+                // Approve
+                await submitApproval(assignmentId, 'APPROVED', '');
+            } else if (action === false && assignmentId) {
+                // Reject - ask for reason
+                const { value: reason } = await Swal.fire({
+                    title: 'Rejection Reason',
+                    input: 'textarea',
+                    inputLabel: 'Please provide the reason for rejection',
+                    inputPlaceholder: 'Enter reason...',
+                    showCancelButton: true,
+                    inputValidator: (value) => {
+                        if (!value) {
+                            return 'Please provide a reason';
+                        }
+                    }
+                });
+
+                if (reason) {
+                    await submitApproval(assignmentId, 'REJECTED', reason);
+                }
+            }
+        }
+
+        async function submitApproval(assignmentId, status, comment) {
+            Alert.loading('Submitting...');
+            try {
+                const response = await Api.post('/approvals/head', {
+                    assignmentId: assignmentId,
+                    approvedBy: user.userId,
+                    status: status,
+                    comment: comment
+                });
+                Alert.close();
+
+                if (response.success) {
+                    if (status === 'APPROVED') {
+                        Alert.success('Approved!', 'The work has been approved and sent for government approval.');
+                    } else {
+                        Alert.warning('Rejected', 'The work has been rejected. Worker will be notified for rework.');
+                    }
+                    loadDashboard();
+                } else {
+                    Alert.error('Error', response.message);
+                }
+            } catch (error) {
+                Alert.close();
+                Alert.error('Error', 'Failed to submit approval');
+            }
+        }
+
+        // Load dashboard on page load
+        loadDashboard();
+    </script>
+</body>
+</html>

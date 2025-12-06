@@ -1,0 +1,46 @@
+package com.pin2fix.service;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.UUID;
+
+@Service
+public class FileStorageService {
+    
+    @Value("${app.upload.dir:uploads}")
+    private String uploadDir;
+
+    public String storeFile(MultipartFile file, String subFolder) throws IOException {
+        // Create upload directory if it doesn't exist
+        Path uploadPath = Paths.get(uploadDir, subFolder);
+        if (!Files.exists(uploadPath)) {
+            Files.createDirectories(uploadPath);
+        }
+
+        // Generate unique filename
+        String originalFilename = file.getOriginalFilename();
+        String extension = "";
+        if (originalFilename != null && originalFilename.contains(".")) {
+            extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+        }
+        String newFilename = UUID.randomUUID().toString() + extension;
+
+        // Copy file to destination
+        Path destinationPath = uploadPath.resolve(newFilename);
+        Files.copy(file.getInputStream(), destinationPath, StandardCopyOption.REPLACE_EXISTING);
+
+        // Return relative path
+        return "/uploads/" + subFolder + "/" + newFilename;
+    }
+
+    public void deleteFile(String filePath) throws IOException {
+        Path path = Paths.get(uploadDir, filePath.replace("/uploads/", ""));
+        Files.deleteIfExists(path);
+    }
+}
