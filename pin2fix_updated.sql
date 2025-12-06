@@ -68,8 +68,8 @@ CREATE TABLE issues (
   title VARCHAR(255) NOT NULL,
   description TEXT,
   status ENUM(
-      'PENDING','FORWARDED','ASSIGNED','IN_PROGRESS',
-      'EVIDENCE_SUBMITTED','HEAD_APPROVED','COMPLETED','REOPENED','REJECTED'
+      'PENDING','TRIAGED','ASSIGNED','IN_PROGRESS',
+      'EVIDENCE_SUBMITTED','WORK_COMPLETED_PENDING_HEAD_APPROVAL','PENDING_GOV_APPROVAL','COMPLETED','REOPENED','REJECTED'
   ) NOT NULL DEFAULT 'PENDING',
   severity TINYINT NOT NULL DEFAULT 3,
   latitude DECIMAL(10, 8) NOT NULL,
@@ -433,12 +433,12 @@ INSERT INTO users (name, email, password, role, phone) VALUES
 INSERT INTO issues (title, description, status, severity, latitude, longitude, address_text, reporter_id, gov_id, dept_id) VALUES
 -- Chennai Issues
 ('Large Pothole on Anna Salai', 'Dangerous pothole approximately 2 feet wide near Gemini Flyover causing traffic issues and vehicle damage.', 'PENDING', 5, 13.06040000, 80.25180000, 'Anna Salai, Teynampet, Chennai 600018', 55, 1, 1),
-('Broken Street Light at T Nagar', 'Street light not working for 5 days near Pondy Bazaar junction. Very dark and unsafe at night.', 'FORWARDED', 3, 13.04180000, 80.23160000, 'Pondy Bazaar, T Nagar, Chennai 600017', 56, 1, 4),
+('Broken Street Light at T Nagar', 'Street light not working for 5 days near Pondy Bazaar junction. Very dark and unsafe at night.', 'TRIAGED', 3, 13.04180000, 80.23160000, 'Pondy Bazaar, T Nagar, Chennai 600017', 56, 1, 4),
 ('Garbage Dump Overflowing at Mylapore', 'Municipal garbage bin overflowing at Mylapore tank area for 3 days causing health hazards.', 'ASSIGNED', 4, 13.03390000, 80.26920000, 'Mylapore Tank, Chennai 600004', 57, 1, 3),
 ('Water Pipe Leakage at Adyar', 'Major water leakage near Adyar Signal wasting thousands of liters daily.', 'IN_PROGRESS', 4, 13.00620000, 80.25590000, 'Adyar Signal, Chennai 600020', 58, 1, 2),
 ('Road Cave-in at Velachery', 'Road has caved in near Phoenix Mall area creating dangerous situation for vehicles.', 'PENDING', 5, 12.98190000, 80.21880000, 'Velachery Main Road, Chennai 600042', 59, 1, 1),
 ('Sewage Overflow at Chromepet', 'Sewage water overflowing on GST Road near Chromepet creating unhygienic conditions.', 'PENDING', 4, 12.95160000, 80.14060000, 'GST Road, Chromepet, Chennai 600044', 60, 1, 2),
-('Damaged Footpath at Egmore', 'Footpath tiles broken near Egmore Railway Station causing inconvenience to pedestrians.', 'FORWARDED', 2, 13.07320000, 80.26180000, 'Gandhi Irwin Road, Egmore, Chennai 600008', 61, 1, 1),
+('Damaged Footpath at Egmore', 'Footpath tiles broken near Egmore Railway Station causing inconvenience to pedestrians.', 'TRIAGED', 2, 13.07320000, 80.26180000, 'Gandhi Irwin Road, Egmore, Chennai 600008', 61, 1, 1),
 ('Stagnant Water at Ashok Nagar', 'Rainwater stagnation for past week breeding mosquitoes.', 'ASSIGNED', 4, 13.03800000, 80.21200000, '10th Avenue, Ashok Nagar, Chennai 600083', 62, 1, 2),
 ('Street Light Cluster Failure', 'Multiple street lights not working on entire stretch of Kodambakkam High Road.', 'PENDING', 3, 13.05200000, 80.22800000, 'Kodambakkam High Road, Chennai 600024', 63, 1, 4),
 ('Garbage Not Collected at Anna Nagar', 'Garbage not collected for 4 days in 2nd Avenue area.', 'EVIDENCE_SUBMITTED', 3, 13.08600000, 80.20900000, '2nd Avenue, Anna Nagar, Chennai 600040', 64, 1, 3),
@@ -448,11 +448,11 @@ INSERT INTO issues (title, description, status, severity, latitude, longitude, a
 ('Deep Pothole at Gandhipuram', 'Deep pothole on main bus stand road causing accidents.', 'ASSIGNED', 4, 11.01680000, 76.97400000, 'Gandhipuram Bus Stand Road, Coimbatore 641012', 66, 2, 8),
 ('Drainage Block at Peelamedu', 'Drainage completely blocked causing water stagnation and foul smell.', 'IN_PROGRESS', 4, 11.02340000, 77.02490000, 'Peelamedu Main Road, Coimbatore 641004', 67, 2, 9),
 ('Garbage Collection Delay Saibaba Colony', 'No garbage collection for past week in Saibaba Colony area.', 'PENDING', 3, 11.02440000, 76.96670000, 'Saibaba Colony, Coimbatore 641011', 68, 2, 10),
-('Road Damage at Race Course', 'Road surface badly damaged near Race Course area.', 'FORWARDED', 4, 11.01100000, 76.96200000, 'Race Course Road, Coimbatore 641018', 69, 2, 8),
+('Road Damage at Race Course', 'Road surface badly damaged near Race Course area.', 'TRIAGED', 4, 11.01100000, 76.96200000, 'Race Course Road, Coimbatore 641018', 69, 2, 8),
 
 -- Madurai Issues
 ('Road Damage at Anna Nagar Madurai', 'Road completely damaged due to heavy rain near Anna Nagar junction.', 'PENDING', 5, 9.92520000, 78.13480000, 'Anna Nagar, Madurai 625020', 70, 3, 13),
-('Water Supply Disruption Goripalayam', 'No water supply for 3 days in Goripalayam area affecting hundreds of families.', 'FORWARDED', 5, 9.91940000, 78.11600000, 'Goripalayam, Madurai 625002', 71, 3, 14),
+('Water Supply Disruption Goripalayam', 'No water supply for 3 days in Goripalayam area affecting hundreds of families.', 'TRIAGED', 5, 9.91940000, 78.11600000, 'Goripalayam, Madurai 625002', 71, 3, 14),
 ('Open Manhole at Bypass Road', 'Manhole cover missing on Madurai Bypass Road - extremely dangerous for vehicles.', 'ASSIGNED', 5, 9.94560000, 78.08680000, 'Madurai Bypass Road, Madurai 625010', 72, 3, 13),
 ('Street Light Failure at Meenakshi Temple', 'Street lights not working near famous Meenakshi Temple area affecting tourists.', 'PENDING', 3, 9.91970000, 78.11930000, 'East Masi Street, Madurai 625001', 73, 3, 16),
 
@@ -467,7 +467,7 @@ INSERT INTO issues (title, description, status, severity, latitude, longitude, a
 
 -- Other District Issues
 ('Road Damage at Tirunelveli', 'Road damaged near Palayamkottai Junction affecting daily commute.', 'PENDING', 3, 8.71390000, 77.72640000, 'Palayamkottai, Tirunelveli 627002', 79, 6, NULL),
-('Drainage Overflow at Erode Market', 'Drainage overflow at Erode Market area creating unhygienic conditions.', 'FORWARDED', 4, 11.34100000, 77.71720000, 'Erode Market Road, Erode 638001', 55, 7, NULL),
+('Drainage Overflow at Erode Market', 'Drainage overflow at Erode Market area creating unhygienic conditions.', 'TRIAGED', 4, 11.34100000, 77.71720000, 'Erode Market Road, Erode 638001', 55, 7, NULL),
 ('Fort Road Damage at Vellore', 'Road near Vellore Fort badly damaged affecting tourism.', 'PENDING', 3, 12.91650000, 79.13250000, 'Vellore Fort Road, Vellore 632001', 56, 8, NULL);
 
 -- ============================================================
