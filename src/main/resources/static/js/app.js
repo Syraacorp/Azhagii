@@ -234,7 +234,7 @@ const Nav = {
                 Nav.to('/dept/dashboard.html');
                 break;
             case 'AREA_HEAD':
-                Nav.to('/area/dashboard.html');
+                Nav.to('/area-head/dashboard.html');
                 break;
             case 'WORKER':
                 Nav.to('/worker/dashboard.html');
@@ -252,6 +252,16 @@ const Nav = {
             Nav.to('/login.html');
         });
     }
+};
+
+// Auth alias for Session (for backward compatibility)
+const Auth = {
+    getUser: () => Session.get(),
+    setUser: (user) => Session.set(user),
+    isLoggedIn: () => Session.isLoggedIn(),
+    getRole: () => Session.getRole(),
+    getUserId: () => Session.getUserId(),
+    logout: () => Nav.logout()
 };
 
 // Auth Guard

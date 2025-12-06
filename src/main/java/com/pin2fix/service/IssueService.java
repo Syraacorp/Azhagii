@@ -77,7 +77,7 @@ public class IssueService {
     }
 
     public List<Issue> findPendingGovApproval(Long govId) {
-        return issueRepository.findByGovIdAndStatus(govId, IssueStatus.HEAD_APPROVED);
+        return issueRepository.findByGovIdAndStatus(govId, IssueStatus.PENDING_GOV_APPROVAL);
     }
 
     @Transactional
@@ -108,7 +108,7 @@ public class IssueService {
         
         issue.setDeptId(deptId);
         issue.setGovId(govId);
-        issue.setStatus(IssueStatus.FORWARDED);
+        issue.setStatus(IssueStatus.TRIAGED);
         issue = issueRepository.save(issue);
 
         // Log activity

@@ -2,12 +2,12 @@ package com.pin2fix.model;
 
 public enum IssueStatus {
     PENDING,                              // Initial state when citizen reports
-    FORWARDED,                            // Forwarded to department by gov body
-    ASSIGNED,                             // Assigned to worker by dept head
+    TRIAGED,                              // Forwarded to department by gov body
+    ASSIGNED,                             // Assigned to area head/worker
     IN_PROGRESS,                          // Worker started working
-    EVIDENCE_SUBMITTED,                   // Worker submitted evidence
+    EVIDENCE_SUBMITTED,                   // Worker submitted evidence  
     WORK_COMPLETED_PENDING_HEAD_APPROVAL, // Work done, awaiting head approval
-    HEAD_APPROVED,                        // Department head approved
+    PENDING_GOV_APPROVAL,                 // Head approved, awaiting gov body final approval
     COMPLETED,                            // Gov body gave final approval
     REOPENED,                             // Negative feedback, needs rework
     REJECTED                              // Issue rejected

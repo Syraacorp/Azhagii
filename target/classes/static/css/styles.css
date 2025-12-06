@@ -302,19 +302,36 @@ textarea.form-control {
     color: #3730a3;
 }
 
-.status-in-progress {
+.status-in-progress,
+.status-in_progress {
     background-color: #cffafe;
     color: #0e7490;
 }
 
-.status-work-completed {
+.status-evidence-submitted,
+.status-evidence_submitted {
+    background-color: #fef9c3;
+    color: #854d0e;
+}
+
+.status-work-completed,
+.status-work-completed-pending-head-approval,
+.status-work_completed_pending_head_approval {
     background-color: #d1fae5;
     color: #065f46;
 }
 
-.status-pending-gov {
+.status-pending-gov,
+.status-pending-gov-approval,
+.status-pending_gov_approval {
     background-color: #fce7f3;
     color: #9d174d;
+}
+
+.status-head-approved,
+.status-head_approved {
+    background-color: #dbeafe;
+    color: #1e3a8a;
 }
 
 .status-completed {

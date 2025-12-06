@@ -48,7 +48,7 @@ public class ApprovalService {
 
         if (status == ApprovalStatus.APPROVED) {
             // Move to government body approval
-            issue.setStatus(IssueStatus.HEAD_APPROVED);
+            issue.setStatus(IssueStatus.PENDING_GOV_APPROVAL);
             issueRepository.save(issue);
 
             // Notify government body users
