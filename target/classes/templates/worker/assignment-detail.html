@@ -234,7 +234,7 @@
                         <strong>Assigned by:</strong> <span th:text="${assignment?.assignedBy?.name}">Area
                             Head</span><br>
                         <strong>Assigned on:</strong> <span
-                            th:text="${assignment != null ? #temporals.format(assignment.createdAt, 'dd MMM yyyy HH:mm') : 'N/A'}">Date</span>
+                            th:text="${assignment != null && assignment.assignedAt != null ? #temporals.format(assignment.assignedAt, 'dd MMM yyyy HH:mm') : 'N/A'}">Date</span>
                     </small>
                 </div>
             </div>

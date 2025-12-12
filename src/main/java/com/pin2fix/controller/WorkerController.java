@@ -47,8 +47,9 @@ public class WorkerController {
         if (user == null || user.getRole() != Role.WORKER) return "redirect:/login";
         
         List<Assignment> assignments = issueService.getAssignmentsForUser(user.getUserId());
+        // Find assignment by issue ID (since the URL passes issue ID)
         Assignment assignment = assignments.stream()
-            .filter(a -> a.getAssignmentId().equals(id))
+            .filter(a -> a.getIssue() != null && a.getIssue().getIssueId().equals(id))
             .findFirst()
             .orElse(null);
         
