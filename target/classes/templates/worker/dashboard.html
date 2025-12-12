@@ -142,15 +142,15 @@
             justify-content: center;
         }
 
-        .priority-HIGH {
+        .severity-5, .severity-4 {
             border-left: 4px solid #ef4444 !important;
         }
 
-        .priority-MEDIUM {
+        .severity-3 {
             border-left: 4px solid #f59e0b !important;
         }
 
-        .priority-LOW {
+        .severity-2, .severity-1 {
             border-left: 4px solid #10b981 !important;
         }
     </style>
@@ -232,7 +232,7 @@
                     <p>No work assignments yet.</p>
                 </div>
                 <div th:each="assignment : ${assignments}" class="assignment-card"
-                    th:classappend="'priority-' + ${assignment.issue.priority}">
+                    th:classappend="'severity-' + ${assignment.issue.severity}">
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
                             <div class="fw-semibold" th:text="${assignment.issue.title}">Issue Title</div>

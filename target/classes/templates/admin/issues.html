@@ -131,15 +131,15 @@
             color: #ef4444;
         }
 
-        .priority-HIGH {
+        .severity-5, .severity-4 {
             color: #ef4444;
         }
 
-        .priority-MEDIUM {
+        .severity-3 {
             color: #f59e0b;
         }
 
-        .priority-LOW {
+        .severity-2, .severity-1 {
             color: #22c55e;
         }
 
@@ -199,11 +199,13 @@
                 </select>
             </div>
             <div class="col-md-3">
-                <select class="form-select search-box" id="priorityFilter">
-                    <option value="">All Priority</option>
-                    <option value="HIGH">High</option>
-                    <option value="MEDIUM">Medium</option>
-                    <option value="LOW">Low</option>
+                <select class="form-select search-box" id="severityFilter">
+                    <option value="">All Severity</option>
+                    <option value="5">5 - Critical</option>
+                    <option value="4">4 - High</option>
+                    <option value="3">3 - Medium</option>
+                    <option value="2">2 - Low</option>
+                    <option value="1">1 - Minor</option>
                 </select>
             </div>
         </div>
@@ -217,7 +219,7 @@
                             <th>Title</th>
                             <th>Reporter</th>
                             <th>Location</th>
-                            <th>Priority</th>
+                            <th>Severity</th>
                             <th>Status</th>
                             <th>Department</th>
                             <th>Created</th>
@@ -230,8 +232,8 @@
                             <td th:text="${issue.reporter?.name}">Reporter</td>
                             <td th:text="${#strings.abbreviate(issue.addressText, 20)}">Location</td>
                             <td>
-                                <i class="fas fa-flag" th:classappend="'priority-' + ${issue.priority}"></i>
-                                <span th:text="${issue.priority}">Priority</span>
+                                <i class="fas fa-flag" th:classappend="'severity-' + ${issue.severity}"></i>
+                                <span th:text="${issue.severity} + '/5'">Severity</span>
                             </td>
                             <td><span class="status-badge" th:classappend="'status-' + ${issue.status}"
                                     th:text="${issue.status}">Status</span></td>
@@ -248,25 +250,25 @@
     <script>
         document.getElementById('searchInput').addEventListener('keyup', filterTable);
         document.getElementById('statusFilter').addEventListener('change', filterTable);
-        document.getElementById('priorityFilter').addEventListener('change', filterTable);
+        document.getElementById('severityFilter').addEventListener('change', filterTable);
 
         function filterTable() {
             var search = document.getElementById('searchInput').value.toLowerCase();
             var status = document.getElementById('statusFilter').value;
-            var priority = document.getElementById('priorityFilter').value;
+            var severity = document.getElementById('severityFilter').value;
             var rows = document.querySelectorAll('#issuesTable tbody tr');
 
             rows.forEach(function (row) {
                 var title = row.cells[1].textContent.toLowerCase();
                 var reporter = row.cells[2].textContent.toLowerCase();
                 var rowStatus = row.cells[5].textContent.trim();
-                var rowPriority = row.cells[4].textContent.trim();
+                var rowSeverity = row.cells[4].textContent.trim().split('/')[0];
 
                 var matchSearch = title.includes(search) || reporter.includes(search);
                 var matchStatus = !status || rowStatus === status;
-                var matchPriority = !priority || rowPriority === priority;
+                var matchSeverity = !severity || rowSeverity === severity;
 
-                row.style.display = matchSearch && matchStatus && matchPriority ? '' : 'none';
+                row.style.display = matchSearch && matchStatus && matchSeverity ? '' : 'none';
             });
         }
     </script>
