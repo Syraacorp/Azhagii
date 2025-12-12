@@ -18,15 +18,15 @@ public class Assignment {
     @Column(name = "assignment_id")
     private Long assignmentId;
     
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "issue_id", nullable = false)
     private Issue issue;
     
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "assigned_by")
     private User assignedBy;
     
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "assignee_id")
     private User assignee;
     

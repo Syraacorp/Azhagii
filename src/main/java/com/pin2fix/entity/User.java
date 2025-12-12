@@ -33,11 +33,11 @@ public class User {
     @Column(length = 32)
     private String phone;
     
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "dept_id")
     private Department department;
     
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "gov_id")
     private GovernmentBody governmentBody;
     

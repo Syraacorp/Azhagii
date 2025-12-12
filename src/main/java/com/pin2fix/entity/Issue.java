@@ -41,15 +41,15 @@ public class Issue {
     @Column(name = "address_text", length = 512)
     private String addressText;
     
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "reporter_id")
     private User reporter;
     
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "gov_id")
     private GovernmentBody governmentBody;
     
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "dept_id")
     private Department department;
     
