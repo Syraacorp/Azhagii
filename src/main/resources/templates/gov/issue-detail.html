@@ -101,15 +101,61 @@
 
         .photo-gallery {
             display: flex;
-            gap: 10px;
+            gap: 15px;
             flex-wrap: wrap;
         }
 
-        .photo-gallery img {
-            width: 150px;
-            height: 150px;
+        .photo-gallery .photo-item {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .photo-gallery .photo-item:hover {
+            transform: scale(1.05);
+        }
+
+        .photo-gallery .photo-item img {
+            width: 100%;
+            height: 100%;
             object-fit: cover;
+        }
+
+        .photo-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .photo-modal.active {
+            display: flex;
+        }
+
+        .photo-modal img {
+            max-width: 90%;
+            max-height: 90%;
             border-radius: 10px;
+        }
+
+        .photo-modal .close-btn {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: white;
+            font-size: 2rem;
+            cursor: pointer;
         }
 
         .timeline {
@@ -190,8 +236,16 @@
                     <div th:if="${!#lists.isEmpty(photos)}" class="mb-4">
                         <h5><i class="fas fa-images text-primary me-2"></i>Evidence Photos</h5>
                         <div class="photo-gallery">
-                            <img th:each="photo : ${photos}" th:src="${photo.url}" alt="Evidence">
+                            <div th:each="photo : ${photos}" class="photo-item" onclick="openPhotoModal(this)">
+                                <img th:src="${photo.url}" th:alt="${photo.caption}" onerror="this.parentElement.style.display='none'">
+                            </div>
                         </div>
+                        <small class="text-muted mt-2 d-block">Click on any photo to view in full size</small>
+                    </div>
+                    
+                    <div th:if="${#lists.isEmpty(photos)}" class="mb-4">
+                        <h5><i class="fas fa-images text-muted me-2"></i>Evidence Photos</h5>
+                        <p class="text-muted">No photos uploaded for this issue.</p>
                     </div>
 
                     <!-- Actions based on status -->
@@ -250,6 +304,12 @@
         </div>
     </div>
 
+    <!-- Photo Modal -->
+    <div id="photoModal" class="photo-modal" onclick="closePhotoModal()">
+        <span class="close-btn">&times;</span>
+        <img id="modalPhoto" src="" alt="Full Size Photo">
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script th:inline="javascript">
@@ -258,6 +318,22 @@
         var map = L.map('map').setView([lat, lng], 15);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
         L.marker([lat, lng]).addTo(map);
+        
+        // Photo modal functions
+        function openPhotoModal(element) {
+            var img = element.querySelector('img');
+            document.getElementById('modalPhoto').src = img.src;
+            document.getElementById('photoModal').classList.add('active');
+        }
+        
+        function closePhotoModal() {
+            document.getElementById('photoModal').classList.remove('active');
+        }
+        
+        // Close modal on ESC key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closePhotoModal();
+        });
     </script>
 </body>
 

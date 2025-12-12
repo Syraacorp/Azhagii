@@ -9,8 +9,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 @Controller
 @RequestMapping("/gov")
@@ -36,9 +35,19 @@ public class GovBodyController {
         long headApproved = allIssues.stream().filter(i -> i.getStatus() == IssueStatus.HEAD_APPROVED).count();
         long completed = allIssues.stream().filter(i -> i.getStatus() == IssueStatus.COMPLETED).count();
         
+        // Get first photo for each pending issue
+        Map<Long, String> issuePhotos = new HashMap<>();
+        for (Issue issue : pendingIssues) {
+            List<Photo> photos = issueService.getPhotosForIssue(issue.getIssueId());
+            if (photos != null && !photos.isEmpty()) {
+                issuePhotos.put(issue.getIssueId(), photos.get(0).getUrl());
+            }
+        }
+        
         model.addAttribute("user", user);
         model.addAttribute("issues", allIssues);
         model.addAttribute("pendingIssues", pendingIssues);
+        model.addAttribute("issuePhotos", issuePhotos);
         model.addAttribute("departments", governmentService.getDepartmentsByGov(govId));
         model.addAttribute("pendingCount", pending);
         model.addAttribute("forwardedCount", forwarded);

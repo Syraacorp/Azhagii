@@ -7,6 +7,7 @@ com\pin2fix\entity\RoleAssignee.class
 com\pin2fix\entity\Issue$IssueBuilder.class
 com\pin2fix\entity\Photo$PhotoBuilder.class
 com\pin2fix\controller\AuthController.class
+com\pin2fix\config\WebMvcConfig.class
 com\pin2fix\Pin2FixApplication.class
 com\pin2fix\service\IssueService.class
 com\pin2fix\controller\AdminController.class

@@ -110,6 +110,26 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
 
+        .issue-card .issue-thumb {
+            width: 80px;
+            height: 80px;
+            border-radius: 10px;
+            object-fit: cover;
+            margin-right: 15px;
+        }
+
+        .issue-card .no-photo {
+            width: 80px;
+            height: 80px;
+            border-radius: 10px;
+            background: #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
+            margin-right: 15px;
+        }
+
         .status-badge {
             padding: 5px 12px;
             border-radius: 20px;
@@ -244,30 +264,48 @@
                         </div>
                         <div th:each="issue : ${pendingIssues}" th:if="${issue.status.name() == 'PENDING'}"
                             class="issue-card">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <div class="fw-semibold" th:text="${issue.title}">Title</div>
-                                    <small class="text-muted"><i class="fas fa-map-marker-alt me-1"></i><span
-                                            th:text="${issue.addressText}">Location</span></small>
+                            <div class="d-flex">
+                                <!-- Photo Thumbnail -->
+                                <img th:if="${issuePhotos.containsKey(issue.issueId)}" 
+                                     th:src="${issuePhotos.get(issue.issueId)}" 
+                                     alt="Issue Photo" class="issue-thumb"
+                                     onerror="this.style.display='none'">
+                                <div th:unless="${issuePhotos.containsKey(issue.issueId)}" class="no-photo">
+                                    <i class="fas fa-image fa-2x"></i>
                                 </div>
-                                <span class="status-badge status-PENDING">PENDING</span>
+                                
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <div class="fw-semibold" th:text="${issue.title}">Title</div>
+                                            <small class="text-muted"><i class="fas fa-map-marker-alt me-1"></i><span
+                                                    th:text="${issue.addressText}">Location</span></small>
+                                        </div>
+                                        <span class="status-badge status-PENDING">PENDING</span>
+                                    </div>
+                                    <form th:action="@{/gov/forward}" method="post" class="mt-3">
+                                        <input type="hidden" name="issueId" th:value="${issue.issueId}">
+                                        <div class="row g-2">
+                                            <div class="col-8">
+                                                <select name="deptId" class="form-select form-select-sm" required>
+                                                    <option value="">Select Department</option>
+                                                    <option th:each="dept : ${departments}" th:value="${dept.deptId}"
+                                                        th:text="${dept.name}">Dept</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-4">
+                                                <button type="submit" class="btn btn-primary btn-sm w-100">Forward <i
+                                                        class="fas fa-arrow-right ms-1"></i></button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                    <div class="mt-2">
+                                        <a th:href="@{/gov/issue/{id}(id=${issue.issueId})}" class="btn btn-sm btn-outline-secondary">
+                                            <i class="fas fa-eye me-1"></i>View Details
+                                        </a>
+                                    </div>
+                                </div>
                             </div>
-                            <form th:action="@{/gov/forward}" method="post" class="mt-3">
-                                <input type="hidden" name="issueId" th:value="${issue.issueId}">
-                                <div class="row g-2">
-                                    <div class="col-8">
-                                        <select name="deptId" class="form-select form-select-sm" required>
-                                            <option value="">Select Department</option>
-                                            <option th:each="dept : ${departments}" th:value="${dept.deptId}"
-                                                th:text="${dept.name}">Dept</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-4">
-                                        <button type="submit" class="btn btn-primary btn-sm w-100">Forward <i
-                                                class="fas fa-arrow-right ms-1"></i></button>
-                                    </div>
-                                </div>
-                            </form>
                         </div>
                     </div>
                 </div>

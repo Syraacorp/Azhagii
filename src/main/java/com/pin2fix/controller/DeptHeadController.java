@@ -23,8 +23,14 @@ public class DeptHeadController {
     
     @GetMapping("/dashboard")
     public String dashboard(HttpSession session, Model model) {
-        User user = (User) session.getAttribute("user");
-        if (user == null || user.getRole() != Role.DEPT_HEAD) return "redirect:/login";
+        User sessionUser = (User) session.getAttribute("user");
+        if (sessionUser == null || sessionUser.getRole() != Role.DEPT_HEAD) return "redirect:/login";
+        
+        // Re-fetch user from database to ensure department relationship is loaded
+        User user = userService.findById(sessionUser.getUserId()).orElse(null);
+        if (user == null || user.getDepartment() == null) {
+            return "redirect:/login";
+        }
         
         Long deptId = user.getDepartment().getDeptId();
         List<Issue> deptIssues = issueService.findByDeptId(deptId);
@@ -55,8 +61,12 @@ public class DeptHeadController {
     
     @GetMapping("/issue/{id}")
     public String viewIssue(@PathVariable Long id, HttpSession session, Model model) {
-        User user = (User) session.getAttribute("user");
-        if (user == null || user.getRole() != Role.DEPT_HEAD) return "redirect:/login";
+        User sessionUser = (User) session.getAttribute("user");
+        if (sessionUser == null || sessionUser.getRole() != Role.DEPT_HEAD) return "redirect:/login";
+        
+        // Re-fetch user from database to ensure department relationship is loaded
+        User user = userService.findById(sessionUser.getUserId()).orElse(null);
+        if (user == null || user.getDepartment() == null) return "redirect:/login";
         
         Issue issue = issueService.findById(id).orElse(null);
         if (issue == null) return "redirect:/dept/dashboard";
