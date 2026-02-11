@@ -28,7 +28,7 @@ $registrations = $conn->query($reg_sql);
         <h2><?php echo htmlspecialchars($event['title']); ?> - Manage Attendees</h2>
         <p><strong>Date:</strong> <?php echo date('F j, Y, g:i a', strtotime($event['event_date'])); ?></p>
         <p><strong>Location:</strong> <?php echo htmlspecialchars($event['location']); ?></p>
-        
+
         <h3 style="margin-top: 2rem;">Registered Users</h3>
         <div class="table-container">
             <table>
@@ -38,36 +38,51 @@ $registrations = $conn->query($reg_sql);
                         <th>Email</th>
                         <th>Registration Date</th>
                         <th>Status</th>
+                        <th>Feedback</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if ($registrations->num_rows > 0): ?>
-                        <?php while($row = $registrations->fetch_assoc()): ?>
-                        <tr>
-                            <td><?php echo htmlspecialchars($row['username']); ?></td>
-                            <td><?php echo htmlspecialchars($row['email']); ?></td>
-                            <td><?php echo date('M j, Y', strtotime($row['registration_date'])); ?></td>
-                            <td id="status-<?php echo $row['id']; ?>">
-                                <?php 
+                        <?php while ($row = $registrations->fetch_assoc()): ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($row['username']); ?></td>
+                                <td><?php echo htmlspecialchars($row['email']); ?></td>
+                                <td><?php echo date('M j, Y', strtotime($row['registration_date'])); ?></td>
+                                <td id="status-<?php echo $row['id']; ?>">
+                                    <?php
                                     $statusClass = '';
-                                    switch($row['status']) {
-                                        case 'registered': $statusClass = 'color: orange;'; break;
-                                        case 'attended': $statusClass = 'color: green; font-weight: bold;'; break;
-                                        case 'cancelled': $statusClass = 'color: red;'; break;
+                                    switch ($row['status']) {
+                                        case 'registered':
+                                            $statusClass = 'color: orange;';
+                                            break;
+                                        case 'attended':
+                                            $statusClass = 'color: green; font-weight: bold;';
+                                            break; // 'Attended' implies 'Completed'
+                                        case 'cancelled':
+                                            $statusClass = 'color: red;';
+                                            break;
                                     }
-                                    echo "<span style='$statusClass'>" . ucfirst($row['status']) . "</span>";
-                                ?>
-                            </td>
-                            <td>
-                                <?php if($row['status'] !== 'attended'): ?>
-                                    <button onclick="updateStatus(<?php echo $row['id']; ?>, 'attended')" class="btn btn-primary btn-sm">Mark Attended</button>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
+                                    echo "<span style='$statusClass'>" . ($row['status'] === 'attended' ? 'Completed' : ucfirst($row['status'])) . "</span>";
+                                    ?>
+                                </td>
+                                <td><?php echo htmlspecialchars($row['feedback'] ?: '-'); ?></td>
+                                <td>
+                                    <?php if ($row['status'] !== 'attended'): ?>
+                                        <button onclick="markCompleted(<?php echo $row['id']; ?>)"
+                                            class="btn btn-primary btn-sm">Mark Completed</button>
+                                    <?php else: ?>
+                                        <button
+                                            onclick="markCompleted(<?php echo $row['id']; ?>, '<?php echo addslashes($row['feedback']); ?>')"
+                                            class="btn btn-secondary btn-sm" style="font-size: 0.8rem;">Edit Feedback</button>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
                         <?php endwhile; ?>
                     <?php else: ?>
-                        <tr><td colspan="5">No registrations yet.</td></tr>
+                        <tr>
+                            <td colspan="5">No registrations yet.</td>
+                        </tr>
                     <?php endif; ?>
                 </tbody>
             </table>
@@ -76,20 +91,48 @@ $registrations = $conn->query($reg_sql);
 </div>
 
 <script>
-function updateStatus(registrationId, status) {
-    $.ajax({
-        url: 'update_status.php',
-        type: 'POST',
-        data: { id: registrationId, status: status },
-        success: function(response) {
-            Swal.fire({
-                title: 'Updated!',
-                text: 'User status marked as ' + status,
-                icon: 'success',
-                timer: 1500
-            }).then(() => location.reload());
+function markCompleted(registrationId, currentFeedback = '') {
+    Swal.fire({
+        title: 'Mark Event Completed',
+        text: 'Provide feedback to the participant:',
+        input: 'textarea',
+        inputLabel: 'Feedback',
+        inputValue: currentFeedback,
+        inputPlaceholder: 'Great participation! ...',
+        showCancelButton: true,
+        confirmButtonText: 'Save & Mark Completed',
+        showLoaderOnConfirm: true,
+        preConfirm: (feedback) => {
+            // Optional: validation
+            // if (!feedback) {
+            //    Swal.showValidationMessage('Feedback is required')
+            // }
+            return feedback;
         }
-    });
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: 'update_status.php',
+                type: 'POST',
+                data: { 
+                    id: registrationId, 
+                    status: 'attended', 
+                    feedback: result.value 
+                },
+                success: function(response) {
+                    Swal.fire({
+                        title: 'Updated!',
+                        text: 'User marked as Completed.',
+                        icon: 'success',
+                        timer: 1500
+                    }).then(() => location.reload());
+                },
+                error: function() {
+                    Swal.fire('Error', 'Could not update status.', 'error');
+                }
+            });
+        }
+    })
 }
 </script>
 

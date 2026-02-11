@@ -17,6 +17,7 @@ $avail_sql = "SELECT * FROM events
 $avail_res = $conn->query($avail_sql);
 
 // Get my registrations
+// Explicitly ensuring feedback is fetched (r.* covers it if alter table succeeded)
 $my_sql = "SELECT r.*, e.title, e.event_date, e.location 
            FROM registrations r 
            JOIN events e ON r.event_id = e.id 
@@ -62,28 +63,35 @@ $my_res = $conn->query($my_sql);
                 <ul style="list-style: none; margin-top: 1rem;">
                     <?php while ($reg = $my_res->fetch_assoc()): ?>
                         <li style="border-bottom: 1px solid #eee; padding: 1rem 0;">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                                 <div>
-                                    <h4>
-                                        <?php echo htmlspecialchars($reg['title']); ?>
-                                    </h4>
+                                    <h4><?php echo htmlspecialchars($reg['title']); ?></h4>
                                     <small>Status:
                                         <span
                                             style="font-weight: bold; color: <?php echo $reg['status'] === 'attended' ? 'green' : ($reg['status'] === 'cancelled' ? 'red' : 'orange'); ?>">
-                                            <?php echo ucfirst($reg['status']); ?>
+                                                    <?php echo $reg['status'] === 'attended' ? 'Completed' : ucfirst($reg['status']); ?>
                                         </span>
                                     </small>
+                                 <?php if (!empty($reg['feedback'])): ?>
+                                        <div
+                                            style="margin-top: 0.5rem; background: #f0fdf4; padding: 0.5rem; border-left: 3px solid #10b981; font-size: 0.9rem; color: #166534; border-radius: 0.25rem;">
+                                            <strong>Coordinator Feedback:</strong><br>
+                                            <i class="fas fa-quote-left"
+                                                style="font-size: 0.8rem; opacity: 0.5; margin-right: 5px;"></i>
+                                                        <?php echo nl2br(htmlspecialchars($reg['feedback'])); ?>
+                                        </div>
+                                            <?php endif; ?>
                                 </div>
-                                <div>
-                                    <?php if ($reg['status'] === 'attended'): ?>
+                                <div style="margin-left: 1rem; flex-shrink: 0;">
+                                            <?php if ($reg['status'] === 'attended'): ?>
                                         <a href="<?php echo BASE_URL; ?>/certificate.php?id=<?php echo $reg['event_id']; ?>"
                                             target="_blank" class="btn btn-sm"
                                             style="background-color: #10b981; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 0.5rem; text-decoration: none;"><i
-                                                class="fas fa-download"></i> Certificate</a>
-                                    <?php elseif ($reg['status'] === 'registered'): ?>
+                                                class="fas fa-download"></i> Download Certificate</a>
+                               <?php elseif ($reg['status'] === 'registered'): ?>
                                         <button onclick="cancelRegistration(<?php echo $reg['id']; ?>)"
                                             class="btn btn-danger btn-sm">Cancel</button>
-                                    <?php endif; ?>
+                                  <?php endif; ?>
                                 </div>
                             </div>
                         </li>
