@@ -1,81 +1,343 @@
 <?php
-require_once 'config/db.php';
-require_once 'includes/header.php';
-
-if (isset($_SESSION['user_id'])) {
-    header("Location: " . BASE_URL . "/");
-    exit;
-}
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = $conn->real_escape_string($_POST['username']);
-    $email = $conn->real_escape_string($_POST['email']);
-    $password = $_POST['password'];
-    $confirm_password = $_POST['confirm_password'];
-    $role = 'user';
-
-    if ($password !== $confirm_password) {
-        $error = "Passwords do not match.";
-    } elseif (strlen($password) < 6) {
-        $error = "Password must be at least 6 characters.";
-    } else {
-        $check = $conn->query("SELECT id FROM users WHERE email = '$email'");
-        if ($check->num_rows > 0) {
-            $error = "Email already registered.";
-        } else {
-            $sql = "INSERT INTO users (username, email, password, role) VALUES ('$username', '$email', '$password', '$role')";
-
-            if ($conn->query($sql)) {
-                $_SESSION['success'] = "Registration successful! Please login.";
-                header("Location: " . BASE_URL . "/login.php");
-                exit;
-            } else {
-                $error = "Error: " . $conn->error;
-            }
-        }
-    }
-}
+require_once 'db.php';
+session_start();
 ?>
+<!DOCTYPE html>
+<html lang="en">
 
-<div class="auth-wrapper">
-    <div class="auth-card" style="max-width: 480px;">
-        <div class="card">
-            <h2><i class="fas fa-user-plus" style="color: var(--primary); margin-right: 0.5rem;"></i> Create Account</h2>
-            <p class="auth-subtitle">Join us and start managing your events.</p>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Ziya</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <style>
+        .swal2-popup {
+            background: #1e1f20 !important;
+            color: #e3e3e3 !important;
+            border: 1px solid #444746 !important;
+        }
 
-            <?php if (isset($error)): ?>
-                <div class="alert alert-error">
-                    <i class="fas fa-exclamation-circle"></i>
-                    <?php echo $error; ?>
-                </div>
-            <?php endif; ?>
+        .swal2-title {
+            color: #e3e3e3 !important;
+        }
 
-            <form method="POST" action="">
-                <div class="form-group">
-                    <label for="username"><i class="fas fa-user" style="margin-right: 0.25rem; color: var(--text-light);"></i> Full Name</label>
-                    <input type="text" name="username" id="username" class="form-control" placeholder="John Doe" required
-                        value="<?php echo isset($_POST['username']) ? htmlspecialchars($_POST['username']) : ''; ?>">
+        .swal2-timer-progress-bar {
+            background: linear-gradient(90deg, #4285f4, #9b72cb, #d96570) !important;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="auth-wrapper">
+        <!-- Left Side: Brand -->
+        <div class="auth-brand-side">
+            <div class="auth-brand-bg"></div>
+            <div class="auth-brand-content">
+                <div class="logo">
+                    <span class="sparkle-icon"></span> Ziya
                 </div>
-                <div class="form-group">
-                    <label for="email"><i class="fas fa-envelope" style="margin-right: 0.25rem; color: var(--text-light);"></i> Email Address</label>
-                    <input type="email" name="email" id="email" class="form-control" placeholder="you@example.com" required
-                        value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>">
+                <p>Join the community and start creating unforgettable events today.</p>
+            </div>
+        </div>
+
+        <!-- Right Side: Form -->
+        <div class="auth-form-side">
+            <a href="index.php" class="back-to-home">
+                <i class="fas fa-arrow-left"></i> Back to Home
+            </a>
+
+            <div class="auth-card">
+                <div class="auth-header">
+                    <h2>Create Account</h2>
+
+                    <p style="color: var(--text-muted);">It's free and easy to get started.</p>
                 </div>
-                <div class="form-group">
-                    <label for="password"><i class="fas fa-lock" style="margin-right: 0.25rem; color: var(--text-light);"></i> Password</label>
-                    <input type="password" name="password" id="password" class="form-control" placeholder="Min 6 characters" required minlength="6">
+
+                <!-- Error/Success containers handled by Swal, kept empty -->
+
+
+
+                <form id="registerForm">
+                    <!-- Name -->
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label
+                            style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-muted);">Full
+                            Name</label>
+                        <input type="text" name="name" class="form-input" placeholder="John Doe" required>
+                    </div>
+
+                    <!-- Department & Year (Flex) -->
+                    <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                        <div class="form-group" style="flex: 1;">
+                            <label
+                                style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-muted);">Department</label>
+                            <select name="department" id="department" class="form-input" required>
+                                <option value="" disabled selected>Select Dept</option>
+                                <option value="AIDS">AIDS</option>
+                                <option value="AIML">AIML</option>
+                                <option value="CSE">CSE</option>
+                                <option value="CSBS">CSBS</option>
+                                <option value="CYBER">CYBER</option>
+                                <option value="ECE">ECE</option>
+                                <option value="EEE">EEE</option>
+                                <option value="MECH">MECH</option>
+                                <option value="CIVIL">CIVIL</option>
+                                <option value="IT">IT</option>
+                                <option value="VLSI">VLSI</option>
+                                <option value="MBA">MBA</option>
+                                <option value="MCA">MCA</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label
+                                style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-muted);">Year</label>
+                            <select name="year" id="year" class="form-input" required>
+                                <option value="" disabled selected>Select Year</option>
+                                <option value="I year">I Year</option>
+                                <option value="II year">II Year</option>
+                                <option value="III year">III Year</option>
+                                <option value="IV year">IV Year</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Roll Number (Auto-filled) -->
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label
+                            style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-muted);">Register
+                            Number</label>
+                        <input type="text" name="regno" id="rollNumber" class="form-input" placeholder="Auto-generated"
+                            required>
+                    </div>
+
+                    <!-- Email & Phone (Flex) -->
+                    <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                        <div class="form-group" style="flex: 1;">
+                            <label
+                                style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-muted);">Email</label>
+                            <input type="email" name="email" class="form-input" placeholder="name@example.com" required>
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label
+                                style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-muted);">Phone</label>
+                            <input type="tel" name="phone" class="form-input" placeholder="1234567890" required>
+                        </div>
+                    </div>
+
+                    <!-- Username -->
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label
+                            style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-muted);">Username</label>
+                        <input type="text" name="username" class="form-input" placeholder="unique_user" required>
+                    </div>
+
+                    <!-- Passwords -->
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label
+                            style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-muted);">Password</label>
+                        <input type="password" name="password" class="form-input" placeholder="••••••••" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label
+                            style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-muted);">Confirm
+                            Password</label>
+                        <input type="password" name="confirm_password" class="form-input" placeholder="••••••••"
+                            required>
+                    </div>
+
+
+                    <button type="submit" class="btn btn-primary"
+                        style="width: 100%; justify-content: center; margin-top: 1rem;">
+                        Create Account
+                    </button>
+                </form>
+
+                <script>
+                    // Roll Number Logic
+                    const departmentSelect = document.getElementById('department');
+                    const yearSelect = document.getElementById('year');
+                    const rollNumberInput = document.getElementById('rollNumber');
+
+                    let currentFixedPrefix = '';
+                    let isRollPrefixLocked = false;
+
+                    const deptCodes = {
+                        'AIDS': 'BAD',
+                        'AIML': 'BAM',
+                        'CSE': 'BCS',
+                        'CSBS': 'BCB',
+                        'CYBER': 'BSC',
+                        'ECE': 'BEC',
+                        'EEE': 'BEE',
+                        'MECH': 'BME',
+                        'CIVIL': 'BCE',
+                        'IT': 'BIT',
+                        'VLSI': 'BEV',
+                        'MBA': 'MBA',
+                        'MCA': 'MCA'
+                    };
+
+                    const yearCodes = {
+                        'I year': '927625',
+                        'II year': '927624',
+                        'III year': '927623',
+                        'IV year': '927622'
+                    };
+
+                    // Enforce the prefix if locked
+                    rollNumberInput.addEventListener('input', function () {
+                        if (isRollPrefixLocked && currentFixedPrefix) {
+                            if (!this.value.startsWith(currentFixedPrefix)) {
+                                this.value = currentFixedPrefix;
+                            }
+                        }
+                    });
+
+                    // Prevent deleting the prefix via backspace for better UX
+                    rollNumberInput.addEventListener('keydown', function (e) {
+                        if (isRollPrefixLocked && currentFixedPrefix) {
+                            if (this.selectionStart <= currentFixedPrefix.length && e.key === 'Backspace') {
+                                e.preventDefault();
+                            }
+                        }
+                    });
+
+                    function checkAutoFillRollNumber() {
+                        const dept = departmentSelect.value;
+                        const year = yearSelect.value;
+
+                        // Logic for CYBER department: Only I Year allowed
+                        if (dept === 'CYBER') {
+                            // This part handles hiding logic implicitly via option management or validation usually
+                            // For simplicity given current HTML structure, we'll keep year options open
+                            // If "CYBER" is selected, force logic or show alert if needed.
+                            // Implementing user specific logic:
+                            Array.from(yearSelect.options).forEach(opt => {
+                                if (opt.value === 'I year' || opt.value === '') {
+                                    opt.style.display = 'block';
+                                    opt.disabled = false;
+                                } else {
+                                    opt.style.display = 'none';
+                                    opt.disabled = true;
+                                }
+                            });
+                            if (yearSelect.value && yearSelect.value !== 'I year') {
+                                yearSelect.value = 'I year';
+                            }
+                        } else {
+                            Array.from(yearSelect.options).forEach(opt => {
+                                opt.style.display = 'block';
+                                opt.disabled = false;
+                            });
+                        }
+
+                        // Re-fetch year after potential reset
+                        const currentYear = yearSelect.value;
+                        let prefix = '';
+
+                        if (dept && currentYear && yearCodes[currentYear]) {
+                            const yCode = yearCodes[currentYear];
+                            let dCode = deptCodes[dept] || '';
+
+                            if (dept === 'AIML' && currentYear === 'IV year') {
+                                dCode = 'BAL';
+                            }
+
+                            if (dCode) {
+                                prefix = yCode + dCode;
+                            }
+                        }
+
+                        if (prefix) {
+                            // Start locking
+                            if (currentFixedPrefix !== prefix) {
+                                rollNumberInput.value = prefix;
+                            } else if (!rollNumberInput.value.startsWith(prefix)) {
+                                rollNumberInput.value = prefix;
+                            }
+                            currentFixedPrefix = prefix;
+                            isRollPrefixLocked = true;
+                        } else {
+                            // unlock if selection invalid
+                            // currentFixedPrefix = ''; // Optional: Keep prefix until explicit clear or change?
+                            // Let's keep strict behavior
+                        }
+                    }
+
+                    departmentSelect.addEventListener('change', checkAutoFillRollNumber);
+                    yearSelect.addEventListener('change', checkAutoFillRollNumber);
+
+
+                    // AJAX Submission
+                    $(document).on('submit', '#registerForm', function (e) {
+                        e.preventDefault();
+
+                        var formData = new FormData(this);
+                        formData.append("register_user", true);
+
+                        $.ajax({
+                            type: "POST",
+                            url: "backend.php",
+                            data: formData,
+                            processData: false,
+                            contentType: false,
+                            success: function (response) {
+                                var res = response;
+                                if (res.status == 200) {
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'Success',
+                                        text: res.message,
+                                        background: '#1e1f20',
+                                        color: '#e3e3e3',
+                                        confirmButtonColor: '#4285f4'
+                                    }).then((result) => {
+                                        window.location.href = res.redirect;
+                                    });
+                                } else {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'Error',
+                                        text: res.message,
+                                        background: '#1e1f20',
+                                        color: '#e3e3e3',
+                                        confirmButtonColor: '#4285f4'
+                                    });
+                                }
+                            },
+                            error: function (xhr, status, error) {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Server Error',
+                                    text: 'Something went wrong!',
+                                    background: '#1e1f20',
+                                    color: '#e3e3e3',
+                                    confirmButtonColor: '#4285f4'
+                                });
+                            }
+                        });
+                    });
+                </script>
+
+                <div style="text-align: center; margin-top: 2rem; font-size: 0.9rem; c
+ o                              lor: var(--text-muted);">
+                    Already have an account? <a href="login.php" class="text-gradient" style="font-weight: 600;">Sign
+                        In</a>
                 </div>
-                <div class="form-group">
-                    <label for="confirm_password"><i class="fas fa-lock" style="margin-right: 0.25rem; color: var(--text-light);"></i> Confirm Password</label>
-                    <input type="password" name="confirm_password" id="confirm_password" class="form-control" placeholder="Re-enter password" required minlength="6">
-                </div>
-                <button type="submit" class="btn btn-primary btn-block"><i class="fas fa-user-plus"></i> Register</button>
-            </form>
-            <p class="auth-footer">
-                Already have an account? <a href="<?php echo BASE_URL; ?>/login.php">Login here</a>
-            </p>
+            </div>
         </div>
     </div>
-</div>
 
-<?php require_once 'includes/footer.php'; ?>
+
+</body>
+
+</html>
