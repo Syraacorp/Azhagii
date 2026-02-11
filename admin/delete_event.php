@@ -1,10 +1,10 @@
 <?php
 session_start();
+require_once '../config/db.php';
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    header("Location: /login.php");
+    header("Location: " . BASE_URL . "/login.php");
     exit;
 }
-require_once '../config/db.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = intval($_POST['id']);

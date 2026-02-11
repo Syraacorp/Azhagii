@@ -57,5 +57,5 @@ foreach ($events as $event) {
 }
 
 echo "<hr>";
-echo "<a href='/login.php'>Go to Login</a>";
+echo "<a href='" . BASE_URL . "/login.php'>Go to Login</a>";
 ?>

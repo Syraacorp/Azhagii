@@ -15,7 +15,7 @@ $role = $_SESSION['role'] ?? 'user';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - EventManager</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>/assets/css/style.css">
@@ -24,6 +24,9 @@ $role = $_SESSION['role'] ?? 'user';
 
 <body class="dashboard-body">
     <div class="dashboard-wrapper">
+        <!-- Sidebar Overlay for mobile -->
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
         <!-- Sidebar -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
@@ -54,7 +57,9 @@ $role = $_SESSION['role'] ?? 'user';
             <!-- Top Header -->
             <header class="top-header">
                 <div class="header-left">
-                    <i class="fas fa-bars menu-toggle" id="menu-toggle"></i>
+                    <button class="menu-toggle" id="menu-toggle" aria-label="Toggle sidebar">
+                        <i class="fas fa-bars"></i>
+                    </button>
                     <h2 class="page-title">
                         <?php
                         if ($current_page == 'index.php')
@@ -86,9 +91,9 @@ $role = $_SESSION['role'] ?? 'user';
                         <i class="fas fa-chevron-down" style="font-size: 0.8rem; color: var(--text-light);"></i>
                     </div>
                     <div class="dropdown-menu" id="user-dropdown">
-                        <div class="dropdown-item">
-                            <i class="fas fa-user-circle"></i> Profile
-                        </div>
+                        <a href="<?php echo BASE_URL; ?>/" class="dropdown-item">
+                            <i class="fas fa-home"></i> Home
+                        </a>
                         <div class="dropdown-divider"></div>
                         <a href="<?php echo BASE_URL; ?>/logout.php" class="dropdown-item"
                             style="color: var(--accent);">
@@ -97,6 +102,9 @@ $role = $_SESSION['role'] ?? 'user';
                     </div>
                 </div>
             </header>
+
+            <!-- Dashboard Content Area -->
+            <div class="dashboard-content">
 
             <!-- Page Content -->
             <div class="dashboard-content">

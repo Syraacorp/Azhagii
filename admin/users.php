@@ -1,21 +1,25 @@
 <?php
 session_start();
+require_once '../config/db.php';
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
     header("Location: " . BASE_URL . "/login.php");
     exit;
 }
-require_once '../config/db.php';
 require_once '../includes/dashboard_header.php';
 
 // Fetch users
 $sql = "SELECT * FROM users ORDER BY created_at DESC";
 $result = $conn->query($sql);
+$user_count = $result->num_rows;
 ?>
 
 <div class="container">
-    <h2>Manage Users</h2>
-    <div class="card">
-        <div class="table-container">
+    <div class="dashboard-top-bar">
+        <h3 style="margin: 0;">All Users <span class="badge badge-user" style="margin-left: 0.5rem;"><?php echo $user_count; ?></span></h3>
+    </div>
+
+    <div class="card" style="padding: 0; overflow: hidden;">
+        <div class="table-container" style="border: none;">
             <table>
                 <thead>
                     <tr>
@@ -31,15 +35,10 @@ $result = $conn->query($sql);
                         <?php while($row = $result->fetch_assoc()): ?>
                         <tr>
                             <td><?php echo $row['id']; ?></td>
-                            <td><?php echo htmlspecialchars($row['username']); ?></td>
+                            <td><strong><?php echo htmlspecialchars($row['username']); ?></strong></td>
                             <td><?php echo htmlspecialchars($row['email']); ?></td>
                             <td>
-                                <span style="
-                                    background-color: <?php echo $row['role'] === 'admin' ? '#2ecc71' : '#3498db'; ?>; 
-                                    color: white; 
-                                    padding: 0.2rem 0.5rem; 
-                                    border-radius: 4px; 
-                                    font-size: 0.8rem;">
+                                <span class="badge <?php echo $row['role'] === 'admin' ? 'badge-admin' : 'badge-user'; ?>">
                                     <?php echo ucfirst($row['role']); ?>
                                 </span>
                             </td>
@@ -47,7 +46,14 @@ $result = $conn->query($sql);
                         </tr>
                         <?php endwhile; ?>
                     <?php else: ?>
-                        <tr><td colspan="5">No users found.</td></tr>
+                        <tr>
+                            <td colspan="5">
+                                <div class="empty-state">
+                                    <i class="fas fa-user-slash"></i>
+                                    <p>No users found.</p>
+                                </div>
+                            </td>
+                        </tr>
                     <?php endif; ?>
                 </tbody>
             </table>

@@ -1,10 +1,10 @@
 <?php
 session_start();
+require_once '../config/db.php';
 if (!isset($_SESSION['user_id'])) {
     header("Location: " . BASE_URL . "/login.php");
     exit;
 }
-require_once '../config/db.php';
 require_once '../includes/dashboard_header.php';
 
 $user_id = $_SESSION['user_id'];
@@ -17,88 +17,135 @@ $avail_sql = "SELECT * FROM events
 $avail_res = $conn->query($avail_sql);
 
 // Get my registrations
-// Explicitly ensuring feedback is fetched (r.* covers it if alter table succeeded)
 $my_sql = "SELECT r.*, e.title, e.event_date, e.location 
            FROM registrations r 
            JOIN events e ON r.event_id = e.id 
            WHERE r.user_id = $user_id 
            ORDER BY e.event_date DESC";
 $my_res = $conn->query($my_sql);
+
+// Stats
+$total_registered = $conn->query("SELECT COUNT(*) as c FROM registrations WHERE user_id = $user_id AND status='registered'")->fetch_assoc()['c'];
+$total_completed = $conn->query("SELECT COUNT(*) as c FROM registrations WHERE user_id = $user_id AND status='attended'")->fetch_assoc()['c'];
+$total_cancelled = $conn->query("SELECT COUNT(*) as c FROM registrations WHERE user_id = $user_id AND status='cancelled'")->fetch_assoc()['c'];
 ?>
 
 <div class="container">
+    <!-- Stats -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon orange"><i class="fas fa-clipboard-list"></i></div>
+            <div class="stat-info">
+                <h3><?php echo $total_registered; ?></h3>
+                <p>Registered</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green"><i class="fas fa-check-double"></i></div>
+            <div class="stat-info">
+                <h3><?php echo $total_completed; ?></h3>
+                <p>Completed</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon purple"><i class="fas fa-ban"></i></div>
+            <div class="stat-info">
+                <h3><?php echo $total_cancelled; ?></h3>
+                <p>Cancelled</p>
+            </div>
+        </div>
+    </div>
+
     <div class="grid">
         <!-- Available Events -->
         <div class="card">
-            <h3>Upcoming Events</h3>
+            <h3><i class="fas fa-calendar-alt" style="color: var(--primary); margin-right: 0.5rem;"></i> Upcoming Events</h3>
             <?php if ($avail_res->num_rows > 0): ?>
-                <ul style="list-style: none; margin-top: 1rem;">
+                <ul class="event-list">
                     <?php while ($event = $avail_res->fetch_assoc()): ?>
-                        <li style="border-bottom: 1px solid #eee; padding: 1rem 0;">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <div>
-                                    <h4>
-                                        <?php echo htmlspecialchars($event['title']); ?>
-                                    </h4>
+                        <li>
+                            <div class="event-item">
+                                <div class="event-item-info">
+                                    <h4><?php echo htmlspecialchars($event['title']); ?></h4>
                                     <small>
-                                        <?php echo date('M j, Y h:i A', strtotime($event['event_date'])); ?> |
-                                        <?php echo htmlspecialchars($event['location']); ?>
+                                        <i class="fas fa-calendar"></i> <?php echo date('M j, Y h:i A', strtotime($event['event_date'])); ?>
+                                        <br>
+                                        <i class="fas fa-map-marker-alt"></i> <?php echo htmlspecialchars($event['location']); ?>
                                     </small>
                                 </div>
-                                <button onclick="registerEvent(<?php echo $event['id']; ?>)"
-                                    class="btn btn-primary btn-sm">Register</button>
+                                <div class="event-item-actions">
+                                    <button onclick="registerEvent(<?php echo $event['id']; ?>)"
+                                        class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> Register</button>
+                                </div>
                             </div>
                         </li>
                     <?php endwhile; ?>
                 </ul>
             <?php else: ?>
-                <p>No new upcoming events available.</p>
+                <div class="empty-state">
+                    <i class="fas fa-calendar-check"></i>
+                    <p>No new upcoming events available.</p>
+                </div>
             <?php endif; ?>
         </div>
 
         <!-- My Events -->
         <div class="card">
-            <h3>My Registrations</h3>
+            <h3><i class="fas fa-bookmark" style="color: var(--primary); margin-right: 0.5rem;"></i> My Registrations</h3>
             <?php if ($my_res->num_rows > 0): ?>
-                <ul style="list-style: none; margin-top: 1rem;">
+                <ul class="event-list">
                     <?php while ($reg = $my_res->fetch_assoc()): ?>
-                        <li style="border-bottom: 1px solid #eee; padding: 1rem 0;">
-                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                                <div>
+                        <li>
+                            <div class="event-item" style="align-items: flex-start;">
+                                <div class="event-item-info">
                                     <h4><?php echo htmlspecialchars($reg['title']); ?></h4>
-                                    <small>Status:
-                                        <span
-                                            style="font-weight: bold; color: <?php echo $reg['status'] === 'attended' ? 'green' : ($reg['status'] === 'cancelled' ? 'red' : 'orange'); ?>">
-                                                    <?php echo $reg['status'] === 'attended' ? 'Completed' : ucfirst($reg['status']); ?>
-                                        </span>
+                                    <small>
+                                        Status:
+                                        <?php
+                                        $badgeClass = '';
+                                        $statusLabel = ucfirst($reg['status']);
+                                        switch ($reg['status']) {
+                                            case 'registered':
+                                                $badgeClass = 'badge-registered';
+                                                break;
+                                            case 'attended':
+                                                $badgeClass = 'badge-completed';
+                                                $statusLabel = 'Completed';
+                                                break;
+                                            case 'cancelled':
+                                                $badgeClass = 'badge-cancelled';
+                                                break;
+                                        }
+                                        ?>
+                                        <span class="badge <?php echo $badgeClass; ?>"><?php echo $statusLabel; ?></span>
                                     </small>
-                                 <?php if (!empty($reg['feedback'])): ?>
-                                        <div
-                                            style="margin-top: 0.5rem; background: #f0fdf4; padding: 0.5rem; border-left: 3px solid #10b981; font-size: 0.9rem; color: #166534; border-radius: 0.25rem;">
-                                            <strong>Coordinator Feedback:</strong><br>
-                                            <i class="fas fa-quote-left"
-                                                style="font-size: 0.8rem; opacity: 0.5; margin-right: 5px;"></i>
-                                                        <?php echo nl2br(htmlspecialchars($reg['feedback'])); ?>
+
+                                    <?php if (!empty($reg['feedback'])): ?>
+                                        <div class="feedback-block">
+                                            <strong><i class="fas fa-comment-dots"></i> Coordinator Feedback</strong>
+                                            <?php echo nl2br(htmlspecialchars($reg['feedback'])); ?>
                                         </div>
-                                            <?php endif; ?>
+                                    <?php endif; ?>
                                 </div>
-                                <div style="margin-left: 1rem; flex-shrink: 0;">
-                                            <?php if ($reg['status'] === 'attended'): ?>
+                                <div class="event-item-actions">
+                                    <?php if ($reg['status'] === 'attended'): ?>
                                         <a href="<?php echo BASE_URL; ?>/certificate.php?id=<?php echo $reg['event_id']; ?>"
-                                            target="_blank" class="btn btn-sm"
-                                            style="background-color: #10b981; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 0.5rem; text-decoration: none;"><i
-                                                class="fas fa-download"></i> Download Certificate</a>
-                               <?php elseif ($reg['status'] === 'registered'): ?>
+                                            target="_blank" class="btn btn-success btn-sm">
+                                            <i class="fas fa-download"></i> Certificate</a>
+                                    <?php elseif ($reg['status'] === 'registered'): ?>
                                         <button onclick="cancelRegistration(<?php echo $reg['id']; ?>)"
-                                            class="btn btn-danger btn-sm">Cancel</button>
-                                  <?php endif; ?>
+                                            class="btn btn-danger btn-sm"><i class="fas fa-times"></i> Cancel</button>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </li>
                     <?php endwhile; ?>
                 </ul>
             <?php else: ?>
-                <p>You haven't registered for any events yet.</p>
+                <div class="empty-state">
+                    <i class="fas fa-folder-open"></i>
+                    <p>You haven't registered for any events yet.</p>
+                </div>
             <?php endif; ?>
         </div>
     </div>
@@ -111,11 +158,16 @@ $my_res = $conn->query($my_sql);
             type: 'POST',
             data: { event_id: eventId },
             success: function (response) {
-                Swal.fire('Registered!', 'You have successfully marked your spot.', 'success')
-                    .then(() => location.reload());
+                Swal.fire({
+                    title: 'Registered!',
+                    text: 'You have successfully marked your spot.',
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false
+                }).then(function() { location.reload(); });
             },
             error: function () {
-                Swal.fire('Error', 'Could not register.', 'error');
+                Swal.fire('Error', 'Could not register. Please try again.', 'error');
             }
         });
     }
@@ -123,22 +175,31 @@ $my_res = $conn->query($my_sql);
     function cancelRegistration(regId) {
         Swal.fire({
             title: 'Cancel Registration?',
+            text: 'Are you sure you want to cancel this registration?',
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonText: 'Yes, cancel'
-        }).then((result) => {
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: '<i class="fas fa-times"></i> Yes, cancel it',
+            cancelButtonText: 'Keep it'
+        }).then(function(result) {
             if (result.isConfirmed) {
                 $.ajax({
                     url: 'cancel_registration.php',
                     type: 'POST',
                     data: { id: regId },
                     success: function (response) {
-                        Swal.fire('Cancelled', 'Registration cancelled.', 'success')
-                            .then(() => location.reload());
+                        Swal.fire({
+                            title: 'Cancelled',
+                            text: 'Registration cancelled successfully.',
+                            icon: 'success',
+                            timer: 1500,
+                            showConfirmButton: false
+                        }).then(function() { location.reload(); });
                     }
                 });
             }
-        })
+        });
     }
 </script>
 
