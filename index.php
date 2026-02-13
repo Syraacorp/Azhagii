@@ -1,6 +1,5 @@
 <?php
 require_once 'db.php';
-session_start();
 
 // Fetch Upcoming Events
 $sql_upcoming = "SELECT * FROM events WHERE event_date >= NOW() ORDER BY event_date ASC LIMIT 6";
@@ -39,20 +38,10 @@ $result_past = $conn->query($sql_past);
                 <li><a href="#upcoming">Upcoming</a></li>
                 <li><a href="#past">Past</a></li>
                 <li><a href="#contact">Contact</a></li>
-                <?php if (isset($_SESSION['user_id'])): ?>
-                    <li><a href="dashboard.php" class="active">Dashboard</a></li>
-                <?php endif; ?>
+
             </ul>
 
-            <?php if (isset($_SESSION['user_id'])): ?>
-                <div style="display: flex; gap: 1rem; align-items: center;">
-                    <span style="color: var(--text-muted); font-size: 0.9rem;">Hi,
-                        <?php echo htmlspecialchars($_SESSION['username']); ?></span>
-                    <a href="logout.php" class="btn btn-outline" style="padding: 0.5rem 1rem; font-size: 0.9rem;">Logout</a>
-                </div>
-            <?php else: ?>
-                <a href="login.php" class="btn btn-primary">Sign In</a>
-            <?php endif; ?>
+
         </div>
     </nav>
 
