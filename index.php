@@ -12,6 +12,11 @@ session_start();
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 <body>
+    <script>
+        // Persist theme from dashboard
+        const savedTheme = localStorage.getItem('ziya-theme') || 'dark';
+        document.body.setAttribute('data-theme', savedTheme);
+    </script>
     <!-- Navbar -->
     <nav class="navbar">
         <div class="nav-container">
@@ -43,7 +48,7 @@ session_start();
         <div class="hero-content">
             <div class="hero-badge"><i class="fas fa-graduation-cap"></i> Multi-College LMS Platform</div>
             <h1>The Future of <br><span>Learning Experience</span></h1>
-            <p>Ziya empowers colleges with a unified learning platform. Manage courses, deliver content, and track progress across multiple institutions seamlessly.</p>
+            <p>Ziyaa empowers colleges with a unified learning platform. Manage courses, deliver content, and track progress across multiple institutions seamlessly.</p>
             <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
                 <a href="register.php" class="btn btn-primary"><i class="fas fa-rocket"></i> Start Learning</a>
                 <a href="#features" class="btn btn-outline"><i class="fas fa-info-circle"></i> Learn More</a>
@@ -53,11 +58,11 @@ session_start();
 
     <!-- About -->
     <section id="about">
-        <div class="section-header"><h2>About Ziya LMS</h2></div>
+        <div class="section-header"><h2>About Ziyaa LMS</h2></div>
         <div class="about-grid">
             <div class="about-card">
                 <h3><i class="fas fa-globe" style="color:var(--accent-purple);margin-right:10px;"></i> Multi-College SaaS</h3>
-                <p>One platform, many institutions. Ziya is built for the multi-college use case — each college operates independently while administrators have a global view.</p>
+                <p>One platform, many institutions. Ziyaa is built for the multi-college use case — each college operates independently while administrators have a global view.</p>
             </div>
             <div class="about-card" style="border-color:var(--accent-blue);">
                 <h3><i class="fas fa-shield-alt" style="color:var(--accent-blue);margin-right:10px;"></i> Role-Based Access</h3>
@@ -148,9 +153,9 @@ session_start();
     <footer class="site-footer">
         <div class="footer-content">
             <h3 class="logo" style="justify-content:center;margin-bottom:1rem;">
-                <span class="sparkle-icon"></span> Ziya
+                <span class="sparkle-icon"></span> Ziyaa
             </h3>
-            <p>&copy; <?= date('Y') ?> Ziya LMS. All rights reserved.</p>
+            <p>&copy; <?= date('Y') ?> Ziyaa LMS. All rights reserved.</p>
             <div class="footer-links">
                 <a href="#">Privacy Policy</a>
                 <a href="#">Terms of Service</a>

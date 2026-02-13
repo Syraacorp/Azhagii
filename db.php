@@ -10,8 +10,10 @@ $conn = mysqli_connect($servername, $username, $password, $dbname);
 
 // Check connection
 if (!$conn) {
-    die("Connection failed: " . mysqli_connect_error() . 
-        " (Host: $servername, User: $username, DB: $dbname)");
+    // Output JSON error (compatible with backend.php AJAX expectations)
+    header('Content-Type: application/json');
+    echo json_encode(['status' => 500, 'message' => 'Database connection failed']);
+    exit;
 }
 
 // Set charset to UTF-8

@@ -22,6 +22,13 @@ require 'includes/sidebar.php';
 <!-- Quick Actions -->
 <div class="dashboard-section-title"><i class="fas fa-bolt"></i> Quick Actions</div>
 <div class="quick-actions-grid">
+    <a href="coordinatorCourseCreate.php" class="quick-action-card">
+        <div class="quick-action-icon" style="background:rgba(251,191,36,0.1);color:#fbbf24;"><i class="fas fa-plus-circle"></i></div>
+        <div>
+            <h4>Create Course</h4>
+            <p>Submit a new course for approval</p>
+        </div>
+    </a>
     <a href="myCourses.php" class="quick-action-card">
         <div class="quick-action-icon" style="background:rgba(66,133,244,0.1);color:#4285f4;"><i class="fas fa-book-open"></i></div>
         <div>
@@ -34,6 +41,13 @@ require 'includes/sidebar.php';
         <div>
             <h4>Manage Content</h4>
             <p>Upload videos, PDFs and lessons</p>
+        </div>
+    </a>
+    <a href="manageTopics.php" class="quick-action-card">
+        <div class="quick-action-icon" style="background:rgba(168,135,250,0.1);color:#a78bfa;"><i class="fas fa-tags"></i></div>
+        <div>
+            <h4>Manage Topics</h4>
+            <p>Add important topics per subject</p>
         </div>
     </a>
     <a href="myStudents.php" class="quick-action-card">

@@ -1,17 +1,13 @@
 <?php
 session_start();
 if (isset($_SESSION['user_id'])) { header('Location: dashboard.php'); exit; }
-include 'db.php';
-$colleges = [];
-$r = mysqli_query($conn, "SELECT id, name, code, city FROM colleges WHERE status='active' ORDER BY name");
-while ($r && $row = mysqli_fetch_assoc($r)) $colleges[] = $row;
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Ziya LMS</title>
+    <title>Login - Ziyaa LMS</title>
     <link rel="stylesheet" href="assets/css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -19,12 +15,16 @@ while ($r && $row = mysqli_fetch_assoc($r)) $colleges[] = $row;
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
+    <script>
+        const savedTheme = localStorage.getItem('ziya-theme') || 'dark';
+        document.body.setAttribute('data-theme', savedTheme);
+    </script>
     <div class="auth-wrapper">
         <div class="auth-brand-side">
             <div class="auth-brand-bg"></div>
             <div class="auth-brand-content">
                 <div class="logo" style="font-size:3.5rem;justify-content:center;margin-bottom:1rem;">
-                    <span class="sparkle-icon" style="width:40px;height:40px;"></span> Ziya
+                    <span class="sparkle-icon" style="width:40px;height:40px;"></span> Ziyaa
                 </div>
                 <p>Multi-College Learning Management System</p>
             </div>

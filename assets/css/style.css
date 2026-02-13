@@ -1,5 +1,5 @@
 /* ============================================
-   Ziya LMS - Complete Stylesheet
+   Ziyaa LMS - Complete Stylesheet
    Dark + Light Theme Support
    ============================================ */
 
@@ -461,6 +461,8 @@ select.form-input { cursor: pointer; appearance: auto; }
 .badge-active { background: rgba(16,185,129,0.1); color: #34d399; border: 1px solid rgba(16,185,129,0.2); }
 .badge-inactive { background: rgba(239,68,68,0.1); color: #f87171; border: 1px solid rgba(239,68,68,0.2); }
 .badge-draft { background: rgba(245,158,11,0.1); color: #fbbf24; border: 1px solid rgba(245,158,11,0.2); }
+.badge-pending { background: rgba(251,191,36,0.1); color: #f59e0b; border: 1px solid rgba(251,191,36,0.2); }
+.badge-rejected { background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid rgba(239,68,68,0.2); }
 .badge-role {
   background: rgba(66,133,244,0.1); color: var(--accent-blue);
   border: 1px solid rgba(66,133,244,0.2);

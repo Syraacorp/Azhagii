@@ -13,7 +13,7 @@ require 'includes/sidebar.php';
 </div>
 <div class="table-responsive">
     <table class="table">
-        <thead><tr><th>#</th><th>Title</th><th>Category</th><th>Colleges</th><th>Enrollments</th><th>Content</th><th>Status</th><th>Actions</th></tr></thead>
+        <thead><tr><th>#</th><th>Title</th><th>Category</th><th>Semester</th><th>Colleges</th><th>Enrollments</th><th>Content</th><th>Status</th><th>Syllabus</th><th>Actions</th></tr></thead>
         <tbody id="coursesBody"></tbody>
     </table>
 </div>

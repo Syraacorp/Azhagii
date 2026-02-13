@@ -29,8 +29,8 @@ function requirePageRole($allowed) {
 function dashboardUrl() {
     global $role;
     $map = [
-        'superAdmin'       => 'superAdminDashboard.php',
-        'adminZiyaa'       => 'adminZiyaaDashboard.php',
+        'superAdmin'       => 'ziyaaDashboard.php',
+        'adminZiyaa'       => 'adminDashboard.php',
         'ziyaaCoordinator' => 'coordinatorDashboard.php',
         'ziyaaStudents'    => 'studentDashboard.php',
     ];

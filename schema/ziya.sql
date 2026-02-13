@@ -1,5 +1,5 @@
 -- ============================================
--- Ziya LMS - Multi-College Learning Management System
+-- Ziyaa LMS - Multi-College Learning Management System
 -- Database Schema
 -- ============================================
 
@@ -113,4 +113,5 @@ CREATE TABLE enrollments (
 -- Seed: Default Super Admin
 -- ============================================
 INSERT INTO users (name, email, password, role)
-VALUES ('Super Admin', 'admin@ziyaa.com', 'admin123', 'superAdmin');
+VALUES ('Super Admin', 'admin@ziyaa.com', '$2y$10$o025paEfpbWkv1ftR0qDG.CeOLfPWnv.4VYiuhlaf6atN1cSKo.7u', 'superAdmin');
+-- Default password: admin123 (bcrypt hashed)

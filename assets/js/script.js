@@ -57,29 +57,17 @@ $(document).ready(function () {
     }, 'json').fail(function (xhr) {
       console.error('API Error:', xhr);
       if (errCb) errCb(xhr);
-      else Swal.fire({ icon: 'error', title: 'Error', text: 'Connection failed. Please try again.' });
+      else {
+        // Only show global error Swal if no SweetAlert modal is currently open
+        // (avoids destroying open CRUD form modals)
+        if (!Swal.isVisible()) {
+          Swal.fire({ icon: 'error', title: 'Error', text: 'Connection failed. Please try again.' });
+        }
+      }
     });
   }
 
-  // ══════════════════════════════════════════
-  //  PAGE ROUTER — auto-load data per page
-  // ══════════════════════════════════════════
-  if (typeof CURRENT_PAGE !== 'undefined') {
-    switch (CURRENT_PAGE) {
-      case 'dashboard':         loadRoleDashboard(); break;
-      case 'manageColleges':    loadColleges(); break;
-      case 'manageUsers':       loadCollegeDropdowns(); loadUsers(); break;
-      case 'manageCourses':     loadCourses(); break;
-      case 'courseAssignments':  loadCourseDropdowns(); break;
-      case 'myCourses':         loadCoordinatorCourses(); break;
-      case 'manageContent':     loadCoordinatorCourseDropdowns('contentCourseSelect'); break;
-      case 'myStudents':        loadCoordinatorCourseDropdowns('studentCourseSelect'); break;
-      case 'browseCourses':     loadBrowseCourses(); break;
-      case 'myLearning':        loadMyLearning(); break;
-      case 'courseViewer':      loadCourseFromUrl(); break;
-      case 'profile':           loadProfile(); break;
-    }
-  }
+
 
   // ══════════════════════════════════════════
   //  ROLE-SPECIFIC DASHBOARDS
@@ -95,7 +83,7 @@ $(document).ready(function () {
         html += statCard('fa-users', 'Total Users', d.users, '#9b72cb');
         html += statCard('fa-book', 'Courses', d.courses, '#34d399');
         html += statCard('fa-user-graduate', 'Students', d.students, '#fbbf24');
-        html += statCard('fa-chalkboard-teacher', 'Coordinators', d.coordinators, '#f87171');
+        html += statCard('fa-clock', 'Pending Approvals', d.pending_courses, '#f87171');
         html += statCard('fa-clipboard-list', 'Enrollments', d.enrollments, '#a78bfa');
         if (d.recent_users) {
           let tbody = '';
@@ -107,15 +95,17 @@ $(document).ready(function () {
       } else if (USER_ROLE === 'adminZiyaa') {
         html += statCard('fa-users', 'Users', d.users, '#4285f4');
         html += statCard('fa-book', 'Courses', d.courses, '#9b72cb');
-        html += statCard('fa-university', 'Colleges', d.colleges, '#34d399');
+        html += statCard('fa-clock', 'Pending Approvals', d.pending_courses, '#f87171');
         html += statCard('fa-clipboard-list', 'Enrollments', d.enrollments, '#fbbf24');
         // Load admin-specific extras
         loadAdminDashboardExtras();
       } else if (USER_ROLE === 'ziyaaCoordinator') {
         html += statCard('fa-book-open', 'Assigned Courses', d.courses, '#4285f4');
-        html += statCard('fa-user-graduate', 'My Students', d.students, '#9b72cb');
-        html += statCard('fa-file-alt', 'Content Uploaded', d.content, '#34d399');
-        html += statCard('fa-clipboard-list', 'Enrollments', d.enrollments, '#fbbf24');
+        html += statCard('fa-plus-circle', 'My Courses', d.my_courses, '#9b72cb');
+        html += statCard('fa-clock', 'Pending', d.my_pending, '#fbbf24');
+        html += statCard('fa-check-circle', 'Approved', d.my_approved, '#34d399');
+        html += statCard('fa-times-circle', 'Rejected', d.my_rejected, '#f87171');
+        html += statCard('fa-user-graduate', 'My Students', d.students, '#a78bfa');
         // Load coordinator recent students
         loadCoordinatorDashboardExtras();
       } else if (USER_ROLE === 'ziyaaStudents') {
@@ -283,12 +273,15 @@ $(document).ready(function () {
           return new Promise(resolve => {
             api(data, res => {
               if (res.status === 200) resolve(res);
-              else Swal.showValidationMessage(res.message);
+              else { Swal.showValidationMessage(res.message || 'Operation failed'); resolve(false); }
+            }, () => {
+              Swal.showValidationMessage('Connection failed. Please try again.');
+              resolve(false);
             });
           });
         }
       }).then(result => {
-        if (result.isConfirmed) {
+        if (result.isConfirmed && result.value) {
           toast('success', result.value.message);
           loadColleges();
         }
@@ -399,12 +392,15 @@ $(document).ready(function () {
           return new Promise(resolve => {
             api(data, res => {
               if (res.status === 200) resolve(res);
-              else Swal.showValidationMessage(res.message);
+              else { Swal.showValidationMessage(res.message || 'Operation failed'); resolve(false); }
+            }, () => {
+              Swal.showValidationMessage('Connection failed. Please try again.');
+              resolve(false);
             });
           });
         }
       }).then(result => {
-        if (result.isConfirmed) {
+        if (result.isConfirmed && result.value) {
           toast('success', result.value.message);
           loadUsers();
         }
@@ -431,12 +427,15 @@ $(document).ready(function () {
       if (res.status !== 200) return;
       coursesCache = res.data;
       let html = '';
-      if (res.data.length === 0) html = '<tr><td colspan="8" class="empty-state"><i class="fas fa-book"></i><p>No courses yet</p></td></tr>';
+      if (res.data.length === 0) html = '<tr><td colspan="10" class="empty-state"><i class="fas fa-book"></i><p>No courses yet</p></td></tr>';
       res.data.forEach((c, i) => {
+        const statusBadge = c.status === 'active' ? 'active' : c.status === 'pending' ? 'pending' : c.status === 'rejected' ? 'rejected' : c.status === 'draft' ? 'draft' : 'inactive';
         html += `<tr>
-          <td>${i + 1}</td><td>${esc(c.title)}</td><td>${esc(c.category || '-')}</td>
+          <td>${i + 1}</td><td>${esc(c.title)}${c.course_code ? `<br><small style="color:var(--text-muted)">${esc(c.course_code)}</small>` : ''}</td><td>${esc(c.category || '-')}</td>
+          <td>${esc(c.semester || '-')}</td>
           <td>${c.college_count}</td><td>${c.enrollment_count}</td><td>${c.content_count}</td>
-          <td><span class="badge badge-${c.status === 'active' ? 'active' : c.status === 'draft' ? 'draft' : 'inactive'}">${c.status}</span></td>
+          <td><span class="badge badge-${statusBadge}">${c.status}</span></td>
+          <td>${c.syllabus ? `<a href="${c.syllabus}" target="_blank" class="btn btn-outline btn-sm" title="View Syllabus"><i class="fas fa-file-pdf"></i></a>` : '-'}</td>
           <td class="actions">
             <button class="btn btn-outline btn-sm" onclick="showCourseModal(${c.id})"><i class="fas fa-edit"></i></button>
             <button class="btn btn-danger btn-sm" onclick="deleteCourse(${c.id})"><i class="fas fa-trash"></i></button>
@@ -455,22 +454,45 @@ $(document).ready(function () {
 
     load.then(c => {
       Swal.fire({
-        title: isEdit ? 'Edit Course' : 'Add Course', width: 500,
+        title: isEdit ? 'Edit Course' : 'Add Course', width: 600,
         html: `<div class="swal-form">
-          <div class="form-group"><label class="form-label">Title</label><input id="sCourseTitle" class="form-input" value="${esc(c.title || '')}"></div>
-          <div class="form-group"><label class="form-label">Description</label><textarea id="sCourseDesc" class="form-input" rows="3">${esc(c.description || '')}</textarea></div>
-          <div class="form-group"><label class="form-label">Category</label><input id="sCourseCat" class="form-input" value="${esc(c.category || '')}" placeholder="e.g. Programming, Science"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+            <div class="form-group"><label class="form-label">Title</label><input id="sCourseTitle" class="form-input" value="${esc(c.title || '')}"></div>
+            <div class="form-group"><label class="form-label">Course Code</label><input id="sCourseCode" class="form-input" value="${esc(c.course_code || '')}" placeholder="e.g. CS201"></div>
+          </div>
+          <div class="form-group"><label class="form-label">Description</label><textarea id="sCourseDesc" class="form-input" rows="2">${esc(c.description || '')}</textarea></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;">
+            <div class="form-group"><label class="form-label">Category</label><input id="sCourseCat" class="form-input" value="${esc(c.category || '')}" placeholder="e.g. CSE"></div>
+            <div class="form-group"><label class="form-label">Type</label><select id="sCourseType" class="form-input">
+              <option value="theory" ${c.course_type === 'theory' ? 'selected' : ''}>Theory</option>
+              <option value="lab" ${c.course_type === 'lab' ? 'selected' : ''}>Lab</option>
+              <option value="elective" ${c.course_type === 'elective' ? 'selected' : ''}>Elective</option>
+            </select></div>
+            <div class="form-group"><label class="form-label">Semester</label><select id="sCourseSem" class="form-input">
+              <option value="">-</option>
+              ${[1,2,3,4,5,6,7,8].map(s => `<option value="${s}" ${c.semester == s ? 'selected' : ''}>Sem ${s}</option>`).join('')}
+            </select></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+            <div class="form-group"><label class="form-label">Regulation</label><input id="sCourseReg" class="form-input" value="${esc(c.regulation || '')}" placeholder="e.g. R2021"></div>
+            <div class="form-group"><label class="form-label">Academic Year</label><input id="sCourseYear" class="form-input" value="${esc(c.academic_year || '')}" placeholder="e.g. 2024-2025"></div>
+          </div>
           <div class="form-group"><label class="form-label">Status</label><select id="sCourseStatus" class="form-input">
             <option value="draft" ${c.status === 'draft' ? 'selected' : ''}>Draft</option>
             <option value="active" ${c.status === 'active' ? 'selected' : ''}>Active</option>
+            <option value="pending" ${c.status === 'pending' ? 'selected' : ''}>Pending</option>
+            <option value="rejected" ${c.status === 'rejected' ? 'selected' : ''}>Rejected</option>
             <option value="archived" ${c.status === 'archived' ? 'selected' : ''}>Archived</option>
           </select></div>
         </div>`,
         showCancelButton: true, confirmButtonText: isEdit ? 'Update' : 'Create', confirmButtonColor: '#4285f4',
         preConfirm: () => {
           const data = {
-            title: $('#sCourseTitle').val(), description: $('#sCourseDesc').val(),
-            category: $('#sCourseCat').val(), status: $('#sCourseStatus').val()
+            title: $('#sCourseTitle').val(), course_code: $('#sCourseCode').val(),
+            description: $('#sCourseDesc').val(), category: $('#sCourseCat').val(),
+            course_type: $('#sCourseType').val(), semester: $('#sCourseSem').val(),
+            regulation: $('#sCourseReg').val(), academic_year: $('#sCourseYear').val(),
+            status: $('#sCourseStatus').val()
           };
           if (!data.title) { Swal.showValidationMessage('Title is required'); return false; }
           if (isEdit) { data.id = id; data.update_course = 1; }
@@ -478,12 +500,15 @@ $(document).ready(function () {
           return new Promise(resolve => {
             api(data, res => {
               if (res.status === 200) resolve(res);
-              else Swal.showValidationMessage(res.message);
+              else { Swal.showValidationMessage(res.message || 'Operation failed'); resolve(false); }
+            }, () => {
+              Swal.showValidationMessage('Connection failed. Please try again.');
+              resolve(false);
             });
           });
         }
       }).then(result => {
-        if (result.isConfirmed) { toast('success', result.value.message); loadCourses(); }
+        if (result.isConfirmed && result.value) { toast('success', result.value.message); loadCourses(); }
       });
     });
   };
@@ -545,12 +570,15 @@ $(document).ready(function () {
           return new Promise(resolve => {
             api({ assign_course: 1, course_id: cid, college_id }, res => {
               if (res.status === 200) resolve(res);
-              else Swal.showValidationMessage(res.message);
+              else { Swal.showValidationMessage(res.message || 'Operation failed'); resolve(false); }
+            }, () => {
+              Swal.showValidationMessage('Connection failed. Please try again.');
+              resolve(false);
             });
           });
         }
       }).then(result => {
-        if (result.isConfirmed) { toast('success', result.value.message); loadAssignments(); }
+        if (result.isConfirmed && result.value) { toast('success', result.value.message); loadAssignments(); }
       });
     });
   };
@@ -590,6 +618,97 @@ $(document).ready(function () {
       $('#coordCoursesGrid').html(html);
     });
   }
+
+  // ══════════════════════════════════════════
+  //  SUBJECTS (superAdmin, adminZiyaa)
+  // ══════════════════════════════════════════
+  
+  function loadSubjectCourses() {
+     api({ get_courses: 1 }, function (res) {
+       if (res.status !== 200) return;
+       coursesCache = res.data;
+       let opts = '<option value="">Select a course</option>';
+       res.data.forEach(c => { opts += `<option value="${c.id}">${esc(c.title)}</option>`; });
+       $('#subjectCourseSelect').html(opts);
+       // Ensure empty state remains
+       if (!$('#subjectCourseSelect').val()) {
+           $('#subjectsBody').html('<tr><td colspan="6" class="empty-state"><p>Select a course above</p></td></tr>');
+       }
+     });
+  }
+
+  window.loadSubjects = function () {
+    const cid = $('#subjectCourseSelect').val();
+    if (!cid) { $('#subjectsBody').html('<tr><td colspan="6" class="empty-state"><p>Select a course above</p></td></tr>'); return; }
+    
+    api({ get_subjects: 1, course_id: cid }, function (res) {
+        if (res.status !== 200) return;
+        let html = '';
+        if (res.data.length === 0) html = '<tr><td colspan="6" class="empty-state"><p>No subjects found for this course</p></td></tr>';
+        res.data.forEach((s, i) => {
+            html += `<tr>
+                <td>${i+1}</td>
+                <td>${esc(s.title)}</td>
+                <td>${esc(s.code || '-')}</td>
+                <td>${esc(s.description || '-')}</td>
+                <td><span class="badge badge-${s.status === 'active' ? 'active' : 'inactive'}">${s.status}</span></td>
+                <td class="actions">
+                    <button class="btn btn-outline btn-sm" onclick="showSubjectModal(${s.id})"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteSubject(${s.id})"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>`;
+        });
+        $('#subjectsBody').html(html);
+    });
+  };
+
+  window.showSubjectModal = function (id) {
+      const cid = $('#subjectCourseSelect').val();
+      if (!cid) { toast('warning', 'Please select a course first'); return; }
+      
+      const isEdit = !!id;
+      const load = isEdit ? new Promise(r => {
+          api({ get_subjects: 1, course_id: cid }, res => {
+               r(res.data.find(x => x.id == id) || {});
+          });
+      }) : Promise.resolve({});
+
+      load.then(s => {
+          Swal.fire({
+              title: isEdit ? 'Edit Subject' : 'Add Subject',
+              html: `<div class="swal-form">
+                  <div class="form-group"><label class="form-label">Title</label><input id="sSubjTitle" class="form-input" value="${esc(s.title||'')}"></div>
+                  <div class="form-group"><label class="form-label">Code</label><input id="sSubjCode" class="form-input" value="${esc(s.code||'')}" placeholder="e.g. CS101"></div>
+                  <div class="form-group"><label class="form-label">Description</label><textarea id="sSubjDesc" class="form-input" rows="2">${esc(s.description||'')}</textarea></div>
+                  ${isEdit ? `<div class="form-group"><label class="form-label">Status</label><select id="sSubjStatus" class="form-input"><option value="active" ${s.status === 'active' ? 'selected' : ''}>Active</option><option value="inactive" ${s.status === 'inactive' ? 'selected' : ''}>Inactive</option></select></div>` : ''}
+              </div>`,
+              showCancelButton: true, confirmButtonText: isEdit ? 'Update' : 'Add', confirmButtonColor: '#4285f4',
+              preConfirm: () => {
+                  const data = {
+                      course_id: cid,
+                      title: $('#sSubjTitle').val(),
+                      code: $('#sSubjCode').val(),
+                      description: $('#sSubjDesc').val()
+                  };
+                  if (!data.title) { Swal.showValidationMessage('Title is required'); return false; }
+                  if (isEdit) { data.id = id; data.status = $('#sSubjStatus').val(); data.update_subject = 1; }
+                  else { data.add_subject = 1; }
+                  return new Promise(resolve => {
+                       api(data, res => { resolve(res.status===200 ? res : false); }, () => resolve(false));
+                  });
+              }
+          }).then(result => {
+              if (result.isConfirmed && result.value) { toast('success', result.value.message); loadSubjects(); }
+          });
+      });
+  };
+  
+  window.deleteSubject = function(id) {
+      Swal.fire({ title: 'Delete Subject?', text: 'All content in this subject will be unassigned.', icon:'warning', showCancelButton:true, confirmButtonText:'Delete', confirmButtonColor:'#dc2626' })
+      .then(r => {
+          if (r.isConfirmed) api({ delete_subject: 1, id }, res => { toast(res.status === 200 ? 'success' : 'error', res.message); if (res.status === 200) loadSubjects(); });
+      });
+  };
 
   function loadCoordinatorCourseDropdowns(targetId) {
     targetId = targetId || 'contentCourseSelect';
@@ -634,14 +753,22 @@ $(document).ready(function () {
     courseId = courseId || $('#contentCourseSelect').val();
     if (!courseId) { toast('warning', 'Select a course first'); return; }
 
-    const load = isEdit ? new Promise(r => {
+    const loadContent = isEdit ? new Promise(r => {
       api({ get_content: 1, course_id: courseId }, res => { r(res.data.find(x => x.id == id) || {}); });
     }) : Promise.resolve({});
 
-    load.then(c => {
+    const loadSubjects = new Promise(r => {
+        api({ get_subjects: 1, course_id: courseId }, res => { r(res.data || []); });
+    });
+
+    Promise.all([loadContent, loadSubjects]).then(([c, subjects]) => {
+      let subjOpts = '<option value="">No Subject (General)</option>';
+      subjects.forEach(s => { subjOpts += `<option value="${s.id}" ${c.subject_id == s.id ? 'selected' : ''}>${esc(s.title)}</option>`; });
+
       Swal.fire({
         title: isEdit ? 'Edit Content' : 'Add Content', width: 520,
         html: `<div class="swal-form">
+          <div class="form-group"><label class="form-label">Subject</label><select id="sContentSubject" class="form-input">${subjOpts}</select></div>
           <div class="form-group"><label class="form-label">Title</label><input id="sContentTitle" class="form-input" value="${esc(c.title || '')}"></div>
           <div class="form-group"><label class="form-label">Description</label><textarea id="sContentDesc" class="form-input" rows="2">${esc(c.description || '')}</textarea></div>
           <div class="form-group"><label class="form-label">Type</label><select id="sContentType" class="form-input">
@@ -657,7 +784,8 @@ $(document).ready(function () {
         showCancelButton: true, confirmButtonText: isEdit ? 'Update' : 'Add', confirmButtonColor: '#4285f4',
         preConfirm: () => {
           const data = {
-            course_id: courseId, title: $('#sContentTitle').val(), description: $('#sContentDesc').val(),
+            course_id: courseId, subject_id: $('#sContentSubject').val(),
+            title: $('#sContentTitle').val(), description: $('#sContentDesc').val(),
             content_type: $('#sContentType').val(), content_data: $('#sContentData').val(), sort_order: $('#sContentSort').val()
           };
           if (!data.title) { Swal.showValidationMessage('Title is required'); return false; }
@@ -666,12 +794,15 @@ $(document).ready(function () {
           return new Promise(resolve => {
             api(data, res => {
               if (res.status === 200) resolve(res);
-              else Swal.showValidationMessage(res.message);
+              else { Swal.showValidationMessage(res.message || 'Operation failed'); resolve(false); }
+            }, () => {
+              Swal.showValidationMessage('Connection failed. Please try again.');
+              resolve(false);
             });
           });
         }
       }).then(result => {
-        if (result.isConfirmed) { toast('success', result.value.message); loadContent(); }
+        if (result.isConfirmed && result.value) { toast('success', result.value.message); loadContent(); }
       });
     });
   };
@@ -710,11 +841,11 @@ $(document).ready(function () {
     api({ get_courses: 1 }, function (res) {
       if (res.status !== 200) return;
       api({ get_my_courses: 1 }, function (eRes) {
-        const enrolled = (eRes.data || []).map(e => e.id);
+        const enrolled = (eRes.data || []).map(e => parseInt(e.id));
         let html = '';
         if (res.data.length === 0) html = '<div class="empty-state"><i class="fas fa-compass"></i><p>No courses available for your college yet</p></div>';
         res.data.forEach(c => {
-          const isEnrolled = enrolled.includes(c.id);
+          const isEnrolled = enrolled.includes(parseInt(c.id));
           html += `<div class="course-card">
             <div class="course-card-thumb">${c.thumbnail ? `<img src="${c.thumbnail}">` : '<i class="fas fa-book"></i>'}</div>
             <div class="course-card-body">
@@ -906,6 +1037,445 @@ $(document).ready(function () {
     if (!url) return '';
     const match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
     return match ? `https://www.youtube.com/embed/${match[1]}` : '';
+  }
+
+  // ══════════════════════════════════════════
+  //  COURSE APPROVALS (superAdmin, adminZiyaa)
+  // ══════════════════════════════════════════
+
+  window.switchApprovalTab = function(tab) {
+    $('.approval-tab').removeClass('active btn-primary').addClass('btn-outline');
+    $(`.approval-tab[data-tab="${tab}"]`).addClass('active btn-primary').removeClass('btn-outline');
+    $('#approvalPendingTab, #approvalAllTab, #approvalRejectedTab').hide();
+    if (tab === 'pending') { $('#approvalPendingTab').show(); loadPendingCourses(); }
+    else if (tab === 'all') { $('#approvalAllTab').show(); loadAllCoursesForApproval(); }
+    else if (tab === 'rejected') { $('#approvalRejectedTab').show(); loadRejectedCourses(); }
+  };
+
+  function loadApprovalStats() {
+    api({ get_dashboard_stats: 1 }, function(res) {
+      if (res.status !== 200) return;
+      const d = res.data;
+      let html = '';
+      html += statCard('fa-clock', 'Pending', d.pending_courses || 0, '#fbbf24');
+      html += statCard('fa-book', 'Total Courses', d.courses || 0, '#4285f4');
+      html += statCard('fa-times-circle', 'Rejected', d.rejected_courses || 0, '#f87171');
+      html += statCard('fa-clipboard-list', 'Enrollments', d.enrollments || 0, '#34d399');
+      $('#approval-stats').html(html);
+    });
+  }
+
+  function loadPendingCourses() {
+    api({ get_pending_courses: 1 }, function(res) {
+      if (res.status !== 200) return;
+      let html = '';
+      if (res.data.length === 0) html = '<tr><td colspan="10" class="empty-state"><i class="fas fa-check-circle"></i><p>No pending courses to review</p></td></tr>';
+      res.data.forEach((c, i) => {
+        html += `<tr>
+          <td>${i+1}</td>
+          <td>${esc(c.title)}</td>
+          <td>${esc(c.course_code || '-')}</td>
+          <td>${esc(c.creator_name || '-')}</td>
+          <td>${esc(c.creator_college || '-')}</td>
+          <td>${esc(c.semester || '-')}</td>
+          <td>${c.subject_count || 0}</td>
+          <td>${c.syllabus ? `<a href="${c.syllabus}" target="_blank" class="btn btn-outline btn-sm"><i class="fas fa-file-pdf"></i></a>` : '-'}</td>
+          <td>${formatDate(c.created_at)}</td>
+          <td class="actions" style="white-space:nowrap;">
+            <button class="btn btn-outline btn-sm" onclick="viewCourseDetail(${c.id})" title="View Details"><i class="fas fa-eye"></i></button>
+            <button class="btn btn-success btn-sm" onclick="approveCourse(${c.id})" title="Approve"><i class="fas fa-check"></i></button>
+            <button class="btn btn-danger btn-sm" onclick="rejectCourse(${c.id})" title="Reject"><i class="fas fa-times"></i></button>
+          </td></tr>`;
+      });
+      $('#pendingCoursesBody').html(html);
+    });
+  }
+
+  window.loadAllCoursesForApproval = function() {
+    const data = { get_courses: 1 };
+    const sf = $('#approvalStatusFilter').val();
+    if (sf) data.status_filter = sf;
+    api(data, function(res) {
+      if (res.status !== 200) return;
+      let html = '';
+      if (res.data.length === 0) html = '<tr><td colspan="9" class="empty-state"><i class="fas fa-book"></i><p>No courses found</p></td></tr>';
+      res.data.forEach((c, i) => {
+        const statusBadge = c.status === 'active' ? 'active' : c.status === 'pending' ? 'pending' : c.status === 'rejected' ? 'rejected' : c.status === 'draft' ? 'draft' : 'inactive';
+        html += `<tr>
+          <td>${i+1}</td>
+          <td>${esc(c.title)}</td>
+          <td>${esc(c.course_code || '-')}</td>
+          <td>${esc(c.creator_name || '-')}</td>
+          <td><span class="badge badge-${statusBadge}">${c.status}</span></td>
+          <td>${esc(c.semester || '-')}</td>
+          <td>${c.syllabus ? `<a href="${c.syllabus}" target="_blank" class="btn btn-outline btn-sm"><i class="fas fa-file-pdf"></i></a>` : '-'}</td>
+          <td>${formatDate(c.created_at)}</td>
+          <td class="actions">
+            <button class="btn btn-outline btn-sm" onclick="viewCourseDetail(${c.id})"><i class="fas fa-eye"></i></button>
+          </td></tr>`;
+      });
+      $('#allCoursesApprovalBody').html(html);
+    });
+  };
+
+  function loadRejectedCourses() {
+    api({ get_courses: 1, status_filter: 'rejected' }, function(res) {
+      if (res.status !== 200) return;
+      let html = '';
+      if (res.data.length === 0) html = '<tr><td colspan="7" class="empty-state"><i class="fas fa-check-circle"></i><p>No rejected courses</p></td></tr>';
+      res.data.forEach((c, i) => {
+        html += `<tr>
+          <td>${i+1}</td>
+          <td>${esc(c.title)}</td>
+          <td>${esc(c.course_code || '-')}</td>
+          <td>${esc(c.creator_name || '-')}</td>
+          <td>${esc(c.rejection_reason || '-')}</td>
+          <td>${esc(c.approver_name || '-')}</td>
+          <td>${formatDate(c.approved_at || c.created_at)}</td></tr>`;
+      });
+      $('#rejectedCoursesBody').html(html);
+    });
+  }
+
+  window.viewCourseDetail = function(courseId) {
+    api({ get_course_detail: 1, course_id: courseId }, function(res) {
+      if (res.status !== 200) return;
+      const c = res.data;
+      let subjectsHtml = '';
+      if (c.subjects && c.subjects.length > 0) {
+        c.subjects.forEach((s, i) => {
+          let topicsHtml = '';
+          if (s.topics && s.topics.length > 0) {
+            topicsHtml = '<ul style="margin:0.5rem 0 0 1.5rem;font-size:0.85rem;color:var(--text-muted);">' +
+              s.topics.map(t => `<li>${esc(t.title)}${t.description ? ': ' + esc(t.description) : ''}</li>`).join('') + '</ul>';
+          }
+          subjectsHtml += `<div class="breakdown-item" style="flex-direction:column;align-items:flex-start;">
+            <div><strong>Unit ${i+1}:</strong> ${esc(s.title)} ${s.code ? `<span class="badge badge-role">${esc(s.code)}</span>` : ''}</div>
+            ${s.description ? `<div style="font-size:0.85rem;color:var(--text-muted);">${esc(s.description)}</div>` : ''}
+            ${topicsHtml}
+          </div>`;
+        });
+      } else {
+        subjectsHtml = '<p style="color:var(--text-muted);font-size:0.9rem;">No subjects/units defined</p>';
+      }
+
+      Swal.fire({
+        title: esc(c.title), width: 650,
+        html: `<div style="text-align:left;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1rem;">
+            <div><small style="color:var(--text-muted);">Code:</small><br><strong>${esc(c.course_code || '-')}</strong></div>
+            <div><small style="color:var(--text-muted);">Category:</small><br><strong>${esc(c.category || '-')}</strong></div>
+            <div><small style="color:var(--text-muted);">Semester:</small><br><strong>${esc(c.semester || '-')}</strong></div>
+            <div><small style="color:var(--text-muted);">Type:</small><br><strong>${esc(c.course_type || '-')}</strong></div>
+            <div><small style="color:var(--text-muted);">Regulation:</small><br><strong>${esc(c.regulation || '-')}</strong></div>
+            <div><small style="color:var(--text-muted);">Academic Year:</small><br><strong>${esc(c.academic_year || '-')}</strong></div>
+            <div><small style="color:var(--text-muted);">Created By:</small><br><strong>${esc(c.creator_name || '-')}</strong></div>
+            <div><small style="color:var(--text-muted);">Status:</small><br><span class="badge badge-${c.status === 'active' ? 'active' : c.status === 'pending' ? 'pending' : c.status === 'rejected' ? 'rejected' : 'draft'}">${c.status}</span></div>
+          </div>
+          ${c.description ? `<div style="margin-bottom:1rem;"><small style="color:var(--text-muted);">Description:</small><br>${esc(c.description)}</div>` : ''}
+          ${c.syllabus ? `<div style="margin-bottom:1rem;"><a href="${c.syllabus}" target="_blank" class="btn btn-outline btn-sm"><i class="fas fa-file-pdf"></i> View Syllabus PDF</a></div>` : ''}
+          ${c.rejection_reason ? `<div style="margin-bottom:1rem;padding:0.75rem;background:rgba(239,68,68,0.1);border-radius:8px;border:1px solid rgba(239,68,68,0.2);"><small style="color:#f87171;font-weight:600;">Rejection Reason:</small><br>${esc(c.rejection_reason)}</div>` : ''}
+          <h4 style="margin-bottom:0.75rem;">Subjects / Units</h4>
+          <div class="breakdown-list">${subjectsHtml}</div>
+        </div>`,
+        showCancelButton: c.status === 'pending',
+        confirmButtonText: c.status === 'pending' ? '<i class="fas fa-check"></i> Approve' : 'Close',
+        cancelButtonText: c.status === 'pending' ? '<i class="fas fa-times"></i> Reject' : '',
+        confirmButtonColor: c.status === 'pending' ? '#16a34a' : '#4285f4',
+        cancelButtonColor: '#dc2626',
+        showDenyButton: false,
+      }).then(result => {
+        if (c.status === 'pending') {
+          if (result.isConfirmed) approveCourse(courseId);
+          else if (result.dismiss === Swal.DismissReason.cancel) rejectCourse(courseId);
+        }
+      });
+    });
+  };
+
+  window.approveCourse = function(id) {
+    Swal.fire({
+      title: 'Approve Course?', text: 'This course will become active and visible to students.',
+      icon: 'question', showCancelButton: true, confirmButtonColor: '#16a34a', confirmButtonText: 'Approve'
+    }).then(r => {
+      if (r.isConfirmed) api({ approve_course: 1, id }, res => {
+        toast(res.status === 200 ? 'success' : 'error', res.message);
+        if (res.status === 200) { loadPendingCourses(); loadApprovalStats(); }
+      });
+    });
+  };
+
+  window.rejectCourse = function(id) {
+    Swal.fire({
+      title: 'Reject Course', input: 'textarea', inputLabel: 'Rejection Reason',
+      inputPlaceholder: 'Enter reason for rejection...', inputAttributes: { required: true },
+      showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Reject',
+      inputValidator: (value) => { if (!value) return 'Please provide a reason'; }
+    }).then(r => {
+      if (r.isConfirmed) api({ reject_course: 1, id, reason: r.value }, res => {
+        toast(res.status === 200 ? 'success' : 'error', res.message);
+        if (res.status === 200) { loadPendingCourses(); loadApprovalStats(); }
+      });
+    });
+  };
+
+  // ══════════════════════════════════════════
+  //  TOPICS MANAGEMENT (ziyaaCoordinator)
+  // ══════════════════════════════════════════
+
+  function loadTopicCourseDropdowns() {
+    api({ get_courses: 1 }, function(res) {
+      if (res.status !== 200) return;
+      let opts = '<option value="">Select a course</option>';
+      res.data.forEach(c => { opts += `<option value="${c.id}">${esc(c.title)}</option>`; });
+      $('#topicCourseSelect').html(opts);
+    });
+  }
+
+  window.loadTopicSubjects = function() {
+    const cid = $('#topicCourseSelect').val();
+    $('#topicSubjectSelect').html('<option value="">Select a subject/unit</option>');
+    $('#topicsBody').html('<tr><td colspan="6" class="empty-state"><i class="fas fa-tags"></i><p>Select a course and subject above</p></td></tr>');
+    if (!cid) return;
+    api({ get_subjects: 1, course_id: cid }, function(res) {
+      if (res.status !== 200) return;
+      let opts = '<option value="">Select a subject/unit</option>';
+      res.data.forEach(s => { opts += `<option value="${s.id}">${esc(s.title)} ${s.code ? '(' + esc(s.code) + ')' : ''}</option>`; });
+      $('#topicSubjectSelect').html(opts);
+    });
+  };
+
+  window.loadTopics = function() {
+    const sid = $('#topicSubjectSelect').val();
+    if (!sid) { $('#topicsBody').html('<tr><td colspan="6" class="empty-state"><i class="fas fa-tags"></i><p>Select a subject above</p></td></tr>'); return; }
+    api({ get_topics: 1, subject_id: sid }, function(res) {
+      if (res.status !== 200) return;
+      let html = '';
+      if (res.data.length === 0) html = '<tr><td colspan="6" class="empty-state"><i class="fas fa-tags"></i><p>No topics yet. Click "Add Topic" to get started.</p></td></tr>';
+      res.data.forEach((t, i) => {
+        html += `<tr>
+          <td>${i+1}</td>
+          <td>${esc(t.title)}</td>
+          <td>${esc(t.description || '-')}</td>
+          <td>${esc(t.creator_name || '-')}</td>
+          <td><span class="badge badge-${t.status === 'active' ? 'active' : 'inactive'}">${t.status}</span></td>
+          <td class="actions">
+            <button class="btn btn-outline btn-sm" onclick="showTopicModal(${t.id})"><i class="fas fa-edit"></i></button>
+            <button class="btn btn-danger btn-sm" onclick="deleteTopic(${t.id})"><i class="fas fa-trash"></i></button>
+          </td></tr>`;
+      });
+      $('#topicsBody').html(html);
+    });
+  };
+
+  window.showTopicModal = function(id) {
+    const sid = $('#topicSubjectSelect').val();
+    if (!sid) { toast('warning', 'Please select a subject first'); return; }
+    const isEdit = !!id;
+    const load = isEdit ? new Promise(r => {
+      api({ get_topics: 1, subject_id: sid }, res => { r(res.data.find(x => x.id == id) || {}); });
+    }) : Promise.resolve({});
+
+    load.then(t => {
+      Swal.fire({
+        title: isEdit ? 'Edit Topic' : 'Add Topic',
+        html: `<div class="swal-form">
+          <div class="form-group"><label class="form-label">Topic Title</label><input id="sTopicTitle" class="form-input" value="${esc(t.title || '')}"></div>
+          <div class="form-group"><label class="form-label">Description</label><textarea id="sTopicDesc" class="form-input" rows="2">${esc(t.description || '')}</textarea></div>
+          ${isEdit ? `<div class="form-group"><label class="form-label">Status</label><select id="sTopicStatus" class="form-input"><option value="active" ${t.status === 'active' ? 'selected' : ''}>Active</option><option value="inactive" ${t.status === 'inactive' ? 'selected' : ''}>Inactive</option></select></div>` : ''}
+        </div>`,
+        showCancelButton: true, confirmButtonText: isEdit ? 'Update' : 'Add', confirmButtonColor: '#4285f4',
+        preConfirm: () => {
+          const data = { subject_id: sid, title: $('#sTopicTitle').val(), description: $('#sTopicDesc').val() };
+          if (!data.title) { Swal.showValidationMessage('Title is required'); return false; }
+          if (isEdit) { data.id = id; data.status = $('#sTopicStatus').val(); data.update_topic = 1; }
+          else { data.add_topic = 1; }
+          return new Promise(resolve => {
+            api(data, res => { resolve(res.status === 200 ? res : false); }, () => resolve(false));
+          });
+        }
+      }).then(result => {
+        if (result.isConfirmed && result.value) { toast('success', result.value.message); loadTopics(); }
+      });
+    });
+  };
+
+  window.deleteTopic = function(id) {
+    Swal.fire({ title: 'Delete Topic?', icon: 'warning', showCancelButton: true, confirmButtonText: 'Delete', confirmButtonColor: '#dc2626' })
+    .then(r => { if (r.isConfirmed) api({ delete_topic: 1, id }, res => { toast(res.status === 200 ? 'success' : 'error', res.message); if (res.status === 200) loadTopics(); }); });
+  };
+
+  // ══════════════════════════════════════════
+  //  COORDINATOR: Course Creation & Submission
+  // ══════════════════════════════════════════
+
+  function loadCoordCourseCreate() {
+    // Load coordinator's submitted courses
+    loadMySubmittedCourses();
+  }
+
+  function loadMySubmittedCourses() {
+    api({ get_courses: 1 }, function(res) {
+      if (res.status !== 200) return;
+      // Filter to show only courses created by this coordinator
+      const myCourses = res.data.filter(c => c.created_by == USER_ID);
+      let html = '';
+      if (myCourses.length === 0) html = '<tr><td colspan="8" class="empty-state"><i class="fas fa-book"></i><p>No courses submitted yet</p></td></tr>';
+      myCourses.forEach((c, i) => {
+        const statusBadge = c.status === 'active' ? 'active' : c.status === 'pending' ? 'pending' : c.status === 'rejected' ? 'rejected' : 'draft';
+        html += `<tr>
+          <td>${i+1}</td>
+          <td>${esc(c.title)}</td>
+          <td>${esc(c.course_code || '-')}</td>
+          <td>${esc(c.semester || '-')}</td>
+          <td><span class="badge badge-${statusBadge}">${c.status}</span></td>
+          <td>${c.rejection_reason ? esc(c.rejection_reason) : '-'}</td>
+          <td>${formatDate(c.created_at)}</td>
+          <td class="actions">
+            ${(c.status === 'pending' || c.status === 'rejected') ? `<button class="btn btn-outline btn-sm" onclick="editMySubmittedCourse(${c.id})"><i class="fas fa-edit"></i></button>
+            <button class="btn btn-danger btn-sm" onclick="deleteMySubmittedCourse(${c.id})"><i class="fas fa-trash"></i></button>` : `<button class="btn btn-outline btn-sm" onclick="viewCourseDetail(${c.id})"><i class="fas fa-eye"></i></button>`}
+          </td></tr>`;
+      });
+      $('#mySubmittedCoursesBody').html(html);
+    });
+  }
+
+  // Handle coordinator course creation form
+  $(document).on('submit', '#coordCourseForm', function(e) {
+    e.preventDefault();
+    const form = this;
+    const formData = new FormData(form);
+    formData.append('add_course', 1);
+
+    // Collect unit names to create as subjects
+    const units = [];
+    for (let i = 1; i <= 5; i++) {
+      const unitTitle = formData.get(`unit_${i}`);
+      if (unitTitle && unitTitle.trim()) units.push({ title: unitTitle.trim(), num: i });
+      formData.delete(`unit_${i}`);
+    }
+
+    const btn = $(form).find('button[type=submit]');
+    btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Submitting...');
+
+    $.ajax({
+      url: 'backend.php', type: 'POST', data: formData,
+      processData: false, contentType: false, dataType: 'json',
+      success: function(res) {
+        if (res.status === 200) {
+          const courseId = res.data.id;
+          // Create subjects (units) sequentially
+          let unitPromise = Promise.resolve();
+          units.forEach((u, idx) => {
+            unitPromise = unitPromise.then(() => {
+              return new Promise(resolve => {
+                api({ add_subject: 1, course_id: courseId, title: u.title, code: `Unit ${u.num}` }, () => resolve());
+              });
+            });
+          });
+          unitPromise.then(() => {
+            toast('success', res.message);
+            form.reset();
+            loadMySubmittedCourses();
+            btn.prop('disabled', false).html('<i class="fas fa-paper-plane"></i> Submit for Approval');
+          });
+        } else {
+          toast('error', res.message);
+          btn.prop('disabled', false).html('<i class="fas fa-paper-plane"></i> Submit for Approval');
+        }
+      },
+      error: function() {
+        toast('error', 'Connection failed');
+        btn.prop('disabled', false).html('<i class="fas fa-paper-plane"></i> Submit for Approval');
+      }
+    });
+  });
+
+  window.editMySubmittedCourse = function(id) {
+    // Reuse admin course modal for editing
+    api({ get_course_detail: 1, course_id: id }, function(res) {
+      if (res.status !== 200) return;
+      const c = res.data;
+      Swal.fire({
+        title: 'Edit Course', width: 600,
+        html: `<div class="swal-form">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+            <div class="form-group"><label class="form-label">Title</label><input id="sCourseTitle" class="form-input" value="${esc(c.title || '')}"></div>
+            <div class="form-group"><label class="form-label">Course Code</label><input id="sCourseCode" class="form-input" value="${esc(c.course_code || '')}"></div>
+          </div>
+          <div class="form-group"><label class="form-label">Description</label><textarea id="sCourseDesc" class="form-input" rows="2">${esc(c.description || '')}</textarea></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;">
+            <div class="form-group"><label class="form-label">Category</label><input id="sCourseCat" class="form-input" value="${esc(c.category || '')}"></div>
+            <div class="form-group"><label class="form-label">Type</label><select id="sCourseType" class="form-input">
+              <option value="theory" ${c.course_type==='theory'?'selected':''}>Theory</option>
+              <option value="lab" ${c.course_type==='lab'?'selected':''}>Lab</option>
+              <option value="elective" ${c.course_type==='elective'?'selected':''}>Elective</option>
+            </select></div>
+            <div class="form-group"><label class="form-label">Semester</label><select id="sCourseSem" class="form-input">
+              <option value="">-</option>
+              ${[1,2,3,4,5,6,7,8].map(s => `<option value="${s}" ${c.semester==s?'selected':''}}>Sem ${s}</option>`).join('')}
+            </select></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+            <div class="form-group"><label class="form-label">Regulation</label><input id="sCourseReg" class="form-input" value="${esc(c.regulation || '')}"></div>
+            <div class="form-group"><label class="form-label">Academic Year</label><input id="sCourseYear" class="form-input" value="${esc(c.academic_year || '')}"></div>
+          </div>
+          ${c.rejection_reason ? `<div style="padding:0.75rem;background:rgba(239,68,68,0.1);border-radius:8px;border:1px solid rgba(239,68,68,0.2);margin-bottom:1rem;"><small style="color:#f87171;font-weight:600;">Rejection Reason:</small> ${esc(c.rejection_reason)}</div>` : ''}
+        </div>`,
+        showCancelButton: true, confirmButtonText: 'Resubmit', confirmButtonColor: '#4285f4',
+        preConfirm: () => {
+          const data = {
+            id: id, update_course: 1,
+            title: $('#sCourseTitle').val(), course_code: $('#sCourseCode').val(),
+            description: $('#sCourseDesc').val(), category: $('#sCourseCat').val(),
+            course_type: $('#sCourseType').val(), semester: $('#sCourseSem').val(),
+            regulation: $('#sCourseReg').val(), academic_year: $('#sCourseYear').val()
+          };
+          if (!data.title) { Swal.showValidationMessage('Title is required'); return false; }
+          return new Promise(resolve => {
+            api(data, res => { resolve(res.status === 200 ? res : false); }, () => resolve(false));
+          });
+        }
+      }).then(result => {
+        if (result.isConfirmed && result.value) { toast('success', 'Course resubmitted for approval'); loadMySubmittedCourses(); }
+      });
+    });
+  };
+
+  window.deleteMySubmittedCourse = function(id) {
+    Swal.fire({
+      title: 'Delete Course?', text: 'This action cannot be undone.', icon: 'warning',
+      showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Delete'
+    }).then(r => {
+      if (r.isConfirmed) api({ delete_course: 1, id }, res => {
+        toast(res.status === 200 ? 'success' : 'error', res.message);
+        if (res.status === 200) loadMySubmittedCourses();
+      });
+    });
+  };
+
+  // ══════════════════════════════════════════
+  //  PAGE ROUTER — auto-load data per page
+  // ══════════════════════════════════════════
+  if (typeof CURRENT_PAGE !== 'undefined') {
+    switch (CURRENT_PAGE) {
+      case 'dashboard':                loadRoleDashboard(); break;
+      case 'manageColleges':           loadColleges(); break;
+      case 'manageUsers':              loadCollegeDropdowns(); loadUsers(); break;
+      case 'manageCourses':            loadCourses(); break;
+      case 'manageSubjects':           loadSubjectCourses(); break;
+      case 'courseAssignments':         loadCourseDropdowns(); break;
+      case 'courseApprovals':           loadApprovalStats(); loadPendingCourses(); break;
+      case 'coordinatorCourseCreate':  loadCoordCourseCreate(); break;
+      case 'manageTopics':             loadTopicCourseDropdowns(); break;
+      case 'myCourses':                loadCoordinatorCourses(); break;
+      case 'manageContent':            loadCoordinatorCourseDropdowns('contentCourseSelect'); break;
+      case 'myStudents':               loadCoordinatorCourseDropdowns('studentCourseSelect'); break;
+      case 'browseCourses':            loadBrowseCourses(); break;
+      case 'myLearning':               loadMyLearning(); break;
+      case 'courseViewer':             loadCourseFromUrl(); break;
+      case 'profile':                  loadProfile(); break;
+    }
   }
 
 });

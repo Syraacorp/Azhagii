@@ -36,6 +36,13 @@ require 'includes/sidebar.php';
             <p>Create and publish courses</p>
         </div>
     </a>
+    <a href="courseApprovals.php" class="quick-action-card">
+        <div class="quick-action-icon" style="background:rgba(251,191,36,0.1);color:#fbbf24;"><i class="fas fa-check-double"></i></div>
+        <div>
+            <h4>Course Approvals</h4>
+            <p>Review and approve submitted courses</p>
+        </div>
+    </a>
     <a href="courseAssignments.php" class="quick-action-card">
         <div class="quick-action-icon" style="background:rgba(52,211,153,0.1);color:#34d399;"><i class="fas fa-link"></i></div>
         <div>
