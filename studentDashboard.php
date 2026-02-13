@@ -16,6 +16,42 @@ require 'includes/sidebar.php';
     <div class="welcome-icon"><i class="fas fa-graduation-cap"></i></div>
 </div>
 
+<!-- Progress Overview -->
+<div class="progress-overview-grid" id="progressOverview">
+    <div class="progress-card" id="profileProgressCard">
+        <div class="progress-card-header">
+            <div class="progress-card-icon" style="background:rgba(155,114,203,0.1);color:#9b72cb;"><i class="fas fa-user-circle"></i></div>
+            <div>
+                <h4>Profile Completion</h4>
+                <p class="progress-card-subtitle">Complete your profile for a better experience</p>
+            </div>
+        </div>
+        <div class="progress-card-bar">
+            <div class="progress-card-bar-track">
+                <div class="progress-card-bar-fill" id="profileBarFill" style="width:0%;"></div>
+            </div>
+            <span class="progress-card-pct" id="profilePct">0%</span>
+        </div>
+        <p class="progress-card-detail" id="profileDetail">Loading...</p>
+    </div>
+    <div class="progress-card" id="courseProgressCard">
+        <div class="progress-card-header">
+            <div class="progress-card-icon" style="background:rgba(66,133,244,0.1);color:#4285f4;"><i class="fas fa-book-reader"></i></div>
+            <div>
+                <h4>Course Progress</h4>
+                <p class="progress-card-subtitle">Your overall learning progress</p>
+            </div>
+        </div>
+        <div class="progress-card-bar">
+            <div class="progress-card-bar-track">
+                <div class="progress-card-bar-fill" id="courseBarFill" style="width:0%;"></div>
+            </div>
+            <span class="progress-card-pct" id="coursePct">0%</span>
+        </div>
+        <div id="courseProgressList" class="course-progress-list"></div>
+    </div>
+</div>
+
 <!-- Stats Grid -->
 <div class="stats-grid" id="stats-container"></div>
 

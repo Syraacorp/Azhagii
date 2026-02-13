@@ -28,6 +28,9 @@ $currentPage = $currentPage ?? 'dashboard';
             <a href="manageUsers.php" class="nav-item <?= $currentPage === 'manageUsers' ? 'active' : '' ?>">
                 <i class="fas fa-users"></i> Users
             </a>
+            <a href="profileRequest.php" class="nav-item <?= $currentPage === 'profileRequest' ? 'active' : '' ?>">
+                <i class="fas fa-user-clock"></i> Profile Requests
+            </a>
             <a href="manageCourses.php" class="nav-item <?= $currentPage === 'manageCourses' ? 'active' : '' ?>">
                 <i class="fas fa-book"></i> Courses
             </a>
@@ -47,7 +50,8 @@ $currentPage = $currentPage ?? 'dashboard';
             <a href="myCourses.php" class="nav-item <?= $currentPage === 'myCourses' ? 'active' : '' ?>">
                 <i class="fas fa-book-open"></i> My Courses
             </a>
-            <a href="coordinatorCourseCreate.php" class="nav-item <?= $currentPage === 'coordinatorCourseCreate' ? 'active' : '' ?>">
+            <a href="coordinatorCourseCreate.php"
+                class="nav-item <?= $currentPage === 'coordinatorCourseCreate' ? 'active' : '' ?>">
                 <i class="fas fa-plus-circle"></i> Create Course
             </a>
             <a href="manageContent.php" class="nav-item <?= $currentPage === 'manageContent' ? 'active' : '' ?>">

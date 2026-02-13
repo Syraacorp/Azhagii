@@ -1,19 +1,26 @@
 <?php
 session_start();
-if (isset($_SESSION['user_id'])) { header('Location: dashboard.php'); exit; }
+if (isset($_SESSION['user_id'])) {
+    header('Location: dashboard.php');
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Ziyaa LMS</title>
     <link rel="stylesheet" href="assets/css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
+
 <body>
     <script>
         const savedTheme = localStorage.getItem('ziya-theme') || 'dark';
@@ -38,14 +45,17 @@ if (isset($_SESSION['user_id'])) { header('Location: dashboard.php'); exit; }
                 </div>
                 <form id="loginForm">
                     <div class="form-group">
-                        <label class="form-label">Email Address</label>
-                        <input type="email" name="email" class="form-input" placeholder="you@example.com" required>
+                        <label class="form-label">Username</label>
+                        <input type="text" name="username" class="form-input" placeholder="Enter your username"
+                            required>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Password</label>
-                        <input type="password" name="password" class="form-input" placeholder="Enter your password" required>
+                        <input type="password" name="password" class="form-input" placeholder="Enter your password"
+                            required>
                     </div>
-                    <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:0.5rem;">
+                    <button type="submit" class="btn btn-primary"
+                        style="width:100%;justify-content:center;margin-top:0.5rem;">
                         <i class="fas fa-sign-in-alt"></i> Sign In
                     </button>
                 </form>
@@ -56,27 +66,28 @@ if (isset($_SESSION['user_id'])) { header('Location: dashboard.php'); exit; }
         </div>
     </div>
     <script>
-    $('#loginForm').submit(function(e) {
-        e.preventDefault();
-        const btn = $(this).find('button[type=submit]');
-        btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Signing in...');
-        $.post('backend.php', {
-            login_user: 1,
-            email: $('[name=email]').val(),
-            password: $('[name=password]').val()
-        }, function(res) {
-            if (res.status === 200) {
-                Swal.fire({icon:'success', title:'Welcome!', text:res.message, timer:1500, showConfirmButton:false})
-                .then(() => window.location.href = 'dashboard.php');
-            } else {
-                Swal.fire({icon:'error', title:'Login Failed', text:res.message});
+        $('#loginForm').submit(function (e) {
+            e.preventDefault();
+            const btn = $(this).find('button[type=submit]');
+            btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Signing in...');
+            $.post('backend.php', {
+                login_user: 1,
+                username: $('[name=username]').val(),
+                password: $('[name=password]').val()
+            }, function (res) {
+                if (res.status === 200) {
+                    Swal.fire({ icon: 'success', title: 'Welcome!', text: res.message, timer: 1500, showConfirmButton: false })
+                        .then(() => window.location.href = 'dashboard.php');
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Login Failed', text: res.message });
+                    btn.prop('disabled', false).html('<i class="fas fa-sign-in-alt"></i> Sign In');
+                }
+            }, 'json').fail(function () {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Connection failed' });
                 btn.prop('disabled', false).html('<i class="fas fa-sign-in-alt"></i> Sign In');
-            }
-        }, 'json').fail(function() {
-            Swal.fire({icon:'error', title:'Error', text:'Connection failed'});
-            btn.prop('disabled', false).html('<i class="fas fa-sign-in-alt"></i> Sign In');
+            });
         });
-    });
     </script>
 </body>
+
 </html>

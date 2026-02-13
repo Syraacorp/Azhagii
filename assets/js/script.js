@@ -113,6 +113,8 @@ $(document).ready(function () {
         html += statCard('fa-check-circle', 'Completed', d.completed, '#34d399');
         html += statCard('fa-compass', 'Available Courses', d.available, '#9b72cb');
         html += statCard('fa-chart-line', 'Avg Progress', d.avg_progress + '%', '#fbbf24');
+        // Render progress overview bars
+        renderStudentProgressBars(d);
         // Load student continue learning
         loadStudentDashboardExtras();
       }
@@ -175,6 +177,55 @@ $(document).ready(function () {
       });
       $('#coordRecentStudents').html(html);
     });
+  }
+
+  // ── Student Progress Bars ──
+  function renderStudentProgressBars(d) {
+    // Profile completion
+    const pp = parseInt(d.profile_completion) || 0;
+    const pFilled = parseInt(d.profile_filled) || 0;
+    const pTotal = parseInt(d.profile_total) || 8;
+
+    // Animate after a short delay for visual effect
+    setTimeout(() => {
+      $('#profileBarFill').css('width', pp + '%');
+      $('#profilePct').text(pp + '%');
+    }, 200);
+
+    if (pp >= 100) {
+      $('#profileDetail').html('<span style="color:#22c55e;"><i class="fas fa-check-circle"></i> Profile complete!</span>');
+      setTimeout(() => { $('#profileBarFill').css('background', 'linear-gradient(90deg, #22c55e, #34d399)'); }, 200);
+    } else if (pp > 0) {
+      $('#profileDetail').html(pFilled + ' of ' + pTotal + ' fields filled — <a href="profile.php">Complete now</a>');
+      if (pp < 50) setTimeout(() => { $('#profileBarFill').css('background', 'linear-gradient(90deg, #f59e0b, #fbbf24)'); }, 200);
+    } else {
+      $('#profileDetail').html('0 of ' + pTotal + ' fields filled — <a href="profile.php">Complete now</a>');
+    }
+
+    // Course progress
+    const avg = parseInt(d.avg_progress) || 0;
+    setTimeout(() => {
+      $('#courseBarFill').css('width', avg + '%');
+      $('#coursePct').text(avg + '%');
+    }, 350);
+    if (avg >= 100) {
+      setTimeout(() => { $('#courseBarFill').css('background', 'linear-gradient(90deg, #22c55e, #34d399)'); }, 350);
+    }
+    const courses = d.course_progress || [];
+    if (courses.length === 0) {
+      $('#courseProgressList').html('<p style="font-size:0.82rem;color:var(--text-muted);margin-top:0.5rem;">No enrolled courses yet. <a href="browseCourses.php">Browse courses</a></p>');
+    } else {
+      let chtml = '';
+      courses.slice(0, 5).forEach(c => {
+        const prog = parseInt(c.progress) || 0;
+        const color = c.enroll_status === 'completed' ? '#22c55e' : (prog >= 50 ? '#4285f4' : '#f59e0b');
+        chtml += `<div class="cp-item">
+          <div class="cp-item-info"><span class="cp-item-title">${esc(c.title)}</span><span class="cp-item-pct" style="color:${color};">${prog}%</span></div>
+          <div class="cp-item-bar"><div class="cp-item-bar-fill" style="width:${prog}%;background:${color};"></div></div>
+        </div>`;
+      });
+      $('#courseProgressList').html(chtml);
+    }
   }
 
   // ── Student Dashboard Extras ──

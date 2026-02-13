@@ -77,19 +77,14 @@ function requireRole($roles)
 // ══════════════════════════════════════════════════════════
 
 if (isset($_POST['login_user'])) {
-    $email = esc($_POST['email'] ?? '');
+    $username = esc($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
-    $q = "SELECT u.*, c.name as college_name FROM users u LEFT JOIN colleges c ON u.college_id=c.id WHERE u.email='$email' AND u.status='active'";
+    $q = "SELECT u.*, c.name as college_name FROM users u LEFT JOIN colleges c ON u.college_id=c.id WHERE u.username='$username' AND u.status='active'";
     $r = mysqli_query($conn, $q);
     if ($r && mysqli_num_rows($r) > 0) {
         $u = mysqli_fetch_assoc($r);
-        // Support both hashed and legacy plaintext passwords
-        if (password_verify($password, $u['password']) || $u['password'] === $password) {
-            // If legacy plaintext password matched, upgrade it to hashed
-            if ($u['password'] === $password) {
-                $hashed = password_hash($password, PASSWORD_DEFAULT);
-                mysqli_query($conn, "UPDATE users SET password='" . esc($hashed) . "' WHERE id=" . intval($u['id']));
-            }
+        // Check plaintext password
+        if ($password === $u['password']) {
             $_SESSION['user_id'] = $u['id'];
             $_SESSION['user_name'] = $u['name'];
             $_SESSION['user_email'] = $u['email'];
@@ -99,30 +94,55 @@ if (isset($_POST['login_user'])) {
             respond(200, 'Login successful', ['role' => $u['role'], 'name' => $u['name']]);
         }
     }
-    respond(401, 'Invalid email or password');
+    respond(401, 'Invalid username or password');
 }
 
 if (isset($_POST['register_student'])) {
     $name = esc($_POST['name'] ?? '');
     $email = esc($_POST['email'] ?? '');
+    $username = esc($_POST['username'] ?? '');
     $raw_password = $_POST['password'] ?? '';
     $college_id = intval($_POST['college_id'] ?? 0);
+    $department = esc($_POST['department'] ?? '');
+    $year = esc($_POST['year'] ?? '');
+    $roll_number = esc($_POST['roll_number'] ?? '');
     $phone = esc($_POST['phone'] ?? '');
-    if (!$name || !$email || !$raw_password || !$college_id)
-        respond(400, 'All fields are required');
+    if (!$name || !$email || !$username || !$raw_password || !$college_id || !$department || !$year || !$roll_number)
+        respond(400, 'All required fields must be filled');
+    if (strlen($username) < 4 || !preg_match('/^[a-zA-Z0-9_]+$/', $username))
+        respond(400, 'Username must be at least 4 characters (letters, numbers, underscores only)');
     if (strlen($raw_password) < 6)
         respond(400, 'Password must be at least 6 characters');
+    if (strlen($roll_number) !== 12)
+        respond(400, 'Roll number must be exactly 12 characters');
     $chk = mysqli_query($conn, "SELECT id FROM users WHERE email='$email'");
     if ($chk && mysqli_num_rows($chk) > 0)
         respond(409, 'Email already registered');
+    $chku = mysqli_query($conn, "SELECT id FROM users WHERE username='$username'");
+    if ($chku && mysqli_num_rows($chku) > 0)
+        respond(409, 'Username already taken');
+    $chkr = mysqli_query($conn, "SELECT id FROM users WHERE roll_number='$roll_number'");
+    if ($chkr && mysqli_num_rows($chkr) > 0)
+        respond(409, 'Roll number already registered');
     $chk2 = mysqli_query($conn, "SELECT id FROM colleges WHERE id=$college_id AND status='active'");
     if (!$chk2 || mysqli_num_rows($chk2) == 0)
         respond(400, 'Invalid college');
-    $hashed = esc(password_hash($raw_password, PASSWORD_DEFAULT));
-    $q = "INSERT INTO users (name,email,password,role,college_id,phone) VALUES ('$name','$email','$hashed','ziyaaStudents',$college_id,'$phone')";
-    if (mysqli_query($conn, $q))
-        respond(200, 'Registration successful! Please login.');
-    respond(500, 'Registration failed');
+    $hashed = esc($raw_password);
+    $q = "INSERT INTO users (name,email,username,password,role,college_id,department,year,roll_number,phone) VALUES ('$name','$email','$username','$hashed','ziyaaStudents',$college_id,'$department','$year','$roll_number','$phone')";
+    if (mysqli_query($conn, $q)) {
+        $newId = mysqli_insert_id($conn);
+        // Auto-login after registration
+        $cq = mysqli_query($conn, "SELECT name FROM colleges WHERE id=$college_id");
+        $collegeName = ($cq && $crow = mysqli_fetch_assoc($cq)) ? $crow['name'] : '';
+        $_SESSION['user_id'] = $newId;
+        $_SESSION['user_name'] = $name;
+        $_SESSION['user_email'] = $email;
+        $_SESSION['role'] = 'ziyaaStudents';
+        $_SESSION['college_id'] = $college_id;
+        $_SESSION['college_name'] = $collegeName;
+        respond(200, 'Registration successful!');
+    }
+    respond(500, 'Registration failed: ' . mysqli_error($conn));
 }
 
 if (isset($_POST['check_session'])) {
@@ -142,6 +162,210 @@ if (isset($_POST['check_session'])) {
 if (isset($_POST['logout_user'])) {
     session_destroy();
     respond(200, 'Logged out');
+}
+
+// ══════════════════════════════════════════════════════════
+//  PROFILE (Self-Service)
+// ══════════════════════════════════════════════════════════
+
+if (isset($_POST['get_my_profile'])) {
+    requireLogin();
+    $uid = uid();
+    $q = "SELECT u.*, c.name as college_name, c.code as college_code 
+          FROM users u 
+          LEFT JOIN colleges c ON u.college_id=c.id 
+          WHERE u.id=$uid";
+    $r = mysqli_query($conn, $q);
+    if ($r && $row = mysqli_fetch_assoc($r)) {
+        unset($row['password']);
+        // Calculate completion
+        $filled = 0;
+        $total = 0;
+
+        // Basic (4)
+        $basicProps = ['name', 'email', 'username', 'role'];
+        foreach ($basicProps as $p) {
+            $total++;
+            if (!empty($row[$p]))
+                $filled++;
+        }
+
+        // Contact/Bio (2)
+        $contactProps = ['phone', 'bio'];
+        foreach ($contactProps as $p) {
+            $total++;
+            if (!empty($row[$p]))
+                $filled++;
+        }
+
+        // Academic (4) - only for students/coordinators mainly, but let's count for all for now or check role
+        if ($row['role'] == 'ziyaaStudents') {
+            $acadProps = ['college_id', 'department', 'year', 'roll_number'];
+            foreach ($acadProps as $p) {
+                $total++;
+                if (!empty($row[$p]))
+                    $filled++;
+            }
+        } else {
+            // For others, college_id might be relevant, others not so much. 
+            // Let's keep it simple: if fields exist in DB and relevant to role.
+            if (!empty($row['college_id'])) {
+                $total++;
+                $filled++;
+            } // college is usually required for logic
+        }
+
+        // Assets (5)
+        $assetProps = ['profile_photo', 'github_url', 'linkedin_url', 'hackerrank_url', 'leetcode_url'];
+        foreach ($assetProps as $p) {
+            $total++;
+            if (!empty($row[$p]))
+                $filled++;
+        }
+
+        $pct = ($total > 0) ? round(($filled / $total) * 100) : 0;
+        $row['profile_completion'] = $pct;
+
+        // Auto-lock if 100% complete and not already locked
+        if ($pct == 100 && (!isset($row['is_locked']) || $row['is_locked'] == 0)) {
+            // Check if column exists physically (we ran migration but safe check)
+            if (array_key_exists('is_locked', $row)) {
+                mysqli_query($conn, "UPDATE users SET is_locked=1 WHERE id=$uid");
+                $row['is_locked'] = 1;
+            }
+        }
+
+        // Check for pending unlock request
+        $prq = mysqli_query($conn, "SELECT status, request_reason FROM profile_requests WHERE user_id=$uid AND status='pending' ORDER BY created_at DESC LIMIT 1");
+        if ($prq && $prow = mysqli_fetch_assoc($prq)) {
+            $row['unlock_request'] = $prow;
+        }
+
+        respond(200, 'OK', $row);
+    }
+    respond(404, 'User not found');
+}
+
+if (isset($_POST['update_my_profile'])) {
+    requireLogin();
+    $uid = uid();
+
+    // Check lock status
+    // Check lock status - Admins bypass lock
+    $check = mysqli_query($conn, "SELECT is_locked, role FROM users WHERE id=$uid");
+    if ($check && $row = mysqli_fetch_assoc($check)) {
+        $allowedRoles = ['superAdmin', 'adminZiyaa'];
+        if ($row['is_locked'] == 1 && !in_array($row['role'], $allowedRoles)) {
+            respond(403, 'Profile is locked. Request unlock from admin.');
+        }
+    }
+
+    $name = esc($_POST['name'] ?? '');
+    $phone = esc($_POST['phone'] ?? '');
+    $bio = esc($_POST['bio'] ?? '');
+    $git = esc($_POST['github_url'] ?? '');
+    $li = esc($_POST['linkedin_url'] ?? '');
+    $hr = esc($_POST['hackerrank_url'] ?? '');
+    $lc = esc($_POST['leetcode_url'] ?? '');
+
+    // Optional: Password update
+    $passSql = "";
+    if (!empty($_POST['password'])) {
+        $hashed = esc($_POST['password']);
+        $passSql = ", password='$hashed'";
+    }
+
+    // Optional: Profile Photo
+    $photoSql = "";
+    if (isset($_FILES['profile_photo']) && $_FILES['profile_photo']['error'] === UPLOAD_ERR_OK) {
+        $ext = strtolower(pathinfo($_FILES['profile_photo']['name'], PATHINFO_EXTENSION));
+        $allowed = ['jpg', 'jpeg', 'png', 'webp'];
+        if (in_array($ext, $allowed)) {
+            $fname = 'profile_' . $uid . '_' . time() . '.' . $ext;
+            if (!is_dir('uploads/profiles'))
+                mkdir('uploads/profiles', 0777, true);
+            move_uploaded_file($_FILES['profile_photo']['tmp_name'], "uploads/profiles/$fname");
+            $photoSql = ", profile_photo='uploads/profiles/$fname'";
+        }
+    }
+
+    $q = "UPDATE users SET name='$name', phone='$phone', bio='$bio', 
+          github_url='$git', linkedin_url='$li', hackerrank_url='$hr', leetcode_url='$lc'
+          $passSql $photoSql WHERE id=$uid";
+
+    if (mysqli_query($conn, $q)) {
+        $_SESSION['user_name'] = $name; // update session
+        respond(200, 'Profile updated successfully');
+    }
+    respond(500, 'Update failed: ' . mysqli_error($conn));
+}
+
+if (isset($_POST['request_profile_unlock'])) {
+    requireLogin();
+    $uid = uid();
+    $reason = esc($_POST['reason'] ?? '');
+    if (!$reason)
+        respond(400, 'Reason is required');
+
+    // Check if already pending
+    $chk = mysqli_query($conn, "SELECT id FROM profile_requests WHERE user_id=$uid AND status='pending'");
+    if ($chk && mysqli_num_rows($chk) > 0)
+        respond(400, 'Request already pending');
+
+    if (mysqli_query($conn, "INSERT INTO profile_requests (user_id, request_reason) VALUES ($uid, '$reason')"))
+        respond(200, 'Unlock request sent to admin');
+    respond(500, 'Request failed');
+}
+
+// ── Admin: Review Profile Requests ──────────────────────
+if (isset($_POST['get_profile_requests'])) {
+    requireRole(['superAdmin', 'adminZiyaa']);
+    $q = "SELECT pr.*, u.name as user_name, u.email as user_email, col.name as college_name 
+          FROM profile_requests pr 
+          JOIN users u ON pr.user_id=u.id 
+          LEFT JOIN colleges col ON u.college_id=col.id
+          WHERE pr.status='pending' ORDER BY pr.created_at DESC";
+    $r = mysqli_query($conn, $q);
+    $data = [];
+    while ($r && $row = mysqli_fetch_assoc($r))
+        $data[] = $row;
+    respond(200, 'OK', $data);
+}
+
+if (isset($_POST['resolve_profile_request'])) {
+    requireRole(['superAdmin', 'adminZiyaa']);
+    $req_id = intval($_POST['request_id'] ?? 0);
+    $action = $_POST['action'] ?? ''; // approve or reject
+    $by = uid();
+
+    if (!in_array($action, ['approve', 'reject']))
+        respond(400, 'Invalid action');
+
+    $status = ($action === 'approve') ? 'approved' : 'rejected';
+
+    // Start transaction
+    mysqli_begin_transaction($conn);
+
+    try {
+        // Update request
+        mysqli_query($conn, "UPDATE profile_requests SET status='$status', resolved_by=$by, resolved_at=NOW() WHERE id=$req_id");
+
+        // If approved, unlock user
+        if ($action === 'approve') {
+            // Get user_id from request
+            $uq = mysqli_query($conn, "SELECT user_id FROM profile_requests WHERE id=$req_id");
+            if ($uq && $row = mysqli_fetch_assoc($uq)) {
+                $target_uid = $row['user_id'];
+                mysqli_query($conn, "UPDATE users SET is_locked=0 WHERE id=$target_uid");
+            }
+        }
+
+        mysqli_commit($conn);
+        respond(200, 'Request ' . $status);
+    } catch (Exception $e) {
+        mysqli_rollback($conn);
+        respond(500, 'Failed to resolve request');
+    }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -249,7 +473,7 @@ if (isset($_POST['add_user'])) {
     if ($chk && mysqli_num_rows($chk) > 0)
         respond(409, 'Email already exists');
     $cid_sql = $college_id ? $college_id : "NULL";
-    $hashed_pw = esc(password_hash($raw_password, PASSWORD_DEFAULT));
+    $hashed_pw = esc($raw_password);
     $q = "INSERT INTO users (name,email,password,role,college_id,phone) VALUES ('$name','$email','$hashed_pw','$urole',$cid_sql,'$phone')";
     if (mysqli_query($conn, $q))
         respond(200, 'User added');
@@ -278,7 +502,7 @@ if (isset($_POST['update_user'])) {
     $cid_sql = $college_id ? $college_id : "NULL";
     $set = "name='$name',email='$email',role='$urole',college_id=$cid_sql,phone='$phone',status='$status'";
     if (isset($_POST['password']) && $_POST['password'] !== '') {
-        $set .= ",password='" . esc(password_hash($_POST['password'], PASSWORD_DEFAULT)) . "'";
+        $set .= ",password='" . esc($_POST['password']) . "'";
     }
     $chk = mysqli_query($conn, "SELECT id FROM users WHERE email='$email' AND id!=$id");
     if ($chk && mysqli_num_rows($chk) > 0)
@@ -364,7 +588,8 @@ if (isset($_POST['get_course_detail'])) {
           LEFT JOIN users ap ON c.approved_by=ap.id
           WHERE c.id=$course_id";
     $r = mysqli_query($conn, $q);
-    if (!$r || mysqli_num_rows($r) == 0) respond(404, 'Course not found');
+    if (!$r || mysqli_num_rows($r) == 0)
+        respond(404, 'Course not found');
     $course = mysqli_fetch_assoc($r);
     // Get subjects with topics
     $sq = "SELECT s.*, (SELECT COUNT(*) FROM topics WHERE subject_id=s.id) as topic_count FROM subjects s WHERE s.course_id=$course_id ORDER BY s.created_at ASC";
@@ -374,7 +599,8 @@ if (isset($_POST['get_course_detail'])) {
         $tq = "SELECT t.* FROM topics t WHERE t.subject_id={$srow['id']} ORDER BY t.created_at ASC";
         $tr = mysqli_query($conn, $tq);
         $srow['topics'] = [];
-        while ($tr && $trow = mysqli_fetch_assoc($tr)) $srow['topics'][] = $trow;
+        while ($tr && $trow = mysqli_fetch_assoc($tr))
+            $srow['topics'][] = $trow;
         $subjects[] = $srow;
     }
     $course['subjects'] = $subjects;
@@ -411,8 +637,10 @@ if (isset($_POST['add_course'])) {
     $syllabus = '';
     if (isset($_FILES['syllabus']) && $_FILES['syllabus']['error'] === UPLOAD_ERR_OK) {
         $ext = strtolower(pathinfo($_FILES['syllabus']['name'], PATHINFO_EXTENSION));
-        if ($ext !== 'pdf') respond(400, 'Syllabus must be a PDF file');
-        if ($_FILES['syllabus']['size'] > 2 * 1024 * 1024) respond(400, 'Syllabus file must be under 2MB');
+        if ($ext !== 'pdf')
+            respond(400, 'Syllabus must be a PDF file');
+        if ($_FILES['syllabus']['size'] > 2 * 1024 * 1024)
+            respond(400, 'Syllabus file must be under 2MB');
         $fname = 'syllabus_' . time() . '_' . rand(1000, 9999) . '.pdf';
         move_uploaded_file($_FILES['syllabus']['tmp_name'], "uploads/content/$fname");
         $syllabus = "uploads/content/$fname";
@@ -440,8 +668,10 @@ if (isset($_POST['update_course'])) {
     if (hasRole('ziyaaCoordinator')) {
         $chk = mysqli_query($conn, "SELECT status, created_by FROM courses WHERE id=$id");
         if ($chk && $row = mysqli_fetch_assoc($chk)) {
-            if ($row['created_by'] != uid()) respond(403, 'Cannot edit this course');
-            if (!in_array($row['status'], ['pending', 'rejected'])) respond(403, 'Can only edit pending or rejected courses');
+            if ($row['created_by'] != uid())
+                respond(403, 'Cannot edit this course');
+            if (!in_array($row['status'], ['pending', 'rejected']))
+                respond(403, 'Can only edit pending or rejected courses');
         }
     }
     $title = esc($_POST['title'] ?? '');
@@ -471,8 +701,10 @@ if (isset($_POST['update_course'])) {
     // Handle syllabus PDF upload
     if (isset($_FILES['syllabus']) && $_FILES['syllabus']['error'] === UPLOAD_ERR_OK) {
         $ext = strtolower(pathinfo($_FILES['syllabus']['name'], PATHINFO_EXTENSION));
-        if ($ext !== 'pdf') respond(400, 'Syllabus must be a PDF file');
-        if ($_FILES['syllabus']['size'] > 2 * 1024 * 1024) respond(400, 'Syllabus file must be under 2MB');
+        if ($ext !== 'pdf')
+            respond(400, 'Syllabus must be a PDF file');
+        if ($_FILES['syllabus']['size'] > 2 * 1024 * 1024)
+            respond(400, 'Syllabus file must be under 2MB');
         $fname = 'syllabus_' . time() . '_' . rand(1000, 9999) . '.pdf';
         move_uploaded_file($_FILES['syllabus']['tmp_name'], "uploads/content/$fname");
         $set .= ",syllabus='uploads/content/$fname'";
@@ -489,8 +721,10 @@ if (isset($_POST['delete_course'])) {
     if (hasRole('ziyaaCoordinator')) {
         $chk = mysqli_query($conn, "SELECT status, created_by FROM courses WHERE id=$id");
         if ($chk && $row = mysqli_fetch_assoc($chk)) {
-            if ($row['created_by'] != uid()) respond(403, 'Cannot delete this course');
-            if (!in_array($row['status'], ['pending', 'rejected'])) respond(403, 'Can only delete pending or rejected courses');
+            if ($row['created_by'] != uid())
+                respond(403, 'Cannot delete this course');
+            if (!in_array($row['status'], ['pending', 'rejected']))
+                respond(403, 'Can only delete pending or rejected courses');
         }
     }
     if (mysqli_query($conn, "DELETE FROM courses WHERE id=$id"))
@@ -591,7 +825,8 @@ if (isset($_POST['add_subject'])) {
     if (hasRole('ziyaaCoordinator')) {
         $chk = mysqli_query($conn, "SELECT created_by FROM courses WHERE id=$course_id");
         if ($chk && $row = mysqli_fetch_assoc($chk)) {
-            if ($row['created_by'] != uid()) respond(403, 'Can only add subjects to your own courses');
+            if ($row['created_by'] != uid())
+                respond(403, 'Can only add subjects to your own courses');
         }
     }
     $q = "INSERT INTO subjects (course_id, title, code, description) VALUES ($course_id, '$title', '$code', '$desc')";
@@ -629,7 +864,8 @@ if (isset($_POST['delete_subject'])) {
 if (isset($_POST['get_topics'])) {
     requireLogin();
     $subject_id = intval($_POST['subject_id'] ?? 0);
-    if (!$subject_id) respond(400, 'Subject ID required');
+    if (!$subject_id)
+        respond(400, 'Subject ID required');
     $q = "SELECT t.*, u.name as creator_name FROM topics t LEFT JOIN users u ON t.created_by=u.id WHERE t.subject_id=$subject_id ORDER BY t.created_at ASC";
     $r = mysqli_query($conn, $q);
     $data = [];
@@ -922,14 +1158,40 @@ if (isset($_POST['get_dashboard_stats'])) {
     } else if (hasRole('ziyaaStudents')) {
         $sid = uid();
         $cid = cid();
+
         $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM enrollments WHERE student_id=$sid");
-        $stats['enrolled'] = mysqli_fetch_assoc($r)['c'];
+        $stats['enrolled'] = ($r && $row = mysqli_fetch_assoc($r)) ? intval($row['c']) : 0;
+
         $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM enrollments WHERE student_id=$sid AND status='completed'");
-        $stats['completed'] = mysqli_fetch_assoc($r)['c'];
+        $stats['completed'] = ($r && $row = mysqli_fetch_assoc($r)) ? intval($row['c']) : 0;
+
         $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM course_colleges WHERE college_id=$cid");
-        $stats['available'] = mysqli_fetch_assoc($r)['c'];
+        $stats['available'] = ($r && $row = mysqli_fetch_assoc($r)) ? intval($row['c']) : 0;
+
         $r = mysqli_query($conn, "SELECT AVG(progress) as p FROM enrollments WHERE student_id=$sid");
-        $stats['avg_progress'] = round(mysqli_fetch_assoc($r)['p'] ?? 0);
+        $avgRow = ($r) ? mysqli_fetch_assoc($r) : null;
+        $stats['avg_progress'] = ($avgRow && $avgRow['p'] !== null) ? round(floatval($avgRow['p'])) : 0;
+
+        // Profile completion
+        $r = mysqli_query($conn, "SELECT * FROM users WHERE id=$sid");
+        $u = ($r) ? mysqli_fetch_assoc($r) : [];
+        $profileFields = ['name', 'email', 'username', 'phone', 'college_id', 'department', 'year', 'roll_number'];
+        $filled = 0;
+        if ($u) {
+            foreach ($profileFields as $f) {
+                if (isset($u[$f]) && $u[$f] !== '' && $u[$f] !== null && $u[$f] !== '0')
+                    $filled++;
+            }
+        }
+        $stats['profile_completion'] = round(($filled / count($profileFields)) * 100);
+        $stats['profile_filled'] = $filled;
+        $stats['profile_total'] = count($profileFields);
+
+        // Per-course progress
+        $r = mysqli_query($conn, "SELECT c.title, e.progress, e.status as enroll_status FROM enrollments e JOIN courses c ON e.course_id=c.id WHERE e.student_id=$sid ORDER BY e.enrolled_at DESC");
+        $stats['course_progress'] = [];
+        while ($r && $row = mysqli_fetch_assoc($r))
+            $stats['course_progress'][] = $row;
     }
 
     respond(200, 'OK', $stats);
@@ -945,7 +1207,7 @@ if (isset($_POST['update_profile'])) {
     $phone = esc($_POST['phone'] ?? '');
     $set = "name='$name',phone='$phone'";
     if (isset($_POST['password']) && $_POST['password'] !== '') {
-        $set .= ",password='" . esc(password_hash($_POST['password'], PASSWORD_DEFAULT)) . "'";
+        $set .= ",password='" . esc($_POST['password']) . "'";
     }
     if (mysqli_query($conn, "UPDATE users SET $set WHERE id=" . uid())) {
         $_SESSION['user_name'] = $name;
