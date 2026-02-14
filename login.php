@@ -13,9 +13,7 @@ if (isset($_SESSION['userId'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Azhagii LMS</title>
     <link rel="stylesheet" href="assets/css/style.css">
-    <link
-        href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Inter:wght@400;500;600&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -40,54 +38,99 @@ if (isset($_SESSION['userId'])) {
             <a href="index.php" class="back-to-home"><i class="fas fa-arrow-left"></i> Home</a>
             <div class="auth-card">
                 <div class="auth-header">
-                    <h2>Welcome Back</h2>
+                    <h2>Welcome to Ziya</h2>
                     <p>Sign in to continue to your dashboard</p>
                 </div>
-                <form id="loginForm">
+                
+                <form id="loginFormLocal">
                     <div class="form-group">
                         <label class="form-label">Username</label>
-                        <input type="text" name="username" class="form-input" placeholder="Enter your username"
-                            required>
+                        <input type="text" class="form-input" name="username" placeholder="Enter username" required>
                     </div>
+
                     <div class="form-group">
                         <label class="form-label">Password</label>
-                        <input type="password" name="password" class="form-input" placeholder="Enter your password"
-                            required>
+                        <input type="password" class="form-input" name="password" placeholder="Enter password" required>
+                        <div style="text-align:right;margin-top:0.5rem;">
+                            <a href="#" class="forgot-password">Forgot Password?</a>
+                        </div>
                     </div>
-                    <button type="submit" class="btn btn-primary"
-                        style="width:100%;justify-content:center;margin-top:0.5rem;">
-                        <i class="fas fa-sign-in-alt"></i> Sign In
+
+                    <button type="submit" class="btn btn-primary" style="width:100%;margin-top:1rem;height:48px;font-size:1rem;">
+                        Sign In
                     </button>
                 </form>
-                <p style="text-align:center;margin-top:1.5rem;font-size:0.9rem;">
-                    New student? <a href="register.php">Create an account</a>
-                </p>
+
+                <div class="auth-footer">
+                    Don't have an account? <a href="register.php">Create Account</a>
+                </div>
             </div>
         </div>
     </div>
+
     <script>
-        $('#loginForm').submit(function (e) {
-            e.preventDefault();
-            const btn = $(this).find('button[type=submit]');
-            btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Signing in...');
-            $.post('backend.php', {
-                login_user: 1,
-                username: $('[name=username]').val(),
-                password: $('[name=password]').val()
-            }, function (res) {
-                if (res.status === 200) {
-                    Swal.fire({ icon: 'success', title: 'Welcome!', text: res.message, timer: 1500, showConfirmButton: false })
-                        .then(() => window.location.href = 'dashboard.php');
-                } else {
-                    Swal.fire({ icon: 'error', title: 'Login Failed', text: res.message });
-                    btn.prop('disabled', false).html('<i class="fas fa-sign-in-alt"></i> Sign In');
+        $(document).ready(function() {
+            // Self-contained login logic
+            $('#loginFormLocal').on('submit', function(e) {
+                e.preventDefault();
+                
+                const btn = $(this).find('button[type="submit"]');
+                const originalText = btn.html();
+                const username = $(this).find('input[name="username"]').val().trim();
+                const password = $(this).find('input[name="password"]').val();
+
+                if(!username || !password) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Missing Input',
+                        text: 'Please enter both username and password.',
+                        confirmButtonColor: '#4285f4'
+                    });
+                    return;
                 }
-            }, 'json').fail(function () {
-                Swal.fire({ icon: 'error', title: 'Error', text: 'Connection failed' });
-                btn.prop('disabled', false).html('<i class="fas fa-sign-in-alt"></i> Sign In');
+
+                btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Signing In...');
+
+                $.post('backend.php', {
+                    login_user: 1,
+                    username: username,
+                    password: password
+                }, function(res) {
+                    if (res.status === 200) {
+                        const Toast = Swal.mixin({
+                            toast: true,
+                            position: 'top-end', // Spark style toast
+                            showConfirmButton: false,
+                            timer: 1500,
+                            timerProgressBar: true
+                        });
+                        Toast.fire({
+                            icon: 'success',
+                            title: 'Signed in successfully'
+                        }).then(() => {
+                            window.location.href = 'dashboard.php';
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Login Failed',
+                            text: res.message || 'Invalid credentials',
+                            confirmButtonColor: '#4285f4'
+                        });
+                        btn.prop('disabled', false).html(originalText);
+                    }
+                }, 'json')
+                .fail(function() {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Connection Error',
+                        text: 'Unable to connect to the server.',
+                        confirmButtonColor: '#4285f4'
+                    });
+                    btn.prop('disabled', false).html(originalText);
+                });
             });
         });
     </script>
 </body>
-
 </html>

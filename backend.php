@@ -44,41 +44,42 @@ function esc($v)
 }
 
 // Secure file upload helper
-function uploadFile($fileKey, $allowedMimes, $allowedExts, $maxSizeMB, $uploadDir, $prefix = 'file') {
+function uploadFile($fileKey, $allowedMimes, $allowedExts, $maxSizeMB, $uploadDir, $prefix = 'file')
+{
     if (!isset($_FILES[$fileKey]) || $_FILES[$fileKey]['error'] !== UPLOAD_ERR_OK) {
         return null;
     }
-    
+
     // Check MIME type
     $finfo = finfo_open(FILEINFO_MIME_TYPE);
     $mime = finfo_file($finfo, $_FILES[$fileKey]['tmp_name']);
     finfo_close($finfo);
-    
+
     if (!in_array($mime, $allowedMimes)) {
         respond(400, "Invalid file type. Allowed MIME types: " . implode(', ', $allowedMimes));
     }
-    
+
     // Check extension
     $ext = strtolower(pathinfo($_FILES[$fileKey]['name'], PATHINFO_EXTENSION));
     if (!in_array($ext, $allowedExts)) {
         respond(400, "Invalid file extension. Allowed: " . implode(', ', $allowedExts));
     }
-    
+
     // Check file size
     if ($_FILES[$fileKey]['size'] > $maxSizeMB * 1024 * 1024) {
         respond(400, "File too large. Maximum size: {$maxSizeMB}MB");
     }
-    
+
     // Generate safe filename
     $fname = $prefix . '_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
-    
+
     // Ensure directory exists
     if (!is_dir($uploadDir)) {
         if (!mkdir($uploadDir, 0755, true)) {
             respond(500, "Failed to create upload directory");
         }
     }
-    
+
     $targetFile = "$uploadDir/$fname";
     if (move_uploaded_file($_FILES[$fileKey]['tmp_name'], $targetFile)) {
         return $targetFile;
@@ -126,15 +127,27 @@ function requireRole($roles)
 if (isset($_POST['login_user'])) {
     $username = esc($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
-    
+
     $stmt = $conn->prepare("SELECT u.*, c.name as college_name FROM users u LEFT JOIN colleges c ON u.collegeId=c.id WHERE u.username=? AND u.status='active'");
     $stmt->bind_param("s", $username);
     $stmt->execute();
     $result = $stmt->get_result();
-    
+
     if ($u = $result->fetch_assoc()) {
-        // Check plain text password
-        if ($password === $u['password']) {
+        $loginSuccess = false;
+        // Verify hashed password
+        if (password_verify($password, $u['password'])) {
+            $loginSuccess = true;
+        }
+        // Fallback: Check plain text (for migration)
+        else if ($password === $u['password']) {
+            $loginSuccess = true;
+            // Auto-hash and update
+            $newHash = password_hash($password, PASSWORD_DEFAULT);
+            $conn->query("UPDATE users SET password='$newHash' WHERE id={$u['id']}");
+        }
+
+        if ($loginSuccess) {
             $_SESSION['userId'] = $u['id'];
             $_SESSION['user_name'] = $u['name'];
             $_SESSION['user_email'] = $u['email'];
@@ -159,7 +172,7 @@ if (isset($_POST['register_student'])) {
     $year = esc($_POST['year'] ?? '');
     $rollNumber = esc($_POST['rollNumber'] ?? '');
     $phone = esc($_POST['phone'] ?? '');
-    
+
     // Additional profile fields (optional)
     $gender = esc($_POST['gender'] ?? '');
     $dob = esc($_POST['dob'] ?? '');
@@ -169,7 +182,7 @@ if (isset($_POST['register_student'])) {
     $linkedinUrl = esc($_POST['linkedinUrl'] ?? '');
     $hackerrankUrl = esc($_POST['hackerrankUrl'] ?? '');
     $leetcodeUrl = esc($_POST['leetcodeUrl'] ?? '');
-    
+
     if (!$name || !$email || !$username || !$raw_password || !$collegeId || !$department || !$year || !$rollNumber || !$phone)
         respond(400, 'All required fields must be filled');
     if (strlen($username) < 4 || !preg_match('/^[a-zA-Z0-9_]+$/', $username))
@@ -178,7 +191,7 @@ if (isset($_POST['register_student'])) {
         respond(400, 'Password must be at least 6 characters');
     if (strlen($rollNumber) !== 12)
         respond(400, 'Roll number must be exactly 12 characters');
-    
+
     // Check existing email
     $stmt = $conn->prepare("SELECT id FROM users WHERE email=?");
     $stmt->bind_param("s", $email);
@@ -188,7 +201,7 @@ if (isset($_POST['register_student'])) {
         respond(409, 'Email already registered');
     }
     $stmt->close();
-    
+
     // Check existing username
     $stmt = $conn->prepare("SELECT id FROM users WHERE username=?");
     $stmt->bind_param("s", $username);
@@ -198,7 +211,7 @@ if (isset($_POST['register_student'])) {
         respond(409, 'Username already taken');
     }
     $stmt->close();
-    
+
     // Check existing roll number
     $stmt = $conn->prepare("SELECT id FROM users WHERE rollNumber=?");
     $stmt->bind_param("s", $rollNumber);
@@ -208,7 +221,7 @@ if (isset($_POST['register_student'])) {
         respond(409, 'Roll number already registered');
     }
     $stmt->close();
-    
+
     // Validate college
     $stmt = $conn->prepare("SELECT id FROM colleges WHERE id=? AND status='active'");
     $stmt->bind_param("i", $collegeId);
@@ -218,9 +231,9 @@ if (isset($_POST['register_student'])) {
         respond(400, 'Invalid college');
     }
     $stmt->close();
-    
+
     // Store password in plain text
-    
+
     // Handle profile photo upload
     $photoPath = null;
     if (isset($_FILES['profilePhoto']) && $_FILES['profilePhoto']['error'] === UPLOAD_ERR_OK) {
@@ -228,7 +241,7 @@ if (isset($_POST['register_student'])) {
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         $mime = finfo_file($finfo, $_FILES['profilePhoto']['tmp_name']);
         finfo_close($finfo);
-        
+
         $allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
         $ext = strtolower(pathinfo($_FILES['profilePhoto']['name'], PATHINFO_EXTENSION));
         $allowedExts = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
@@ -258,7 +271,7 @@ if (isset($_POST['register_student'])) {
             respond(500, "Failed to save uploaded file");
         }
     }
-    
+
     // Generate unique azhagiiID: AZG + collegeCode + sequential number
     $codeStmt = $conn->prepare("SELECT code FROM colleges WHERE id=?");
     $codeStmt->bind_param("i", $collegeId);
@@ -266,7 +279,7 @@ if (isset($_POST['register_student'])) {
     $codeRow = $codeStmt->get_result()->fetch_assoc();
     $codeStmt->close();
     $collegeCode = strtoupper($codeRow['code'] ?? 'UNKN');
-    
+
     $countStmt = $conn->prepare("SELECT COUNT(*) as cnt FROM users WHERE role='azhagiiStudents' AND collegeId=?");
     $countStmt->bind_param("i", $collegeId);
     $countStmt->execute();
@@ -274,20 +287,23 @@ if (isset($_POST['register_student'])) {
     $countStmt->close();
     $nextNum = ($countRow['cnt'] ?? 0) + 1;
     $azhagiiID = 'AZG' . $collegeCode . str_pad($nextNum, 4, '0', STR_PAD_LEFT);
-    
+
+    // Hash password
+    $hashed_password = password_hash($raw_password, PASSWORD_DEFAULT);
+
     // Insert user with all profile data
     if ($photoPath !== null) {
         $stmt = $conn->prepare("INSERT INTO users (name,email,username,password,role,collegeId,department,year,rollNumber,azhagiiID,phone,gender,dob,address,bio,githubUrl,linkedinUrl,hackerrankUrl,leetcodeUrl,profilePhoto) VALUES (?,?,?,?,'azhagiiStudents',?,?,?,?,?,?,?,NULLIF(?,''),?,?,?,?,?,?,?)");
-        $stmt->bind_param("ssssissssssssssssss", $name, $email, $username, $raw_password, $collegeId, $department, $year, $rollNumber, $azhagiiID, $phone, $gender, $dob, $address, $bio, $githubUrl, $linkedinUrl, $hackerrankUrl, $leetcodeUrl, $photoPath);
+        $stmt->bind_param("ssssissssssssssssss", $name, $email, $username, $hashed_password, $collegeId, $department, $year, $rollNumber, $azhagiiID, $phone, $gender, $dob, $address, $bio, $githubUrl, $linkedinUrl, $hackerrankUrl, $leetcodeUrl, $photoPath);
     } else {
         $stmt = $conn->prepare("INSERT INTO users (name,email,username,password,role,collegeId,department,year,rollNumber,azhagiiID,phone,gender,dob,address,bio,githubUrl,linkedinUrl,hackerrankUrl,leetcodeUrl) VALUES (?,?,?,?,'azhagiiStudents',?,?,?,?,?,?,?,NULLIF(?,''),?,?,?,?,?,?)");
-        $stmt->bind_param("ssssisssssssssssss", $name, $email, $username, $raw_password, $collegeId, $department, $year, $rollNumber, $azhagiiID, $phone, $gender, $dob, $address, $bio, $githubUrl, $linkedinUrl, $hackerrankUrl, $leetcodeUrl);
+        $stmt->bind_param("ssssisssssssssssss", $name, $email, $username, $hashed_password, $collegeId, $department, $year, $rollNumber, $azhagiiID, $phone, $gender, $dob, $address, $bio, $githubUrl, $linkedinUrl, $hackerrankUrl, $leetcodeUrl);
     }
-    
+
     if ($stmt->execute()) {
         $newId = $stmt->insert_id;
         $stmt->close();
-        
+
         // Get college name
         $stmt = $conn->prepare("SELECT name FROM colleges WHERE id=?");
         $stmt->bind_param("i", $collegeId);
@@ -298,7 +314,7 @@ if (isset($_POST['register_student'])) {
             $collegeName = $row['name'];
         }
         $stmt->close();
-        
+
         // Auto-login after registration
         $_SESSION['userId'] = $newId;
         $_SESSION['user_name'] = $name;
@@ -343,7 +359,7 @@ if (isset($_POST['logout_user'])) {
 if (isset($_POST['get_my_profile'])) {
     requireLogin();
     $uid = uid();
-    
+
     $stmt = $conn->prepare("SELECT u.*, c.name as college_name, c.code as college_code 
           FROM users u 
           LEFT JOIN colleges c ON u.collegeId=c.id 
@@ -351,7 +367,7 @@ if (isset($_POST['get_my_profile'])) {
     $stmt->bind_param("i", $uid);
     $stmt->execute();
     $result = $stmt->get_result();
-    
+
     if ($row = $result->fetch_assoc()) {
         $stmt->close();
         unset($row['password']);
@@ -490,7 +506,7 @@ if (isset($_POST['update_my_profile'])) {
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         $mime = finfo_file($finfo, $_FILES['profilePhoto']['tmp_name']);
         finfo_close($finfo);
-        
+
         $allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
         $ext = strtolower(pathinfo($_FILES['profilePhoto']['name'], PATHINFO_EXTENSION));
         $allowedExts = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
@@ -733,10 +749,10 @@ if (isset($_POST['add_college'])) {
     $code = esc($_POST['code'] ?? '');
     $address = esc($_POST['address'] ?? '');
     $city = esc($_POST['city'] ?? '');
-    
+
     if (!$name || !$code)
         respond(400, 'Name and code are required');
-    
+
     // Check if code already exists
     $stmt = $conn->prepare("SELECT id FROM colleges WHERE code=?");
     $stmt->bind_param("s", $code);
@@ -746,7 +762,7 @@ if (isset($_POST['add_college'])) {
         respond(409, 'College code already exists');
     }
     $stmt->close();
-    
+
     $stmt2 = $conn->prepare("INSERT INTO colleges (name,code,address,city) VALUES (?,?,?,?)");
     $stmt2->bind_param("ssss", $name, $code, $address, $city);
     if ($stmt2->execute()) {
@@ -767,7 +783,7 @@ if (isset($_POST['update_college'])) {
     $address = esc($_POST['address'] ?? '');
     $city = esc($_POST['city'] ?? '');
     $status = esc($_POST['status'] ?? 'active');
-    
+
     // Check if code already exists for other colleges
     $stmt = $conn->prepare("SELECT id FROM colleges WHERE code=? AND id!=?");
     $stmt->bind_param("si", $code, $id);
@@ -777,7 +793,7 @@ if (isset($_POST['update_college'])) {
         respond(409, 'College code already exists');
     }
     $stmt->close();
-    
+
     $stmt2 = $conn->prepare("UPDATE colleges SET name=?,code=?,address=?,city=?,status=? WHERE id=?");
     $stmt2->bind_param("sssssi", $name, $code, $address, $city, $status, $id);
     if ($stmt2->execute()) {
@@ -793,7 +809,7 @@ if (isset($_POST['update_college'])) {
 if (isset($_POST['delete_college'])) {
     requireRole('superAdmin');
     $id = intval($_POST['id'] ?? 0);
-    
+
     $stmt = $conn->prepare("DELETE FROM colleges WHERE id=?");
     $stmt->bind_param("i", $id);
     if ($stmt->execute()) {
@@ -830,6 +846,22 @@ if (isset($_POST['get_users'])) {
     respond(200, 'OK', $data);
 }
 
+if (isset($_POST['get_user_detail'])) {
+    requireRole(['superAdmin', 'adminAzhagii']);
+    $uid = intval($_POST['userId'] ?? 0);
+    $stmt = $conn->prepare("SELECT u.*, c.name as college_name FROM users u LEFT JOIN colleges c ON u.collegeId=c.id WHERE u.id=?");
+    $stmt->bind_param("i", $uid);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($row = $result->fetch_assoc()) {
+        $stmt->close();
+        unset($row['password']);
+        respond(200, 'OK', $row);
+    }
+    $stmt->close();
+    respond(404, 'User not found');
+}
+
 if (isset($_POST['add_user'])) {
     requireRole(['superAdmin', 'adminAzhagii']);
     $name = esc($_POST['name'] ?? '');
@@ -839,14 +871,14 @@ if (isset($_POST['add_user'])) {
     $urole = esc($_POST['role'] ?? '');
     $collegeId = intval($_POST['collegeId'] ?? 0);
     $phone = esc($_POST['phone'] ?? '');
-    
+
     if (!$name || !$email || !$username || !$raw_password || !$urole)
         respond(400, 'Required fields missing');
-    
+
     // adminAzhagii cannot create superAdmin or other adminAzhagii
     if (role() === 'adminAzhagii' && in_array($urole, ['superAdmin', 'adminAzhagii']))
         respond(403, 'Cannot create this role');
-    
+
     // Check if email exists
     $stmt = $conn->prepare("SELECT id FROM users WHERE email=?");
     $stmt->bind_param("s", $email);
@@ -866,13 +898,14 @@ if (isset($_POST['add_user'])) {
         respond(409, 'Username already exists');
     }
     $stmt->close();
-    
-    // Store password in plain text
+
+    // Hash password
+    $hashed_password = password_hash($raw_password, PASSWORD_DEFAULT);
     $cid_sql = $collegeId ? $collegeId : null;
-    
+
     $stmt2 = $conn->prepare("INSERT INTO users (name,email,username,password,role,collegeId,phone) VALUES (?,?,?,?,?,?,?)");
-    $stmt2->bind_param("sssssis", $name, $email, $username, $raw_password, $urole, $cid_sql, $phone);
-    
+    $stmt2->bind_param("sssssis", $name, $email, $username, $hashed_password, $urole, $cid_sql, $phone);
+
     if ($stmt2->execute()) {
         $stmt2->close();
         respond(200, 'User added');
@@ -886,7 +919,7 @@ if (isset($_POST['add_user'])) {
 if (isset($_POST['update_user'])) {
     requireRole(['superAdmin', 'adminAzhagii']);
     $id = intval($_POST['id'] ?? 0);
-    
+
     // adminAzhagii cannot edit superAdmin users
     if (role() === 'adminAzhagii') {
         $stmt = $conn->prepare("SELECT role FROM users WHERE id=?");
@@ -901,7 +934,7 @@ if (isset($_POST['update_user'])) {
         }
         $stmt->close();
     }
-    
+
     $name = esc($_POST['name'] ?? '');
     $email = esc($_POST['email'] ?? '');
     $urole = esc($_POST['role'] ?? '');
@@ -915,14 +948,14 @@ if (isset($_POST['update_user'])) {
     $department = esc($_POST['department'] ?? '');
     $year = esc($_POST['year'] ?? '');
     $rollNumber = esc($_POST['rollNumber'] ?? '');
-    
+
     // adminAzhagii cannot escalate roles to superAdmin or adminAzhagii
     if (role() === 'adminAzhagii' && in_array($urole, ['superAdmin', 'adminAzhagii']))
         respond(403, 'Cannot assign this role');
-    
+
     $cid_sql = $collegeId ? $collegeId : null;
     $dob_sql = $dob ?: null;
-    
+
     // Check if email exists for other users
     $stmt2 = $conn->prepare("SELECT id FROM users WHERE email=? AND id!=?");
     $stmt2->bind_param("si", $email, $id);
@@ -932,17 +965,18 @@ if (isset($_POST['update_user'])) {
         respond(409, 'Email already exists');
     }
     $stmt2->close();
-    
+
     // Update with or without password
     if (isset($_POST['password']) && $_POST['password'] !== '') {
         $plain_pw = $_POST['password'];
+        $hashed_pw = password_hash($plain_pw, PASSWORD_DEFAULT);
         $stmt3 = $conn->prepare("UPDATE users SET name=?,email=?,role=?,collegeId=?,phone=?,status=?,password=?,bio=?,address=?,dob=?,gender=?,department=?,year=?,rollNumber=? WHERE id=?");
-        $stmt3->bind_param("sssissssssssssi", $name, $email, $urole, $cid_sql, $phone, $status, $plain_pw, $bio, $address, $dob_sql, $gender, $department, $year, $rollNumber, $id);
+        $stmt3->bind_param("sssissssssssssi", $name, $email, $urole, $cid_sql, $phone, $status, $hashed_pw, $bio, $address, $dob_sql, $gender, $department, $year, $rollNumber, $id);
     } else {
         $stmt3 = $conn->prepare("UPDATE users SET name=?,email=?,role=?,collegeId=?,phone=?,status=?,bio=?,address=?,dob=?,gender=?,department=?,year=?,rollNumber=? WHERE id=?");
         $stmt3->bind_param("sssisssssssssi", $name, $email, $urole, $cid_sql, $phone, $status, $bio, $address, $dob_sql, $gender, $department, $year, $rollNumber, $id);
     }
-    
+
     if ($stmt3->execute()) {
         $stmt3->close();
         respond(200, 'User updated');
@@ -956,10 +990,10 @@ if (isset($_POST['update_user'])) {
 if (isset($_POST['delete_user'])) {
     requireRole(['superAdmin', 'adminAzhagii']);
     $id = intval($_POST['id'] ?? 0);
-    
+
     if ($id == uid())
         respond(400, 'Cannot delete yourself');
-    
+
     // adminAzhagii cannot delete superAdmin users
     if (role() === 'adminAzhagii') {
         $stmt = $conn->prepare("SELECT role FROM users WHERE id=?");
@@ -974,7 +1008,7 @@ if (isset($_POST['delete_user'])) {
         }
         $stmt->close();
     }
-    
+
     $stmt2 = $conn->prepare("DELETE FROM users WHERE id=?");
     $stmt2->bind_param("i", $id);
     if ($stmt2->execute()) {
@@ -1096,7 +1130,7 @@ if (isset($_POST['add_course'])) {
     } else {
         $status = esc($_POST['status'] ?? 'draft');
     }
-    
+
     // Handle thumbnail upload with security checks
     $thumb = '';
     if (isset($_FILES['thumbnail']) && $_FILES['thumbnail']['error'] === UPLOAD_ERR_OK) {
@@ -1104,7 +1138,7 @@ if (isset($_POST['add_course'])) {
         $allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
         $thumb = uploadFile('thumbnail', $allowedMimes, $allowedExts, 5, 'uploads/thumbnails', 'thumb');
     }
-    
+
     // Handle syllabus PDF upload with security checks
     $syllabus = '';
     if (isset($_FILES['syllabus']) && $_FILES['syllabus']['error'] === UPLOAD_ERR_OK) {
@@ -1112,18 +1146,29 @@ if (isset($_POST['add_course'])) {
         $allowedExts = ['pdf'];
         $syllabus = uploadFile('syllabus', $allowedMimes, $allowedExts, 5, 'uploads/content', 'syllabus');
     }
-    
+
     if (!$title)
         respond(400, 'Title is required');
     $by = uid();
-    
+
     $stmt = $conn->prepare("INSERT INTO courses (title,courseCode,description,category,courseType,thumbnail,syllabus,semester,regulation,academicYear,createdBy,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)");
     $stmt->bind_param("ssssssssssss", $title, $code, $desc, $cat, $courseType, $thumb, $syllabus, $semester, $regulation, $academicYear, $by, $status);
-    
+
     if ($stmt->execute()) {
         $newCourseId = $stmt->insert_id;
         $stmt->close();
-        
+
+        // Add Units/Subjects if provided
+        for ($i = 1; $i <= 5; $i++) {
+            if (!empty($_POST["unit_$i"])) {
+                $uTitle = esc($_POST["unit_$i"]);
+                $stmtU = $conn->prepare("INSERT INTO subjects (courseId, title) VALUES (?, ?)");
+                $stmtU->bind_param("is", $newCourseId, $uTitle);
+                $stmtU->execute();
+                $stmtU->close();
+            }
+        }
+
         // If coordinator created, auto-assign to their college
         if (hasRole('azhagiiCoordinator') && cid()) {
             $collegeId = cid();
@@ -1183,7 +1228,7 @@ if (isset($_POST['update_course'])) {
         $allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
         $thumb_path = uploadFile('thumbnail', $allowedMimes, $allowedExts, 5, 'uploads/thumbnails', 'thumb');
     }
-    
+
     // Handle syllabus PDF upload with security checks
     $syllabus_path = null;
     if (isset($_FILES['syllabus']) && $_FILES['syllabus']['error'] === UPLOAD_ERR_OK) {
@@ -1243,7 +1288,7 @@ if (isset($_POST['delete_course'])) {
         }
         $stmt_check->close();
     }
-    
+
     $stmt = $conn->prepare("DELETE FROM courses WHERE id=?");
     $stmt->bind_param("i", $id);
     if ($stmt->execute()) {
@@ -1262,10 +1307,10 @@ if (isset($_POST['approve_course'])) {
     requireRole(['superAdmin', 'adminAzhagii']);
     $id = intval($_POST['id'] ?? 0);
     $by = uid();
-    
+
     $stmt = $conn->prepare("UPDATE courses SET status='active', approvedBy=?, approvedAt=NOW(), rejectionReason=NULL WHERE id=? AND status='pending'");
     $stmt->bind_param("ii", $by, $id);
-    
+
     if ($stmt->execute() && $stmt->affected_rows > 0) {
         $stmt->close();
         respond(200, 'Course approved and published');
@@ -1280,10 +1325,10 @@ if (isset($_POST['reject_course'])) {
     $id = intval($_POST['id'] ?? 0);
     $reason = esc($_POST['reason'] ?? '');
     $by = uid();
-    
+
     $stmt = $conn->prepare("UPDATE courses SET status='rejected', approvedBy=?, approvedAt=NOW(), rejectionReason=? WHERE id=? AND status='pending'");
     $stmt->bind_param("isi", $by, $reason, $id);
-    
+
     if ($stmt->execute() && $stmt->affected_rows > 0) {
         $stmt->close();
         respond(200, 'Course rejected');
@@ -1320,7 +1365,7 @@ if (isset($_POST['assign_course'])) {
     $collegeId = intval($_POST['collegeId'] ?? 0);
     if (!$courseId || !$collegeId)
         respond(400, 'Course and college required');
-    
+
     // Check if already assigned
     $stmt_check = $conn->prepare("SELECT id FROM coursecolleges WHERE courseId=? AND collegeId=?");
     $stmt_check->bind_param("ii", $courseId, $collegeId);
@@ -1330,11 +1375,11 @@ if (isset($_POST['assign_course'])) {
         respond(409, 'Already assigned');
     }
     $stmt_check->close();
-    
+
     $by = uid();
     $stmt = $conn->prepare("INSERT INTO coursecolleges (courseId,collegeId,assignedBy) VALUES (?,?,?)");
     $stmt->bind_param("iii", $courseId, $collegeId, $by);
-    
+
     if ($stmt->execute()) {
         $stmt->close();
         respond(200, 'Course assigned to college');
@@ -1345,14 +1390,31 @@ if (isset($_POST['assign_course'])) {
     }
 }
 
+if (isset($_POST['delete_assignment'])) {
+    requireRole(['superAdmin', 'adminAzhagii']);
+    $id = intval($_POST['id'] ?? 0);
+
+    $stmt = $conn->prepare("DELETE FROM coursecolleges WHERE id=?");
+    $stmt->bind_param("i", $id);
+
+    if ($stmt->execute()) {
+        $stmt->close();
+        respond(200, 'Assignment removed');
+    } else {
+        $error = $stmt->error;
+        $stmt->close();
+        respond(500, 'Delete failed: ' . $error);
+    }
+}
+
 if (isset($_POST['unassign_course'])) {
     requireRole(['superAdmin', 'adminAzhagii']);
     $courseId = intval($_POST['courseId'] ?? 0);
     $collegeId = intval($_POST['collegeId'] ?? 0);
-    
+
     $stmt = $conn->prepare("DELETE FROM coursecolleges WHERE courseId=? AND collegeId=?");
     $stmt->bind_param("ii", $courseId, $collegeId);
-    
+
     if ($stmt->execute()) {
         $stmt->close();
         respond(200, 'Course unassigned');
@@ -1403,10 +1465,10 @@ if (isset($_POST['add_subject'])) {
         }
         $stmt_check->close();
     }
-    
+
     $stmt = $conn->prepare("INSERT INTO subjects (courseId, title, code, description) VALUES (?, ?, ?, ?)");
     $stmt->bind_param("isss", $courseId, $title, $code, $desc);
-    
+
     if ($stmt->execute()) {
         $stmt->close();
         respond(200, 'Subject added');
@@ -1427,7 +1489,7 @@ if (isset($_POST['update_subject'])) {
 
     $stmt = $conn->prepare("UPDATE subjects SET title=?, code=?, description=?, status=? WHERE id=?");
     $stmt->bind_param("ssssi", $title, $code, $desc, $status, $id);
-    
+
     if ($stmt->execute()) {
         $stmt->close();
         respond(200, 'Subject updated');
@@ -1441,10 +1503,10 @@ if (isset($_POST['update_subject'])) {
 if (isset($_POST['delete_subject'])) {
     requireRole(['superAdmin', 'adminAzhagii', 'azhagiiCoordinator']);
     $id = intval($_POST['id'] ?? 0);
-    
+
     $stmt = $conn->prepare("DELETE FROM subjects WHERE id=?");
     $stmt->bind_param("i", $id);
-    
+
     if ($stmt->execute()) {
         $stmt->close();
         respond(200, 'Subject deleted');
@@ -1480,10 +1542,10 @@ if (isset($_POST['add_topic'])) {
     if (!$subjectId || !$title)
         respond(400, 'Subject and title are required');
     $by = uid();
-    
+
     $stmt = $conn->prepare("INSERT INTO topics (subjectId, title, description, createdBy) VALUES (?, ?, ?, ?)");
     $stmt->bind_param("issi", $subjectId, $title, $desc, $by);
-    
+
     if ($stmt->execute()) {
         $stmt->close();
         respond(200, 'Topic added');
@@ -1500,10 +1562,10 @@ if (isset($_POST['update_topic'])) {
     $title = esc($_POST['title'] ?? '');
     $desc = esc($_POST['description'] ?? '');
     $status = esc($_POST['status'] ?? 'active');
-    
+
     $stmt = $conn->prepare("UPDATE topics SET title=?, description=?, status=? WHERE id=?");
     $stmt->bind_param("sssi", $title, $desc, $status, $id);
-    
+
     if ($stmt->execute()) {
         $stmt->close();
         respond(200, 'Topic updated');
@@ -1517,10 +1579,10 @@ if (isset($_POST['update_topic'])) {
 if (isset($_POST['delete_topic'])) {
     requireRole(['superAdmin', 'adminAzhagii', 'azhagiiCoordinator']);
     $id = intval($_POST['id'] ?? 0);
-    
+
     $stmt = $conn->prepare("DELETE FROM topics WHERE id=?");
     $stmt->bind_param("i", $id);
-    
+
     if ($stmt->execute()) {
         $stmt->close();
         respond(200, 'Topic deleted');
@@ -1528,6 +1590,75 @@ if (isset($_POST['delete_topic'])) {
         $error = $stmt->error;
         $stmt->close();
         respond(500, 'Delete failed: ' . $error);
+    }
+}
+
+if (isset($_POST['mark_topic_complete'])) {
+    requireLogin();
+    $courseId = intval($_POST['courseId']);
+    $topicId = intval($_POST['topicId']);
+    $studentId = uid();
+
+    if (!$courseId || !$topicId)
+        respond(400, 'Invalid parameters');
+
+    // 1. Get enrollment - Use studentId
+    $q = "SELECT id, completed_topics, progress FROM enrollments WHERE courseId=$courseId AND studentId=$studentId";
+    $r = mysqli_query($conn, $q);
+    if (!($enr = mysqli_fetch_assoc($r)))
+        respond(400, 'Not enrolled');
+
+    $completed = json_decode($enr['completed_topics'] ?? '[]', true) ?? [];
+    if (!in_array($topicId, $completed)) {
+        $completed[] = $topicId;
+        $json = json_encode($completed);
+
+        // Calculate Progress
+        $totalTopics = 0;
+        $tr = mysqli_query($conn, "SELECT COUNT(*) as c FROM topics t JOIN subjects s ON t.subjectId=s.id WHERE s.courseId=$courseId AND t.status='active'");
+        if ($row = mysqli_fetch_assoc($tr))
+            $totalTopics = intval($row['c']);
+
+        $progress = ($totalTopics > 0) ? round((count($completed) / $totalTopics) * 100) : 0;
+        if ($progress > 100)
+            $progress = 100;
+
+        $status = ($progress == 100) ? 'completed' : 'active';
+        $completedAt = ($progress == 100) ? date('Y-m-d H:i:s') : null;
+
+        $stmt = $conn->prepare("UPDATE enrollments SET completed_topics=?, progress=?, status=?, completedAt=IFNULL(?, completedAt) WHERE id=?");
+        $stmt->bind_param("sissi", $json, $progress, $status, $completedAt, $enr['id']);
+        if ($stmt->execute())
+            respond(200, 'Marked complete');
+        respond(500, 'Update failed');
+    }
+    respond(200, 'Already completed');
+}
+
+if (isset($_POST['enroll_course'])) {
+    requireRole('azhagiiStudents');
+    $courseId = intval($_POST['courseId'] ?? 0);
+    $studentId = uid();
+
+    if (!$courseId)
+        respond(400, 'Course ID required');
+
+    // Check existing
+    $q = "SELECT id FROM enrollments WHERE courseId=$courseId AND studentId=$studentId";
+    $r = mysqli_query($conn, $q);
+    if (mysqli_num_rows($r) > 0)
+        respond(409, 'Already enrolled');
+
+    $stmt = $conn->prepare("INSERT INTO enrollments (courseId, studentId, progress, status, completed_topics) VALUES (?, ?, 0, 'enrolled', '[]')");
+    $stmt->bind_param("ii", $courseId, $studentId);
+
+    if ($stmt->execute()) {
+        $stmt->close();
+        respond(200, 'Enrolled successfully');
+    } else {
+        $error = $stmt->error;
+        $stmt->close();
+        respond(500, 'Enrollment failed: ' . $error);
     }
 }
 
@@ -1539,12 +1670,12 @@ if (isset($_POST['get_content'])) {
     requireLogin();
     $courseId = intval($_POST['courseId'] ?? 0);
     $where = "cc.courseId=$courseId";
-    // Coordinators see only their college content
+    // Coordinators see only their college content or global
     if (hasRole('azhagiiCoordinator'))
-        $where .= " AND cc.collegeId=" . cid();
-    // Students see content from their college
+        $where .= " AND (cc.collegeId=" . cid() . " OR cc.collegeId=0)";
+    // Students see content from their college or global
     if (hasRole('azhagiiStudents'))
-        $where .= " AND cc.collegeId=" . cid() . " AND cc.status='active'";
+        $where .= " AND (cc.collegeId=" . cid() . " OR cc.collegeId=0) AND cc.status='active'";
     $q = "SELECT cc.*, u.name as uploader_name, cl.name as college_name, s.title as subject_title
           FROM coursecontent cc
           LEFT JOIN users u ON cc.uploadedBy=u.id
@@ -1572,10 +1703,16 @@ if (isset($_POST['add_content'])) {
     // Handle file uploads for PDF type with security checks
     if ($type === 'pdf' && isset($_FILES['content_file']) && $_FILES['content_file']['error'] === UPLOAD_ERR_OK) {
         $allowedMimes = [
-            'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-            'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'text/plain', 'application/zip', 'application/x-zip-compressed'
+            'application/pdf',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/vnd.ms-powerpoint',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            'application/vnd.ms-excel',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'text/plain',
+            'application/zip',
+            'application/x-zip-compressed'
         ];
         $allowedExts = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'txt', 'zip'];
         $data_val = uploadFile('content_file', $allowedMimes, $allowedExts, 10, 'uploads/content', 'content');
@@ -1584,13 +1721,13 @@ if (isset($_POST['add_content'])) {
     $collegeId = hasRole('azhagiiCoordinator') ? cid() : intval($_POST['collegeId'] ?? 0);
     $subjectId = intval($_POST['subjectId'] ?? 0);
     $by = uid();
-    
+
     $subjectId_val = $subjectId ?: null;
     $collegeId_val = $collegeId ?: null;
-    
+
     $stmt = $conn->prepare("INSERT INTO coursecontent (courseId,subjectId,title,description,contentType,contentData,uploadedBy,collegeId,sortOrder) VALUES (?,NULLIF(?,0),?,?,?,?,?,NULLIF(?,0),?)");
     $stmt->bind_param("iissssiii", $courseId, $subjectId, $title, $desc, $type, $data_val, $by, $collegeId, $sort);
-    
+
     if ($stmt->execute()) {
         $stmt->close();
         respond(200, 'Content added');
@@ -1614,10 +1751,16 @@ if (isset($_POST['update_content'])) {
     // Handle file uploads for PDF type with security checks
     if ($type === 'pdf' && isset($_FILES['content_file']) && $_FILES['content_file']['error'] === UPLOAD_ERR_OK) {
         $allowedMimes = [
-            'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-            'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'text/plain', 'application/zip', 'application/x-zip-compressed'
+            'application/pdf',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/vnd.ms-powerpoint',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            'application/vnd.ms-excel',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'text/plain',
+            'application/zip',
+            'application/x-zip-compressed'
         ];
         $allowedExts = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'txt', 'zip'];
         $data_val = uploadFile('content_file', $allowedMimes, $allowedExts, 10, 'uploads/content', 'content');
@@ -1626,7 +1769,7 @@ if (isset($_POST['update_content'])) {
     // Coordinators can only edit their own content
     $subjectId = intval($_POST['subjectId'] ?? 0);
     $subjectId_val = $subjectId ?: null;
-    
+
     if (hasRole('azhagiiCoordinator')) {
         $uploader = uid();
         $stmt = $conn->prepare("UPDATE coursecontent SET title=?,description=?,contentType=?,contentData=?,sortOrder=?,status=?,subjectId=? WHERE id=? AND uploadedBy=?");
@@ -1635,7 +1778,7 @@ if (isset($_POST['update_content'])) {
         $stmt = $conn->prepare("UPDATE coursecontent SET title=?,description=?,contentType=?,contentData=?,sortOrder=?,status=?,subjectId=? WHERE id=?");
         $stmt->bind_param("ssssisii", $title, $desc, $type, $data_val, $sort, $status, $subjectId_val, $id);
     }
-    
+
     if ($stmt->execute()) {
         $stmt->close();
         respond(200, 'Content updated');
@@ -1649,7 +1792,7 @@ if (isset($_POST['update_content'])) {
 if (isset($_POST['delete_content'])) {
     requireRole(['superAdmin', 'adminAzhagii', 'azhagiiCoordinator']);
     $id = intval($_POST['id'] ?? 0);
-    
+
     if (hasRole('azhagiiCoordinator')) {
         $uploader = uid();
         $stmt = $conn->prepare("DELETE FROM coursecontent WHERE id=? AND uploadedBy=?");
@@ -1658,7 +1801,7 @@ if (isset($_POST['delete_content'])) {
         $stmt = $conn->prepare("DELETE FROM coursecontent WHERE id=?");
         $stmt->bind_param("i", $id);
     }
-    
+
     if ($stmt->execute()) {
         $stmt->close();
         respond(200, 'Content deleted');
@@ -1678,7 +1821,7 @@ if (isset($_POST['enroll_student'])) {
     $courseId = intval($_POST['courseId'] ?? 0);
     // Check course is assigned to student's college
     $student_collegeId = cid();
-    
+
     $stmt_check = $conn->prepare("SELECT id FROM coursecolleges WHERE courseId=? AND collegeId=?");
     $stmt_check->bind_param("ii", $courseId, $student_collegeId);
     $stmt_check->execute();
@@ -1687,7 +1830,7 @@ if (isset($_POST['enroll_student'])) {
         respond(403, 'Course not available for your college');
     }
     $stmt_check->close();
-    
+
     $sid = uid();
     $stmt_check2 = $conn->prepare("SELECT id FROM enrollments WHERE studentId=? AND courseId=?");
     $stmt_check2->bind_param("ii", $sid, $courseId);
@@ -1697,10 +1840,10 @@ if (isset($_POST['enroll_student'])) {
         respond(409, 'Already enrolled');
     }
     $stmt_check2->close();
-    
+
     $stmt = $conn->prepare("INSERT INTO enrollments (studentId,courseId) VALUES (?,?)");
     $stmt->bind_param("ii", $sid, $courseId);
-    
+
     if ($stmt->execute()) {
         $stmt->close();
         respond(200, 'Enrolled successfully');
@@ -1714,7 +1857,7 @@ if (isset($_POST['enroll_student'])) {
 if (isset($_POST['unenroll_student'])) {
     requireLogin();
     $id = intval($_POST['id'] ?? 0);
-    
+
     if (hasRole('azhagiiStudents')) {
         $sid = uid();
         $stmt = $conn->prepare("DELETE FROM enrollments WHERE id=? AND studentId=?");
@@ -1723,7 +1866,7 @@ if (isset($_POST['unenroll_student'])) {
         $stmt = $conn->prepare("DELETE FROM enrollments WHERE id=?");
         $stmt->bind_param("i", $id);
     }
-    
+
     if ($stmt->execute()) {
         $stmt->close();
         respond(200, 'Unenrolled');

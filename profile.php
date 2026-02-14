@@ -1,9 +1,86 @@
 <?php
 $pageTitle = 'My Profile';
-$currentPage = 'profile';
+$currentPage = 'profileSSR';
 require 'includes/auth.php';
 require 'includes/header.php';
 require 'includes/sidebar.php';
+
+$uid = $_SESSION['userId'];
+$q = "SELECT u.*, c.name as college_name, c.code as college_code 
+      FROM users u 
+      LEFT JOIN colleges c ON u.collegeId=c.id 
+      WHERE u.id=$uid";
+$r = mysqli_query($conn, $q);
+$u = mysqli_fetch_assoc($r);
+
+// Profile Completion Calculation
+$filled = 0;
+// Basic (4)
+if (!empty($u['name']))
+    $filled++;
+if (!empty($u['email']))
+    $filled++;
+if (!empty($u['username']))
+    $filled++;
+if (!empty($u['role']))
+    $filled++;
+// Contact (2)
+if (!empty($u['phone']))
+    $filled++;
+if (!empty($u['address']))
+    $filled++;
+// Bio (1)
+if (!empty($u['bio']))
+    $filled++;
+// Personal (2)
+if (!empty($u['dob']))
+    $filled++;
+if (!empty($u['gender']))
+    $filled++;
+// Academic (Depends on role)
+if ($u['role'] == 'azhagiiStudents') {
+    if (!empty($u['collegeId']))
+        $filled++;
+    if (!empty($u['department']))
+        $filled++;
+    if (!empty($u['year']))
+        $filled++;
+    if (!empty($u['rollNumber']))
+        $filled++;
+    $total = 13;
+} else {
+    // For admins/coordinators, college is enough
+    if (!empty($u['collegeId']))
+        $filled++;
+    $total = 10;
+}
+// Assets (1)
+if (!empty($u['profilePhoto']))
+    $filled++;
+$total++; // Total assets count (1)
+
+$pct = ($total > 0) ? round(($filled / $total) * 100) : 0;
+$pctColor = ($pct >= 100) ? 'bg-success' : 'bg-warning';
+
+// Locked State
+$isAdmin = in_array($u['role'], ['superAdmin', 'adminAzhagii']);
+$isLocked = ($u['isLocked'] == 1 && !$isAdmin);
+$disabledAttr = $isLocked ? 'disabled' : '';
+
+// Avatar
+$avatarHtml = '';
+if (!empty($u['profilePhoto'])) {
+    $avatarHtml = '<img src="' . htmlspecialchars($u['profilePhoto']) . '" alt="Avatar">';
+} else {
+    $avatarHtml = strtoupper(substr($u['name'], 0, 1));
+}
+if (!$isLocked) {
+    $avatarHtml .= '<div class="upload-overlay">Change</div>';
+}
+
+$displayName = htmlspecialchars($u['name']);
+$displayID = htmlspecialchars($u['azhagiiID'] ?? $u['role']);
+$deptText = ($u['department'] ?? '') . ($u['year'] ? ' - ' . $u['year'] : '');
 ?>
 
 <style>
@@ -12,24 +89,21 @@ require 'includes/sidebar.php';
         padding-top: 5rem !important;
         padding-bottom: 0.75rem !important;
     }
-    
+
     /* Profile specific layout */
     .profile-dashboard-grid {
         display: grid;
         grid-template-columns: 280px 1fr;
-        /* Sidebar-like Left, Main Content */
         gap: 0.75rem;
         align-items: start;
     }
 
-    /* Column containers */
     .profile-col {
         display: flex;
         flex-direction: column;
         gap: 0.75rem;
     }
 
-    /* Cards matching dashboard stats/progress cards */
     .profile-card {
         background: var(--bg-surface);
         border: 1px solid var(--border-color);
@@ -43,7 +117,6 @@ require 'includes/sidebar.php';
         box-shadow: var(--shadow-soft);
     }
 
-    /* Typography matches dashboard */
     .profile-card h3 {
         font-size: 1rem;
         margin-bottom: 0.625rem;
@@ -53,7 +126,6 @@ require 'includes/sidebar.php';
         gap: 0.5rem;
     }
 
-    /* Avatar styling */
     .profile-avatar-lg {
         width: 80px;
         height: 80px;
@@ -95,7 +167,6 @@ require 'includes/sidebar.php';
         opacity: 1;
     }
 
-    /* Identity Wrapper */
     .identity-wrapper {
         text-align: center;
     }
@@ -117,7 +188,6 @@ require 'includes/sidebar.php';
         border: 1px solid rgba(66, 133, 244, 0.2);
     }
 
-    /* Progress similar to dashboard bars */
     .profile-progress-wrap {
         margin-top: 0.875rem;
         text-align: left;
@@ -139,7 +209,6 @@ require 'includes/sidebar.php';
         border-radius: 4px;
     }
 
-    /* Form Styles from Dashboard */
     .form-group-profile {
         margin-bottom: 0.5rem;
     }
@@ -171,13 +240,11 @@ require 'includes/sidebar.php';
         outline: none;
         border-color: var(--primary);
     }
-    
-    /* Compact select dropdowns */
+
     select.form-input-profile {
         height: auto;
     }
 
-    /* Social Icons */
     .social-input-group {
         position: relative;
     }
@@ -194,23 +261,13 @@ require 'includes/sidebar.php';
         padding-left: 2.8rem;
     }
 
-    /* Responsive */
     @media (max-width: 1100px) {
         .profile-dashboard-grid {
             grid-template-columns: 1fr;
         }
 
-        .profile-col {
-            width: 100%;
-        }
-
-        /* Reorder for mobile: Identity first, then Main, then Social */
         .profile-col:nth-child(1) {
             order: 1;
-        }
-
-        .profile-col:nth-child(2) {
-            order: 2;
         }
 
         .profile-col:nth-child(2) {
@@ -221,7 +278,6 @@ require 'includes/sidebar.php';
 <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 <style>
-    /* Cropper Modal */
     .cropper-modal {
         display: none;
         position: fixed;
@@ -244,7 +300,6 @@ require 'includes/sidebar.php';
 
     .cropper-content {
         background-color: var(--bg-surface) !important;
-        /* Force solid background */
         color: var(--text-main);
         padding: 2rem;
         border-radius: var(--radius-lg);
@@ -275,7 +330,6 @@ require 'includes/sidebar.php';
         max-height: 50vh;
         width: 100%;
         background: #000;
-        /* Solid background for image area */
         overflow: hidden;
         border-radius: var(--radius-sm);
         display: flex;
@@ -297,45 +351,55 @@ require 'includes/sidebar.php';
     }
 </style>
 
-<!-- NOTE: sidebar.php already opens a global .main-content and .content-wrapper -->
-<!-- We just place our grid directly here -->
-
 <form id="profileForm" enctype="multipart/form-data" class="profile-dashboard-grid">
 
     <!-- ═══ COL 1: IDENTITY (Left Panel) ═══ -->
     <div class="profile-col">
         <div class="profile-card identity-wrapper">
             <div class="profile-avatar-lg" id="profileAvatarDisplay"
-                onclick="document.getElementById('profilePhoto').click()">
-                <?= $avatarInitial ?>
-                <div class="upload-overlay">Change</div>
+                onclick="<?= !$isLocked ? "document.getElementById('profilePhoto').click()" : "" ?>">
+                <?= $avatarHtml ?>
             </div>
             <input type="file" name="profilePhoto" id="profilePhoto" accept="image/*" style="display:none;"
                 onchange="previewImage(this)">
 
-            <div class="user-name-lg" id="displayNameHeader">Loading...</div>
-            <div class="user-role-badge" id="displayAzhagiiID">...</div>
-            <div style="font-size:0.85rem;color:var(--text-muted);margin-top:0.375rem;" id="displayDeptHeader"></div>
+            <div class="user-name-lg" id="displayNameHeader"><?= $displayName ?></div>
+            <div class="user-role-badge" id="displayAzhagiiID"><?= $displayID ?></div>
+            <div style="font-size:0.85rem;color:var(--text-muted);margin-top:0.375rem;" id="displayDeptHeader">
+                <?= $deptText ?></div>
 
             <div class="profile-progress-wrap">
                 <div class="d-flex justify-content-between"
                     style="font-size:0.8rem; display:flex; justify-content:space-between;">
                     <span style="color:var(--text-heading);">Profile Strength</span>
-                    <span id="progressText" style="font-weight:600;">0%</span>
+                    <span id="progressText" style="font-weight:600;"><?= $pct ?>%</span>
                 </div>
                 <div class="profile-progress-track">
-                    <div class="profile-progress-fill" id="progressBar" style="width: 0%"></div>
+                    <div class="profile-progress-fill <?= $pctColor ?>" id="progressBar" style="width: <?= $pct ?>%">
+                    </div>
                 </div>
-                <div id="completionNote" style="font-size:0.75rem;margin-top:0.375rem;color:var(--text-muted);">Complete
-                    all fields to finish.</div>
+                <div id="completionNote" style="font-size:0.75rem;margin-top:0.375rem;color:var(--text-muted);">
+                    <?php if ($isLocked): ?>
+                        <span class="text-success"><i class="fas fa-lock"></i> Profile Locked</span>
+                    <?php else: ?>
+                        Complete all fields to finish.
+                    <?php endif; ?>
+                </div>
             </div>
 
             <hr style="border:0; border-top:1px solid var(--border-color); margin: 0.75rem 0;">
 
             <div class="save-btn-wrapper">
-                <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; padding: 0.625rem;">
-                    <i class="fas fa-save"></i> Save Changes
-                </button>
+                <?php if ($isLocked): ?>
+                    <button type="button" class="btn btn-warning btn-save-full" onclick="requestUnlock()">
+                        <i class="fas fa-lock"></i> Request Edit
+                    </button>
+                <?php else: ?>
+                    <button type="submit" class="btn btn-primary"
+                        style="width:100%; justify-content:center; padding: 0.625rem;">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                <?php endif; ?>
             </div>
         </div>
 
@@ -345,7 +409,7 @@ require 'includes/sidebar.php';
                 <label class="form-label-profile">Change Password <span class="text-muted"
                         style="font-weight:normal;">(Optional)</span></label>
                 <input type="password" name="password" id="password" class="form-input-profile"
-                    placeholder="New Password">
+                    placeholder="New Password" <?= $disabledAttr ?>>
             </div>
         </div>
     </div>
@@ -358,76 +422,92 @@ require 'includes/sidebar.php';
             <div class="row responsive-grid-2">
                 <div class="form-group-profile">
                     <label class="form-label-profile">Full Name <span style="color:#ef4444">*</span></label>
-                    <input type="text" name="name" id="name" class="form-input-profile" required>
+                    <input type="text" name="name" id="name" class="form-input-profile" required
+                        value="<?= htmlspecialchars($u['name']) ?>" <?= $disabledAttr ?>>
                 </div>
                 <div class="form-group-profile">
                     <label class="form-label-profile">Phone Number</label>
-                    <input type="text" name="phone" id="phone" class="form-input-profile" placeholder="+91...">
+                    <input type="text" name="phone" id="phone" class="form-input-profile" placeholder="+91..."
+                        value="<?= htmlspecialchars($u['phone'] ?? '') ?>" <?= $disabledAttr ?>>
                 </div>
             </div>
 
             <div class="row responsive-grid-2">
                 <div class="form-group-profile">
                     <label class="form-label-profile">Gender</label>
-                    <select name="gender" id="gender" class="form-input-profile">
+                    <select name="gender" id="gender" class="form-input-profile" <?= $disabledAttr ?>>
                         <option value="">Select Gender</option>
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                        <option value="Other">Other</option>
+                        <option value="Male" <?= ($u['gender'] == 'Male') ? 'selected' : '' ?>>Male</option>
+                        <option value="Female" <?= ($u['gender'] == 'Female') ? 'selected' : '' ?>>Female</option>
+                        <option value="Other" <?= ($u['gender'] == 'Other') ? 'selected' : '' ?>>Other</option>
                     </select>
                 </div>
                 <div class="form-group-profile">
                     <label class="form-label-profile">Date of Birth</label>
-                    <input type="date" name="dob" id="dob" class="form-input-profile">
+                    <input type="date" name="dob" id="dob" class="form-input-profile"
+                        value="<?= htmlspecialchars($u['dob'] ?? '') ?>" <?= $disabledAttr ?>>
                 </div>
             </div>
 
             <div class="row responsive-grid-2">
                 <div class="form-group-profile">
                     <label class="form-label-profile">Address</label>
-                    <input type="text" name="address" id="address" class="form-input-profile" placeholder="Your address...">
+                    <input type="text" name="address" id="address" class="form-input-profile"
+                        placeholder="Your address..." value="<?= htmlspecialchars($u['address'] ?? '') ?>"
+                        <?= $disabledAttr ?>>
                 </div>
                 <div class="form-group-profile">
                     <label class="form-label-profile">Bio / Tagline</label>
-                    <input type="text" name="bio" id="bio" class="form-input-profile" placeholder="Tell us about yourself...">
+                    <input type="text" name="bio" id="bio" class="form-input-profile"
+                        placeholder="Tell us about yourself..." value="<?= htmlspecialchars($u['bio'] ?? '') ?>"
+                        <?= $disabledAttr ?>>
                 </div>
             </div>
 
             <div class="row responsive-grid-3">
                 <div class="form-group-profile">
                     <label class="form-label-profile">Username</label>
-                    <input type="text" id="username" class="form-input-profile" disabled>
+                    <input type="text" id="username" class="form-input-profile" disabled
+                        value="<?= htmlspecialchars($u['username']) ?>">
                 </div>
                 <div class="form-group-profile">
                     <label class="form-label-profile">Email Address</label>
-                    <input type="email" id="email" class="form-input-profile" disabled>
+                    <input type="email" id="email" class="form-input-profile" disabled
+                        value="<?= htmlspecialchars($u['email']) ?>">
                 </div>
                 <div class="form-group-profile">
                     <label class="form-label-profile">College</label>
-                    <input type="text" id="college" class="form-input-profile" disabled>
+                    <input type="text" id="college" class="form-input-profile" disabled
+                        value="<?= htmlspecialchars(($u['college_name'] ?? '') . ($u['college_code'] ? ' (' . $u['college_code'] . ')' : '')) ?>">
                 </div>
             </div>
 
-            <div id="studentFields" style="display:none;">
-                <div class="row responsive-grid-4">
-                    <div class="form-group-profile">
-                        <label class="form-label-profile">Azhagii ID</label>
-                        <input type="text" id="azhagiiID" class="form-input-profile" disabled>
-                    </div>
-                    <div class="form-group-profile">
-                        <label class="form-label-profile">Dept</label>
-                        <input type="text" id="department" class="form-input-profile" disabled>
-                    </div>
-                    <div class="form-group-profile">
-                        <label class="form-label-profile">Year</label>
-                        <input type="text" id="year" class="form-input-profile" disabled>
-                    </div>
-                    <div class="form-group-profile">
-                        <label class="form-label-profile">Roll No</label>
-                        <input type="text" id="rollNumber" class="form-input-profile" disabled>
+            <?php if ($u['role'] == 'azhagiiStudents'): ?>
+                <div id="studentFields">
+                    <div class="row responsive-grid-4">
+                        <div class="form-group-profile">
+                            <label class="form-label-profile">Azhagii ID</label>
+                            <input type="text" id="azhagiiID" class="form-input-profile" disabled
+                                value="<?= htmlspecialchars($u['azhagiiID'] ?? '') ?>">
+                        </div>
+                        <div class="form-group-profile">
+                            <label class="form-label-profile">Dept</label>
+                            <input type="text" id="department" class="form-input-profile" disabled
+                                value="<?= htmlspecialchars($u['department'] ?? '') ?>">
+                        </div>
+                        <div class="form-group-profile">
+                            <label class="form-label-profile">Year</label>
+                            <input type="text" id="year" class="form-input-profile" disabled
+                                value="<?= htmlspecialchars($u['year'] ?? '') ?>">
+                        </div>
+                        <div class="form-group-profile">
+                            <label class="form-label-profile">Roll No</label>
+                            <input type="text" id="rollNumber" class="form-input-profile" disabled
+                                value="<?= htmlspecialchars($u['rollNumber'] ?? '') ?>">
+                        </div>
                     </div>
                 </div>
-            </div>
+            <?php endif; ?>
         </div>
 
         <div class="profile-card" style="margin-top:0;">
@@ -438,7 +518,8 @@ require 'includes/sidebar.php';
                     <div class="social-input-group">
                         <i class="fab fa-github"></i>
                         <input type="url" name="githubUrl" id="githubUrl" class="form-input-profile"
-                            placeholder="https://github.com/...">
+                            placeholder="https://github.com/..." value="<?= htmlspecialchars($u['githubUrl'] ?? '') ?>"
+                            <?= $disabledAttr ?>>
                     </div>
                 </div>
                 <div class="form-group-profile">
@@ -446,7 +527,8 @@ require 'includes/sidebar.php';
                     <div class="social-input-group">
                         <i class="fab fa-linkedin" style="color:#0077b5;"></i>
                         <input type="url" name="linkedinUrl" id="linkedinUrl" class="form-input-profile"
-                            placeholder="https://linkedin.com/...">
+                            placeholder="https://linkedin.com/..."
+                            value="<?= htmlspecialchars($u['linkedinUrl'] ?? '') ?>" <?= $disabledAttr ?>>
                     </div>
                 </div>
                 <div class="form-group-profile">
@@ -454,7 +536,8 @@ require 'includes/sidebar.php';
                     <div class="social-input-group">
                         <i class="fab fa-hackerrank" style="color:#2ec866;"></i>
                         <input type="url" name="hackerrankUrl" id="hackerrankUrl" class="form-input-profile"
-                            placeholder="https://hackerrank.com/...">
+                            placeholder="https://hackerrank.com/..."
+                            value="<?= htmlspecialchars($u['hackerrankUrl'] ?? '') ?>" <?= $disabledAttr ?>>
                     </div>
                 </div>
                 <div class="form-group-profile">
@@ -462,15 +545,13 @@ require 'includes/sidebar.php';
                     <div class="social-input-group">
                         <i class="fas fa-code" style="color:#ffa116;"></i>
                         <input type="url" name="leetcodeUrl" id="leetcodeUrl" class="form-input-profile"
-                            placeholder="https://leetcode.com/...">
+                            placeholder="https://leetcode.com/..."
+                            value="<?= htmlspecialchars($u['leetcodeUrl'] ?? '') ?>" <?= $disabledAttr ?>>
                     </div>
                 </div>
             </div>
         </div>
-
-
     </div>
-
 </form>
 
 <!-- Cropper Modal -->
@@ -487,9 +568,8 @@ require 'includes/sidebar.php';
         </div>
         <div class="cropper-actions">
             <button type="button" class="btn btn-outline" onclick="closeCropper()">Cancel</button>
-            <button type="button" class="btn btn-primary" onclick="cropAndSave()">
-                <i class="fas fa-check"></i> Save Photo
-            </button>
+            <button type="button" class="btn btn-primary" onclick="cropAndSave()"><i class="fas fa-check"></i> Save
+                Photo</button>
         </div>
     </div>
 </div>
@@ -499,231 +579,20 @@ require 'includes/sidebar.php';
     let croppedBlob = null;
 
     $(document).ready(function () {
-        // Move modal to body to avoid stacking context issues
         $('#cropperModal').appendTo('body');
-    });
 
-    function previewImage(input) {
-        if (input.files && input.files[0]) {
-            const file = input.files[0];
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                $('#imageToCrop').attr('src', e.target.result);
-                $('#cropperModal').css('display', 'flex');
-                // Trigger reflow
-                void document.getElementById('cropperModal').offsetWidth;
-                $('#cropperModal').addClass('show');
-
-                // Small delay to ensure modal is visible before initializing cropper
-                setTimeout(() => {
-                    const image = document.getElementById('imageToCrop');
-                    if (cropper) cropper.destroy();
-
-                    cropper = new Cropper(image, {
-                        aspectRatio: 1,
-                        viewMode: 1,
-                        dragMode: 'move',
-                        autoCropArea: 1,
-                        background: false,
-                        responsive: true,
-                        restore: false,
-                    });
-                }, 100);
-            }
-            reader.readAsDataURL(file);
-        }
-    }
-
-    function closeCropper() {
-        $('#cropperModal').removeClass('show');
-        setTimeout(() => {
-            $('#cropperModal').hide();
-            if (cropper) {
-                cropper.destroy();
-                cropper = null;
-            }
-            document.getElementById('profilePhoto').value = '';
-        }, 300); // Matches transition duration
-    }
-
-    function cropAndSave() {
-        if (cropper) {
-            // Show saving state
-            Swal.fire({
-                title: 'Saving Photo...',
-                html: 'Please wait while we upload your photo',
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                showConfirmButton: false,
-                willOpen: () => {
-                    Swal.showLoading();
-                }
-            });
-
-            cropper.getCroppedCanvas({
-                width: 400, height: 400,
-                fillColor: '#fff',
-                imageSmoothingEnabled: true,
-                imageSmoothingQuality: 'high',
-            }).toBlob((blob) => {
-                croppedBlob = blob;
-                
-                // Create FormData and send immediately to backend
-                const formData = new FormData();
-                formData.append('update_profile_photo', 1);
-                formData.append('profilePhoto', blob, 'profile.jpg');
-                
-                // Send only the photo update to backend
-                $.ajax({
-                    url: 'backend.php',
-                    type: 'POST',
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                    dataType: 'json',
-                    success: function(res) {
-                        if (res.status === 200) {
-                            const url = URL.createObjectURL(blob);
-                            $('#profileAvatarDisplay').html(`<img src="${url}" alt="Avatar"><div class="upload-overlay">Change</div>`);
-                            closeCropper();
-                            
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Photo Saved!',
-                                text: 'Your profile photo has been updated',
-                                toast: true,
-                                position: 'top-end',
-                                showConfirmButton: false,
-                                timer: 2000
-                            });
-                        } else {
-                            Swal.fire('Error', res.message || 'Failed to save photo', 'error');
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        console.error('Failed to save photo:', status, error);
-                        Swal.fire('Error', 'Failed to upload photo. Please try again.', 'error');
-                    }
-                });
-            }, 'image/jpeg', 0.9);
-        }
-    }
-
-    $(document).ready(function () {
-        // Check incomplete
+        // Check incomplete param
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.has('incomplete')) {
-            Swal.fire({
-                toast: true, position: 'top-end', icon: 'info',
-                title: 'Please complete your profile',
-                showConfirmButton: false, timer: 3000
-            });
+            Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: 'Please complete your profile', showConfirmButton: false, timer: 3000 });
         }
 
-        // Load Data
-        $.post('backend.php', { get_my_profile: 1 }, function (res) {
-            if (res.status === 200) {
-                const d = res.data;
-
-                $('#displayNameHeader').text(d.name);
-                $('#displayAzhagiiID').text(d.azhagiiID || d.role.replace(/([A-Z])/g, ' $1').trim());
-                const deptText = (d.department ? d.department : '') + (d.year ? ' - ' + d.year : '');
-                $('#displayDeptHeader').text(deptText);
-
-                $('#name').val(d.name);
-                $('#username').val(d.username);
-                $('#email').val(d.email);
-                $('#phone').val(d.phone);
-                $('#gender').val(d.gender);
-                $('#dob').val(d.dob);
-                $('#address').val(d.address);
-                $('#bio').val(d.bio);
-
-                $('#college').val(d.college_name + ' (' + d.college_code + ')');
-                if (d.role === 'azhagiiStudents') {
-                    $('#azhagiiID').val(d.azhagiiID);
-                    $('#department').val(d.department);
-                    $('#year').val(d.year);
-                    $('#rollNumber').val(d.rollNumber);
-                    $('#studentFields').show();
-                }
-
-                $('#githubUrl').val(d.githubUrl);
-                $('#linkedinUrl').val(d.linkedinUrl);
-                $('#hackerrankUrl').val(d.hackerrankUrl);
-                $('#leetcodeUrl').val(d.leetcodeUrl);
-
-                const pct = d.profile_completion || 0;
-                $('#progressBar').css('width', pct + '%');
-                $('#progressText').text(pct + '%');
-                if (pct >= 100) {
-                    $('#progressBar').removeClass('bg-warning').addClass('bg-success');
-                    $('#completionNote').empty(); // Clear default message
-                } else {
-                    $('#progressBar').addClass('bg-warning');
-                }
-
-                // Avatar
-                if (d.profilePhoto) {
-                    $('#profileAvatarDisplay').html(`<img src="${d.profilePhoto}" alt="Avatar">` +
-                        `<div class="upload-overlay">Change</div>`);
-                } else {
-                    $('#profileAvatarDisplay').html(d.name.charAt(0).toUpperCase() +
-                        `<div class="upload-overlay">Change</div>`);
-                }
-
-                // HANDLE LOCKED STATE (Admins bypass)
-                const adminRoles = ['superAdmin', 'adminAzhagii'];
-                const isAdmin = adminRoles.includes(d.role);
-
-                if (d.isLocked == 1 && !isAdmin) {
-                    // Disable all inputs
-                    $('input, textarea, select').not('[type=search]').prop('disabled', true);
-                    $('#profileAvatarDisplay').attr('onclick', ''); // Disable click
-                    $('.upload-overlay').remove(); // Remove overlay
-
-                    // Replace Save Button with Locked Message
-                    const btnArea = $('.save-btn-wrapper');
-                    btnArea.empty();
-
-                    if (d.unlock_request) {
-                        btnArea.append(`
-                        <div class="alert alert-warning p-2 text-center" style="font-size:0.85rem;">
-                            <i class="fas fa-clock"></i> Unlock Pending<br>
-                            Reason: ${d.unlock_request.requestReason}
-                        </div>
-                    `);
-                    } else {
-                        btnArea.append(`
-                        <button type="button" class="btn btn-warning btn-save-full" onclick="requestUnlock()">
-                            <i class="fas fa-lock"></i> Request Edit
-                        </button>
-                        <p class="text-muted text-center mt-2" style="font-size:0.75rem;">Profile locked after completion.</p>
-                    `);
-                    }
-
-                    $('#completionNote').html('<span class="text-success"><i class="fas fa-lock"></i> Profile Locked</span>');
-                } else if (d.isLocked == 1 && isAdmin) {
-                    // Admin View: Warn but allow edit
-                    $('#completionNote').html('<span class="text-warning"><i class="fas fa-unlock"></i> Locked (Admin Override)</span>');
-                }
-            } else {
-                Swal.fire('Error', res.message || 'Failed to load profile', 'error');
-            }
-        }, 'json').fail(function(xhr, status, error) {
-            console.error('Failed to load profile:', status, error);
-            Swal.fire('Error', 'Failed to load profile data. Please refresh the page.', 'error');
-        });
-
-        // Submit
+        // Handle Profile Form Submit
         $('#profileForm').submit(function (e) {
             e.preventDefault();
             const formData = new FormData(this);
             formData.append('update_my_profile', 1);
-
-            if (croppedBlob) {
-                formData.set('profilePhoto', croppedBlob, 'profile.jpg');
-            }
+            if (croppedBlob) formData.set('profilePhoto', croppedBlob, 'profile.jpg');
 
             const btn = $(this).find('button[type=submit]');
             const oldHtml = btn.html();
@@ -734,18 +603,14 @@ require 'includes/sidebar.php';
                 processData: false, contentType: false, dataType: 'json',
                 success: function (res) {
                     if (res.status === 200) {
-                        Swal.fire({
-                            icon: 'success', title: 'Saved!',
-                            toast: true, position: 'top-end',
-                            showConfirmButton: false, timer: 1500
-                        }).then(() => location.reload());
+                        Swal.fire({ icon: 'success', title: 'Saved!', toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 })
+                            .then(() => location.reload());
                     } else {
                         Swal.fire('Error', res.message, 'error');
                         btn.prop('disabled', false).html(oldHtml);
                     }
                 },
                 error: function (xhr, status, error) {
-                    console.error('AJAX Error:', status, error, xhr.responseText);
                     Swal.fire('Error', 'Failed to save profile. Please try again.', 'error');
                     btn.prop('disabled', false).html(oldHtml);
                 }
@@ -753,26 +618,65 @@ require 'includes/sidebar.php';
         });
     });
 
+    function previewImage(input) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                $('#imageToCrop').attr('src', e.target.result);
+                $('#cropperModal').css('display', 'flex');
+                void document.getElementById('cropperModal').offsetWidth;
+                $('#cropperModal').addClass('show');
+                setTimeout(() => {
+                    const image = document.getElementById('imageToCrop');
+                    if (cropper) cropper.destroy();
+                    cropper = new Cropper(image, { aspectRatio: 1, viewMode: 1, dragMode: 'move', autoCropArea: 1, background: false, responsive: true, restore: false });
+                }, 100);
+            }
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function closeCropper() {
+        $('#cropperModal').removeClass('show');
+        setTimeout(() => {
+            $('#cropperModal').hide();
+            if (cropper) { cropper.destroy(); cropper = null; }
+            document.getElementById('profilePhoto').value = '';
+        }, 300);
+    }
+
+    function cropAndSave() {
+        if (cropper) {
+            Swal.fire({ title: 'Saving Photo...', html: 'Please wait...', allowOutsideClick: false, showConfirmButton: false, willOpen: () => Swal.showLoading() });
+            cropper.getCroppedCanvas({ width: 400, height: 400, fillColor: '#fff' }).toBlob((blob) => {
+                croppedBlob = blob;
+                const formData = new FormData();
+                formData.append('update_profile_photo', 1);
+                formData.append('profilePhoto', blob, 'profile.jpg');
+                $.ajax({
+                    url: 'backend.php', type: 'POST', data: formData, processData: false, contentType: false, dataType: 'json',
+                    success: function (res) {
+                        if (res.status === 200) {
+                            const url = URL.createObjectURL(blob);
+                            $('#profileAvatarDisplay').html(`<img src="${url}" alt="Avatar"><div class="upload-overlay">Change</div>`);
+                            closeCropper();
+                            Swal.fire({ icon: 'success', title: 'Photo Saved!', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 });
+                        } else { Swal.fire('Error', res.message, 'error'); }
+                    },
+                    error: function () { Swal.fire('Error', 'Upload failed.', 'error'); }
+                });
+            }, 'image/jpeg', 0.9);
+        }
+    }
+
     function requestUnlock() {
-        Swal.fire({
-            title: 'Request Profile Unlock',
-            text: 'Please state why you need to edit your profile details.',
-            input: 'textarea',
-            inputPlaceholder: 'Reason for editing...',
-            showCancelButton: true,
-            confirmButtonText: 'Send Request'
-        }).then((result) => {
+        Swal.fire({ title: 'Request Profile Unlock', text: 'Why is an edit needed?', input: 'textarea', showCancelButton: true, confirmButtonText: 'Send Request' }).then((result) => {
             if (result.isConfirmed && result.value) {
                 $.post('backend.php', { request_profile_unlock: 1, reason: result.value }, function (res) {
-                    if (res.status === 200) {
-                        Swal.fire('Sent!', 'Your request has been sent to the admin.', 'success').then(() => location.reload());
-                    } else {
-                        Swal.fire('Error', res.message, 'error');
-                    }
-                }, 'json').fail(function(xhr, status, error) {
-                    console.error('Failed to send unlock request:', status, error);
-                    Swal.fire('Error', 'Failed to send request. Please try again.', 'error');
-                });
+                    if (res.status === 200) Swal.fire('Sent!', 'Request sent.', 'success').then(() => location.reload());
+                    else Swal.fire('Error', res.message, 'error');
+                }, 'json');
             }
         });
     }

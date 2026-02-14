@@ -1,8 +1,22 @@
 <?php
 $pageTitle = 'Profile Unlock Requests';
-$currentPage = 'profileRequest';
+$currentPage = 'profileRequestSSR';
 require 'includes/auth.php';
 requirePageRole(['superAdmin', 'adminAzhagii']);
+
+// Fetch Profile Requests
+$q = "SELECT pr.*, u.name as user_name, u.email as user_email, c.name as college_name 
+      FROM profilerequests pr 
+      JOIN users u ON pr.userId=u.id 
+      LEFT JOIN colleges c ON u.collegeId=c.id 
+      WHERE pr.status='pending' 
+      ORDER BY pr.createdAt DESC";
+$requests = [];
+$r = mysqli_query($conn, $q);
+while ($r && $row = mysqli_fetch_assoc($r)) {
+    $requests[] = $row;
+}
+
 require 'includes/header.php';
 require 'includes/sidebar.php';
 ?>
@@ -12,18 +26,52 @@ require 'includes/sidebar.php';
         <h2>Access Requests</h2>
         <p>Manage user requests to unlock and edit their profiles.</p>
     </div>
-    <button class="btn btn-outline btn-sm" onclick="loadRequests()">
+    <button class="btn btn-outline btn-sm" onclick="location.reload()">
         <i class="fas fa-sync-alt"></i> Refresh
     </button>
 </div>
 
 <!-- Requests Grid -->
 <div class="requests-grid" id="requestsContainer">
-    <!-- Loaded via JS -->
-    <div class="empty-state">
-        <i class="fas fa-spinner fa-spin"></i>
-        <p>Loading requests...</p>
-    </div>
+    <?php if (empty($requests)): ?>
+        <div class="empty-state" style="grid-column: 1/-1;">
+            <i class="fas fa-check-circle" style="color:var(--accent-blue);opacity:1;"></i>
+            <p>No pending requests.</p>
+        </div>
+    <?php else: ?>
+        <?php foreach ($requests as $req):
+            $initial = strtoupper(substr($req['user_name'], 0, 1));
+            ?>
+            <div class="request-card" id="req-<?= $req['id'] ?>">
+                <div class="req-header">
+                    <div class="req-avatar"><?= $initial ?></div>
+                    <div class="req-info">
+                        <h4><?= htmlspecialchars($req['user_name']) ?></h4>
+                        <p><?= htmlspecialchars($req['college_name'] ?? 'Unknown College') ?></p>
+                        <p style="font-size:0.75rem;"><?= htmlspecialchars($req['user_email']) ?></p>
+                    </div>
+                </div>
+
+                <div class="req-meta">
+                    <span><i class="far fa-clock"></i> <?= date('M d, Y H:i:s', strtotime($req['createdAt'])) ?></span>
+                </div>
+
+                <div class="req-reason">
+                    <strong>Reason:</strong><br>
+                    <?= nl2br(htmlspecialchars($req['requestReason'])) ?>
+                </div>
+
+                <div class="req-actions">
+                    <button class="btn btn-sm btn-approve" onclick="resolveRequest(<?= $req['id'] ?>, 'approve')">
+                        <i class="fas fa-check"></i> Approve
+                    </button>
+                    <button class="btn btn-sm btn-reject" onclick="resolveRequest(<?= $req['id'] ?>, 'reject')">
+                        <i class="fas fa-times"></i> Reject
+                    </button>
+                </div>
+            </div>
+        <?php endforeach; ?>
+    <?php endif; ?>
 </div>
 
 <style>
@@ -133,83 +181,6 @@ require 'includes/sidebar.php';
 </style>
 
 <script>
-    $(document).ready(function () {
-        loadRequests();
-    });
-
-    function loadRequests() {
-        $('#requestsContainer').html('<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading...</p></div>');
-
-        $.post('backend.php', { get_profilerequests: 1 }, function (res) {
-            if (res.status === 200) {
-                const data = res.data;
-                if (data.length === 0) {
-                    $('#requestsContainer').html(`
-                    <div class="empty-state" style="grid-column: 1/-1;">
-                        <i class="fas fa-check-circle" style="color:var(--accent-blue);opacity:1;"></i>
-                        <p>No pending requests.</p>
-                    </div>
-                `);
-                    return;
-                }
-
-                let html = '';
-                data.forEach(req => {
-                    const name = escapeHtml(req.user_name || 'Unknown');
-                    const initial = name.charAt(0).toUpperCase();
-                    const college = escapeHtml(req.college_name || 'Unknown College');
-                    const email = escapeHtml(req.user_email || '');
-                    const reason = escapeHtml(req.requestReason || '');
-                    const date = new Date(req.createdAt).toLocaleDateString() + ' ' + new Date(req.createdAt).toLocaleTimeString();
-
-                    html += `
-                <div class="request-card" id="req-${req.id}">
-                    <div class="req-header">
-                        <div class="req-avatar">${initial}</div>
-                        <div class="req-info">
-                            <h4>${name}</h4>
-                            <p>${college}</p>
-                            <p style="font-size:0.75rem;">${email}</p>
-                        </div>
-                    </div>
-                    
-                    <div class="req-meta">
-                        <span><i class="far fa-clock"></i> ${date}</span>
-                    </div>
-                    
-                    <div class="req-reason">
-                        <strong>Reason:</strong><br>
-                        ${reason}
-                    </div>
-                    
-                    <div class="req-actions">
-                        <button class="btn btn-sm btn-approve" onclick="resolveRequest(${req.id}, 'approve')">
-                            <i class="fas fa-check"></i> Approve
-                        </button>
-                        <button class="btn btn-sm btn-reject" onclick="resolveRequest(${req.id}, 'reject')">
-                            <i class="fas fa-times"></i> Reject
-                        </button>
-                    </div>
-                </div>
-                `;
-                });
-                $('#requestsContainer').html(html);
-            } else {
-                $('#requestsContainer').html(`<div class="empty-state"><p>Error: ${res.message}</p></div>`);
-            }
-        }, 'json');
-    }
-
-    function escapeHtml(text) {
-        if (!text) return '';
-        return text
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
-    }
-
     function resolveRequest(id, action) {
         const actionText = action === 'approve' ? 'Approve' : 'Reject';
         const confirmBtnColor = action === 'approve' ? '#10b981' : '#ef4444';

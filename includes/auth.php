@@ -32,6 +32,16 @@ function requirePageRole($allowed)
     }
 }
 
+// ── Role check helper (Boolean) ──
+function hasRole($checkRole)
+{
+    global $role;
+    if (is_array($checkRole)) {
+        return in_array($role, $checkRole);
+    }
+    return $role === $checkRole;
+}
+
 // ── Dashboard URL helper ──
 function dashboardUrl()
 {
