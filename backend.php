@@ -262,7 +262,7 @@ if (isset($_POST['register_student'])) {
     // Insert user with all profile data
     if ($photoPath !== null) {
         $stmt = $conn->prepare("INSERT INTO users (name,email,username,password,role,collegeId,department,year,rollNumber,phone,gender,dob,address,bio,githubUrl,linkedinUrl,hackerrankUrl,leetcodeUrl,profilePhoto) VALUES (?,?,?,?,'azhagiiStudents',?,?,?,?,?,?,NULLIF(?,''),?,?,?,?,?,?,?)");
-        $stmt->bind_param("sssssisssssssssss", $name, $email, $username, $raw_password, $collegeId, $department, $year, $rollNumber, $phone, $gender, $dob, $address, $bio, $githubUrl, $linkedinUrl, $hackerrankUrl, $leetcodeUrl, $photoPath);
+        $stmt->bind_param("ssssisssssssssssss", $name, $email, $username, $raw_password, $collegeId, $department, $year, $rollNumber, $phone, $gender, $dob, $address, $bio, $githubUrl, $linkedinUrl, $hackerrankUrl, $leetcodeUrl, $photoPath);
     } else {
         $stmt = $conn->prepare("INSERT INTO users (name,email,username,password,role,collegeId,department,year,rollNumber,phone,gender,dob,address,bio,githubUrl,linkedinUrl,hackerrankUrl,leetcodeUrl) VALUES (?,?,?,?,'azhagiiStudents',?,?,?,?,?,?,NULLIF(?,''),?,?,?,?,?,?)");
         $stmt->bind_param("ssssissssssssssss", $name, $email, $username, $raw_password, $collegeId, $department, $year, $rollNumber, $phone, $gender, $dob, $address, $bio, $githubUrl, $linkedinUrl, $hackerrankUrl, $leetcodeUrl);
@@ -536,6 +536,53 @@ if (isset($_POST['update_my_profile'])) {
     }
 }
 
+// ── Update Profile Photo Only (used by crop & save) ──
+if (isset($_POST['update_profile_photo'])) {
+    requireLogin();
+    $uid = uid();
+
+    if (!isset($_FILES['profilePhoto']) || $_FILES['profilePhoto']['error'] !== UPLOAD_ERR_OK) {
+        respond(400, 'No photo uploaded');
+    }
+
+    // Check file type
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $mime = finfo_file($finfo, $_FILES['profilePhoto']['tmp_name']);
+    finfo_close($finfo);
+
+    $allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    $ext = strtolower(pathinfo($_FILES['profilePhoto']['name'], PATHINFO_EXTENSION));
+    $allowedExts = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+
+    if (!in_array($mime, $allowedMimes) || !in_array($ext, $allowedExts)) {
+        respond(400, "Invalid image format. Allowed: JPG, PNG, WEBP, GIF");
+    }
+    if ($_FILES['profilePhoto']['size'] > 5 * 1024 * 1024) {
+        respond(400, "File too large. Maximum size: 5MB");
+    }
+
+    $fname = 'profile_' . $uid . '_' . time() . '.' . $ext;
+    $targetDir = 'uploads/profiles';
+    if (!is_dir($targetDir)) {
+        mkdir($targetDir, 0755, true);
+    }
+    $targetFile = "$targetDir/$fname";
+    if (!move_uploaded_file($_FILES['profilePhoto']['tmp_name'], $targetFile)) {
+        respond(500, "Failed to save uploaded file");
+    }
+
+    $stmt = $conn->prepare("UPDATE users SET profilePhoto=? WHERE id=?");
+    $stmt->bind_param("si", $targetFile, $uid);
+    if ($stmt->execute()) {
+        $stmt->close();
+        $_SESSION['profilePhoto'] = $targetFile;
+        respond(200, 'Photo updated successfully');
+    } else {
+        $stmt->close();
+        respond(500, 'Failed to update photo');
+    }
+}
+
 if (isset($_POST['request_profile_unlock'])) {
     requireLogin();
     $uid = uid();
@@ -755,12 +802,13 @@ if (isset($_POST['add_user'])) {
     requireRole(['superAdmin', 'adminAzhagii']);
     $name = esc($_POST['name'] ?? '');
     $email = esc($_POST['email'] ?? '');
+    $username = esc($_POST['username'] ?? '');
     $raw_password = $_POST['password'] ?? '';
     $urole = esc($_POST['role'] ?? '');
     $collegeId = intval($_POST['collegeId'] ?? 0);
     $phone = esc($_POST['phone'] ?? '');
     
-    if (!$name || !$email || !$raw_password || !$urole)
+    if (!$name || !$email || !$username || !$raw_password || !$urole)
         respond(400, 'Required fields missing');
     
     // adminAzhagii cannot create superAdmin or other adminAzhagii
@@ -776,12 +824,22 @@ if (isset($_POST['add_user'])) {
         respond(409, 'Email already exists');
     }
     $stmt->close();
+
+    // Check if username exists
+    $stmt = $conn->prepare("SELECT id FROM users WHERE username=?");
+    $stmt->bind_param("s", $username);
+    $stmt->execute();
+    if ($stmt->get_result()->num_rows > 0) {
+        $stmt->close();
+        respond(409, 'Username already exists');
+    }
+    $stmt->close();
     
     // Store password in plain text
     $cid_sql = $collegeId ? $collegeId : null;
     
-    $stmt2 = $conn->prepare("INSERT INTO users (name,email,password,role,collegeId,phone) VALUES (?,?,?,?,?,?)");
-    $stmt2->bind_param("ssssis", $name, $email, $raw_password, $urole, $cid_sql, $phone);
+    $stmt2 = $conn->prepare("INSERT INTO users (name,email,username,password,role,collegeId,phone) VALUES (?,?,?,?,?,?,?)");
+    $stmt2->bind_param("sssssis", $name, $email, $username, $raw_password, $urole, $cid_sql, $phone);
     
     if ($stmt2->execute()) {
         $stmt2->close();
@@ -896,18 +954,27 @@ if (isset($_POST['delete_user'])) {
 if (isset($_POST['get_courses'])) {
     requireLogin();
     $where = "1=1";
+    $params = [];
+    $types = "";
     if (hasRole(['azhagiiCoordinator'])) {
-        // Coordinator sees courses assigned to their college + courses they created
         $cid = cid();
         $uid = uid();
-        $where = "(c.id IN (SELECT courseId FROM coursecolleges WHERE collegeId=$cid) OR c.createdBy=$uid)";
+        $where = "(c.id IN (SELECT courseId FROM coursecolleges WHERE collegeId=?) OR c.createdBy=?)";
+        $types .= "ii";
+        $params[] = $cid;
+        $params[] = $uid;
     } else if (hasRole(['azhagiiStudents'])) {
         $cid = cid();
-        $where = "c.status='active' AND c.id IN (SELECT courseId FROM coursecolleges WHERE collegeId=$cid)";
+        $where = "c.status='active' AND c.id IN (SELECT courseId FROM coursecolleges WHERE collegeId=?)";
+        $types .= "i";
+        $params[] = $cid;
     }
     // Status filter
-    if (isset($_POST['status_filter']) && $_POST['status_filter'])
-        $where .= " AND c.status='" . esc($_POST['status_filter']) . "'";
+    if (isset($_POST['status_filter']) && $_POST['status_filter']) {
+        $where .= " AND c.status=?";
+        $types .= "s";
+        $params[] = $_POST['status_filter'];
+    }
     $q = "SELECT c.*, u.name as creator_name, ap.name as approver_name,
           (SELECT COUNT(*) FROM coursecolleges WHERE courseId=c.id) as college_count,
           (SELECT COUNT(*) FROM enrollments WHERE courseId=c.id) as enrollment_count,
@@ -916,10 +983,16 @@ if (isset($_POST['get_courses'])) {
           FROM courses c LEFT JOIN users u ON c.createdBy=u.id
           LEFT JOIN users ap ON c.approvedBy=ap.id
           WHERE $where ORDER BY c.createdAt DESC";
-    $r = mysqli_query($conn, $q);
+    $stmt = $conn->prepare($q);
+    if (!empty($params)) {
+        $stmt->bind_param($types, ...$params);
+    }
+    $stmt->execute();
+    $r = $stmt->get_result();
     $data = [];
-    while ($r && $row = mysqli_fetch_assoc($r))
+    while ($r && $row = $r->fetch_assoc())
         $data[] = $row;
+    $stmt->close();
     respond(200, 'OK', $data);
 }
 
@@ -1048,39 +1121,64 @@ if (isset($_POST['update_course'])) {
         }
         $stmt_check->close();
     }
-    $title = esc($_POST['title'] ?? '');
-    $code = esc($_POST['courseCode'] ?? '');
-    $desc = esc($_POST['description'] ?? '');
-    $cat = esc($_POST['category'] ?? '');
-    $courseType = esc($_POST['courseType'] ?? 'theory');
-    $semester = esc($_POST['semester'] ?? '');
-    $regulation = esc($_POST['regulation'] ?? '');
-    $academicYear = esc($_POST['academicYear'] ?? '');
+    $title = $_POST['title'] ?? '';
+    $code = $_POST['courseCode'] ?? '';
+    $desc = $_POST['description'] ?? '';
+    $cat = $_POST['category'] ?? '';
+    $courseType = $_POST['courseType'] ?? 'theory';
+    $semester = $_POST['semester'] ?? '';
+    $regulation = $_POST['regulation'] ?? '';
+    $academicYear = $_POST['academicYear'] ?? '';
     // Coordinators resubmit as pending; admins set status
     if (hasRole('azhagiiCoordinator')) {
         $status = 'pending';
     } else {
-        $status = esc($_POST['status'] ?? 'draft');
+        $status = $_POST['status'] ?? 'draft';
     }
-    $set = "title='$title',courseCode='$code',description='$desc',category='$cat',courseType='$courseType',semester='$semester',regulation='$regulation',academicYear='$academicYear',status='$status'";
-    
+
     // Handle thumbnail upload with security checks
+    $thumb_path = null;
     if (isset($_FILES['thumbnail']) && $_FILES['thumbnail']['error'] === UPLOAD_ERR_OK) {
         $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
         $allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
         $thumb_path = uploadFile('thumbnail', $allowedMimes, $allowedExts, 5, 'uploads/thumbnails', 'thumb');
-        $set .= ",thumbnail='" . esc($thumb_path) . "'";
     }
     
     // Handle syllabus PDF upload with security checks
+    $syllabus_path = null;
     if (isset($_FILES['syllabus']) && $_FILES['syllabus']['error'] === UPLOAD_ERR_OK) {
         $allowedMimes = ['application/pdf'];
         $allowedExts = ['pdf'];
         $syllabus_path = uploadFile('syllabus', $allowedMimes, $allowedExts, 5, 'uploads/content', 'syllabus');
-        $set .= ",syllabus='" . esc($syllabus_path) . "'";
     }
-    if (mysqli_query($conn, "UPDATE courses SET $set WHERE id=$id"))
+
+    // Build prepared statement dynamically based on file uploads
+    $sql = "UPDATE courses SET title=?,courseCode=?,description=?,category=?,courseType=?,semester=?,regulation=?,academicYear=?,status=?";
+    $types = "sssssssss";
+    $params = [$title, $code, $desc, $cat, $courseType, $semester, $regulation, $academicYear, $status];
+
+    if ($thumb_path !== null) {
+        $sql .= ",thumbnail=?";
+        $types .= "s";
+        $params[] = $thumb_path;
+    }
+    if ($syllabus_path !== null) {
+        $sql .= ",syllabus=?";
+        $types .= "s";
+        $params[] = $syllabus_path;
+    }
+
+    $sql .= " WHERE id=?";
+    $types .= "i";
+    $params[] = $id;
+
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param($types, ...$params);
+    if ($stmt->execute()) {
+        $stmt->close();
         respond(200, 'Course updated');
+    }
+    $stmt->close();
     respond(500, 'Update failed');
 }
 
@@ -1164,11 +1262,15 @@ if (isset($_POST['get_course_assignments'])) {
           FROM coursecolleges cc
           JOIN colleges c ON cc.collegeId=c.id
           LEFT JOIN users u ON cc.assignedBy=u.id
-          WHERE cc.courseId=$cid ORDER BY cc.assignedAt DESC";
-    $r = mysqli_query($conn, $q);
+          WHERE cc.courseId=? ORDER BY cc.assignedAt DESC";
+    $stmt = $conn->prepare($q);
+    $stmt->bind_param("i", $cid);
+    $stmt->execute();
+    $r = $stmt->get_result();
     $data = [];
-    while ($r && $row = mysqli_fetch_assoc($r))
+    while ($r && $row = $r->fetch_assoc())
         $data[] = $row;
+    $stmt->close();
     respond(200, 'OK', $data);
 }
 
@@ -1446,8 +1548,8 @@ if (isset($_POST['add_content'])) {
     $subjectId_val = $subjectId ?: null;
     $collegeId_val = $collegeId ?: null;
     
-    $stmt = $conn->prepare("INSERT INTO coursecontent (courseId,subjectId,title,description,contentType,contentData,uploadedBy,collegeId,sortOrder) VALUES (?,?,?,?,?,?,?,?,?)");
-    $stmt->bind_param("iisssssii", $courseId, $subjectId_val, $title, $desc, $type, $data_val, $by, $collegeId_val, $sort);
+    $stmt = $conn->prepare("INSERT INTO coursecontent (courseId,subjectId,title,description,contentType,contentData,uploadedBy,collegeId,sortOrder) VALUES (?,NULLIF(?,0),?,?,?,?,?,NULLIF(?,0),?)");
+    $stmt->bind_param("iissssiii", $courseId, $subjectId, $title, $desc, $type, $data_val, $by, $collegeId, $sort);
     
     if ($stmt->execute()) {
         $stmt->close();
@@ -1758,26 +1860,41 @@ if (isset($_POST['get_dashboard_stats'])) {
 
 if (isset($_POST['update_profile'])) {
     requireLogin();
-    $name = esc($_POST['name'] ?? '');
-    $phone = esc($_POST['phone'] ?? '');
-    $set = "name='$name',phone='$phone'";
+    $name = $_POST['name'] ?? '';
+    $phone = $_POST['phone'] ?? '';
+    $uid = uid();
+
     if (isset($_POST['password']) && $_POST['password'] !== '') {
-        $set .= ",password='" . esc($_POST['password']) . "'";
+        $plainPassword = $_POST['password'];
+        $stmt = $conn->prepare("UPDATE users SET name=?, phone=?, password=? WHERE id=?");
+        $stmt->bind_param("sssi", $name, $phone, $plainPassword, $uid);
+    } else {
+        $stmt = $conn->prepare("UPDATE users SET name=?, phone=? WHERE id=?");
+        $stmt->bind_param("ssi", $name, $phone, $uid);
     }
-    if (mysqli_query($conn, "UPDATE users SET $set WHERE id=" . uid())) {
+
+    if ($stmt->execute()) {
+        $stmt->close();
         $_SESSION['user_name'] = $name;
         respond(200, 'Profile updated');
     }
+    $stmt->close();
     respond(500, 'Update failed');
 }
 
 if (isset($_POST['get_profile'])) {
     requireLogin();
-    $r = mysqli_query($conn, "SELECT u.*, c.name as college_name FROM users u LEFT JOIN colleges c ON u.collegeId=c.id WHERE u.id=" . uid());
-    if ($r && $row = mysqli_fetch_assoc($r)) {
+    $uid = uid();
+    $stmt = $conn->prepare("SELECT u.*, c.name as college_name FROM users u LEFT JOIN colleges c ON u.collegeId=c.id WHERE u.id=?");
+    $stmt->bind_param("i", $uid);
+    $stmt->execute();
+    $r = $stmt->get_result();
+    if ($r && $row = $r->fetch_assoc()) {
+        $stmt->close();
         unset($row['password']);
         respond(200, 'OK', $row);
     }
+    $stmt->close();
     respond(404, 'User not found');
 }
 
@@ -1788,18 +1905,27 @@ if (isset($_POST['get_profile'])) {
 if (isset($_POST['get_course_students'])) {
     requireRole(['superAdmin', 'adminAzhagii', 'azhagiiCoordinator']);
     $courseId = intval($_POST['courseId'] ?? 0);
-    $where = "e.courseId=$courseId";
-    if (hasRole('azhagiiCoordinator'))
-        $where .= " AND u.collegeId=" . cid();
+    $where = "e.courseId=?";
+    $types = "i";
+    $params = [$courseId];
+    if (hasRole('azhagiiCoordinator')) {
+        $where .= " AND u.collegeId=?";
+        $types .= "i";
+        $params[] = cid();
+    }
     $q = "SELECT e.*, u.name as student_name, u.email as student_email, u.phone, cl.name as college_name
           FROM enrollments e
           JOIN users u ON e.studentId=u.id
           LEFT JOIN colleges cl ON u.collegeId=cl.id
           WHERE $where ORDER BY u.name";
-    $r = mysqli_query($conn, $q);
+    $stmt = $conn->prepare($q);
+    $stmt->bind_param($types, ...$params);
+    $stmt->execute();
+    $r = $stmt->get_result();
     $data = [];
-    while ($r && $row = mysqli_fetch_assoc($r))
+    while ($r && $row = $r->fetch_assoc())
         $data[] = $row;
+    $stmt->close();
     respond(200, 'OK', $data);
 }
 

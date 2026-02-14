@@ -1,11 +1,15 @@
 <?php
-session_start();
+include_once __DIR__ . '/../db.php';
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 if (!isset($_SESSION['userId'])) {
     header('Location: login.php');
     exit;
 }
 
-include_once __DIR__ . '/../db.php';
 include_once __DIR__ . '/csrf.php';
 
 // ── Session helpers ──
@@ -64,7 +68,7 @@ $exemptScripts = ['profile.php', 'backend.php', 'logout.php', 'login.php', 'regi
 
 if (!in_array($currentScript, $exemptScripts) && isset($_SESSION['userId'])) {
     $uid = $_SESSION['userId'];
-    $stmt = $conn->prepare("SELECT name, email, username, role, phone, bio, collegeId, department, year, rollNumber, profilePhoto, githubUrl, linkedinUrl, hackerrankUrl, leetcodeUrl FROM users WHERE id=?");
+    $stmt = $conn->prepare("SELECT name, email, username, role, phone, bio, address, dob, gender, collegeId, department, year, rollNumber, profilePhoto FROM users WHERE id=?");
     $stmt->bind_param("i", $uid);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -81,9 +85,22 @@ if (!in_array($currentScript, $exemptScripts) && isset($_SESSION['userId'])) {
                 $filled++;
         }
 
-        // Contact/Bio (2)
-        $contactProps = ['phone', 'bio'];
+        // Contact (2)
+        $contactProps = ['phone', 'address'];
         foreach ($contactProps as $p) {
+            $total++;
+            if (!empty($crow[$p]))
+                $filled++;
+        }
+
+        // Bio (1)
+        $total++;
+        if (!empty($crow['bio']))
+            $filled++;
+
+        // Personal (2)
+        $personalProps = ['dob', 'gender'];
+        foreach ($personalProps as $p) {
             $total++;
             if (!empty($crow[$p]))
                 $filled++;
@@ -104,13 +121,10 @@ if (!in_array($currentScript, $exemptScripts) && isset($_SESSION['userId'])) {
             }
         }
 
-        // Assets (5)
-        $assetProps = ['profilePhoto', 'githubUrl', 'linkedinUrl', 'hackerrankUrl', 'leetcodeUrl'];
-        foreach ($assetProps as $p) {
-            $total++;
-            if (!empty($crow[$p]))
-                $filled++;
-        }
+        // Assets (1) - Only profile photo counts, social profiles are optional
+        $total++;
+        if (!empty($crow['profilePhoto']))
+            $filled++;
 
         $pct = ($total > 0) ? round(($filled / $total) * 100) : 0;
 

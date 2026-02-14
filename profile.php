@@ -565,7 +565,7 @@ require 'includes/sidebar.php';
                 
                 // Create FormData and send immediately to backend
                 const formData = new FormData();
-                formData.append('update_my_profile', 1);
+                formData.append('update_profile_photo', 1);
                 formData.append('profilePhoto', blob, 'profile.jpg');
                 
                 // Send only the photo update to backend

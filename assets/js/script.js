@@ -120,7 +120,7 @@ $(document).ready(function () {
         if (d.recent_users) {
           let tbody = '';
           d.recent_users.forEach(u => {
-            tbody += `<tr><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td><span class="badge badge-role">${roleLabel(u.role)}</span></td><td>${esc(u.collegeName || '-')}</td><td>${formatDate(u.createdAt)}</td></tr>`;
+            tbody += `<tr><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td><span class="badge badge-role">${roleLabel(u.role)}</span></td><td>${esc(u.college_name || '-')}</td><td>${formatDate(u.createdAt)}</td></tr>`;
           });
           $('#recentUsersBody').html(tbody);
         }
@@ -272,7 +272,7 @@ $(document).ready(function () {
       }
       let html = '';
       inProgress.forEach(c => {
-        html += `<div class="course-card" style="cursor:pointer;" onclick="window.location.href='courseViewer.php?courseId=${c.id}&enrollmentId=${c.enrollmentId}'">
+        html += `<div class="course-card" style="cursor:pointer;" onclick="window.location.href='courseViewer.php?courseId=${c.id}&enrollmentId=${c.enrollment_id}'">
           <div class="course-card-thumb">${c.thumbnail ? `<img src="${c.thumbnail}">` : '<i class="fas fa-book"></i>'}</div>
           <div class="course-card-body">
             <h3>${esc(c.title)}</h3>
@@ -415,7 +415,7 @@ $(document).ready(function () {
         html += `<tr>
           <td>${i + 1}</td><td>${esc(u.name)}</td><td>${esc(u.email)}</td>
           <td><span class="badge badge-role">${roleLabel(u.role)}</span></td>
-          <td>${esc(u.collegeName || '-')}</td>
+          <td>${esc(u.college_name || '-')}</td>
           <td><span class="badge badge-${u.status === 'active' ? 'active' : 'inactive'}">${u.status}</span></td>
           <td class="actions">
             <button class="btn btn-outline btn-sm" onclick="showUserModal(${u.id})"><i class="fas fa-edit"></i></button>
@@ -453,6 +453,7 @@ $(document).ready(function () {
         html: `<div class="swal-form">
           <div class="form-group"><label class="form-label">Name</label><input id="sUserName" class="form-input" value="${esc(u.name || '')}"></div>
           <div class="form-group"><label class="form-label">Email</label><input id="sUserEmail" class="form-input" type="email" value="${esc(u.email || '')}"></div>
+          <div class="form-group"><label class="form-label">Username</label><input id="sUserUsername" class="form-input" value="${esc(u.username || '')}" ${isEdit ? 'readonly' : ''}></div>
           <div class="form-group"><label class="form-label">Password ${isEdit ? '(leave blank to keep)' : ''}</label><input id="sUserPass" class="form-input" type="password" placeholder="${isEdit ? 'Unchanged' : 'Password'}"></div>
           <div class="form-group"><label class="form-label">Role</label><select id="sUserRole" class="form-input">${roleOpts}</select></div>
           <div class="form-group"><label class="form-label">College</label><select id="sUserCollege" class="form-input">${collegeOpts}</select></div>
@@ -463,12 +464,14 @@ $(document).ready(function () {
         preConfirm: () => {
           const data = {
             name: $('#sUserName').val(), email: $('#sUserEmail').val(),
+            username: $('#sUserUsername').val(),
             role: $('#sUserRole').val(), collegeId: $('#sUserCollege').val(),
             phone: $('#sUserPhone').val()
           };
           const pass = $('#sUserPass').val();
           if (pass) data.password = pass;
           if (!data.name || !data.email) { Swal.showValidationMessage('Name and Email are required'); return false; }
+          if (!isEdit && !data.username) { Swal.showValidationMessage('Username is required'); return false; }
           if (!isEdit && !pass) { Swal.showValidationMessage('Password is required'); return false; }
           if (isEdit) { data.id = id; data.status = $('#sUserStatus').val(); data.update_user = 1; }
           else { data.password = pass; data.add_user = 1; }
@@ -627,7 +630,7 @@ $(document).ready(function () {
       if (res.data.length === 0) html = '<tr><td colspan="6" class="empty-state"><i class="fas fa-link"></i><p>No colleges assigned</p></td></tr>';
       res.data.forEach((a, i) => {
         html += `<tr>
-          <td>${i + 1}</td><td>${esc(a.collegeName)}</td><td><code>${esc(a.college_code)}</code></td>
+          <td>${i + 1}</td><td>${esc(a.college_name)}</td><td><code>${esc(a.college_code)}</code></td>
           <td>${esc(a.assignedBy_name || '-')}</td><td>${formatDate(a.assignedAt)}</td>
           <td class="actions"><button class="btn btn-danger btn-sm" onclick="unassignCourse(${cid},${a.collegeId})"><i class="fas fa-unlink"></i></button></td></tr>`;
       });
@@ -965,7 +968,7 @@ $(document).ready(function () {
       let html = '';
       if (res.data.length === 0) html = '<div class="empty-state"><i class="fas fa-graduation-cap"></i><p>You haven\'t enrolled in any courses yet.<br><a href="browseCourses.php">Browse courses</a></p></div>';
       res.data.forEach(c => {
-        html += `<div class="course-card" style="cursor:pointer;" onclick="viewCourse(${c.id}, ${c.enrollmentId})">
+        html += `<div class="course-card" style="cursor:pointer;" onclick="viewCourse(${c.id}, ${c.enrollment_id})">
           <div class="course-card-thumb">${c.thumbnail ? `<img src="${c.thumbnail}">` : '<i class="fas fa-book"></i>'}</div>
           <div class="course-card-body">
             <h3>${esc(c.title)}</h3>
@@ -1070,29 +1073,6 @@ $(document).ready(function () {
   };
 
   // ══════════════════════════════════════════
-  //  PROFILE
-  // ══════════════════════════════════════════
-  function loadProfile() {
-    api({ get_profile: 1 }, function (res) {
-      if (res.status !== 200) return;
-      const u = res.data;
-      $('#profileName').val(u.name);
-      $('#profileEmail').val(u.email);
-      $('#profilePhone').val(u.phone || '');
-      $('#profileCollege').val(u.collegeName || 'N/A');
-      $('#profilePassword').val('');
-    });
-  }
-
-  $('#profileForm').submit(function (e) {
-    e.preventDefault();
-    const data = { update_profile: 1, name: $('#profileName').val(), phone: $('#profilePhone').val() };
-    const pass = $('#profilePassword').val();
-    if (pass) data.password = pass;
-    api(data, function (res) { toast(res.status === 200 ? 'success' : 'error', res.message); });
-  });
-
-  // ══════════════════════════════════════════
   //  UTILITIES
   // ══════════════════════════════════════════
   function esc(str) {
@@ -1103,13 +1083,22 @@ $(document).ready(function () {
   }
 
   function roleLabel(role) {
-    const map = { superAdmin: 'Super Admin', adminAzhagii: 'Admin', azhagiiCoordinator: 'Coordinator', azhagiiStudents: 'Student' };
+    const map = { 
+      superAdmin: 'Super Admin', 
+      adminAzhagii: 'Admin', 
+      azhagiiCoordinator: 'Coordinator', 
+      azhagiiStudents: 'Student' 
+    };
     return map[role] || role;
   }
 
   function formatDate(d) {
     if (!d) return '-';
-    return new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    return new Date(d).toLocaleDateString('en-US', {
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    });
   }
 
   function toast(icon, msg) {
@@ -1557,7 +1546,6 @@ $(document).ready(function () {
       case 'browseCourses':            loadBrowseCourses(); break;
       case 'myLearning':               loadMyLearning(); break;
       case 'courseViewer':             loadCourseFromUrl(); break;
-      case 'profile':                  loadProfile(); break;
     }
   }
 
