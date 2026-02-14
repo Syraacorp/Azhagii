@@ -2833,3 +2833,68 @@ table.dataTable tbody tr.even {
   background: #c62828 !important;
   border-color: #c62828 !important;
 }
+
+/* ColVis (Column Visibility) dropdown */
+.dt-button-colvis {
+  position: relative;
+}
+
+.dt-button-collection {
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: var(--shadow-soft) !important;
+  padding: 0.5rem 0 !important;
+  min-width: 180px;
+  z-index: 1050 !important;
+}
+
+.dt-button-collection .dt-button {
+  background: transparent !important;
+  border: none !important;
+  color: var(--text-main) !important;
+  padding: 0.5rem 1rem !important;
+  border-radius: 0 !important;
+  width: 100% !important;
+  text-align: left !important;
+  font-size: 0.85rem !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  transition: background 0.15s !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.dt-button-collection .dt-button:hover {
+  background: var(--bg-surface-hover) !important;
+  color: var(--primary) !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.dt-button-collection .dt-button.active {
+  background: rgba(66, 133, 244, 0.1) !important;
+  color: var(--primary) !important;
+}
+
+.dt-button-collection .dt-button.active::before {
+  content: '\f00c';
+  font-family: 'Font Awesome 6 Free';
+  font-weight: 900;
+  font-size: 0.7rem;
+  color: var(--primary);
+  min-width: 14px;
+}
+
+.dt-button-collection .dt-button:not(.active)::before {
+  content: '';
+  min-width: 14px;
+  display: inline-block;
+}
+
+/* ColVis backdrop */
+.dt-button-background {
+  background: var(--overlay-bg) !important;
+  z-index: 1040 !important;
+}

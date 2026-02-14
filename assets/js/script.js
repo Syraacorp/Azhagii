@@ -1721,7 +1721,43 @@ $(document).ready(function () {
       </tr>`;
     });
     $('#azhagiiStudentsBody').html(html);
-    initDataTable('azhagiiStudentsTable', 'Azhagii Students');
+    initDataTable('azhagiiStudentsTable', 'Azhagii Students', {
+      columnDefs: [
+        { orderable: false, targets: [1, 18] },
+        { visible: false, targets: [1, 5, 7, 8, 9, 11, 13, 14, 15, 16, 17] }
+      ],
+      buttons: [
+        {
+          extend: 'colvis',
+          text: '<i class="fas fa-columns dt-btn-icon"></i> Columns',
+          className: 'dt-button-colvis',
+          columns: ':not(:first-child):not(:last-child)'
+        },
+        {
+          extend: 'excelHtml5',
+          text: '<i class="fas fa-file-excel dt-btn-icon"></i> Excel',
+          title: 'Azhagii Students',
+          exportOptions: { columns: function(idx, data, node) { var t = $(node).text().trim().toLowerCase(); return t !== 'actions' && t !== 'photo'; }, format: { body: function(data, row, column, node) { return $(node).text().trim(); } } },
+          className: 'dt-button-excel'
+        },
+        {
+          extend: 'csvHtml5',
+          text: '<i class="fas fa-file-csv dt-btn-icon"></i> CSV',
+          title: 'Azhagii Students',
+          exportOptions: { columns: function(idx, data, node) { var t = $(node).text().trim().toLowerCase(); return t !== 'actions' && t !== 'photo'; }, format: { body: function(data, row, column, node) { return $(node).text().trim(); } } },
+          className: 'dt-button-csv'
+        },
+        {
+          extend: 'pdfHtml5',
+          text: '<i class="fas fa-file-pdf dt-btn-icon"></i> PDF',
+          title: 'Azhagii Students',
+          orientation: 'landscape',
+          pageSize: 'A4',
+          exportOptions: { columns: function(idx, data, node) { var t = $(node).text().trim().toLowerCase(); return t !== 'actions' && t !== 'photo'; }, format: { body: function(data, row, column, node) { return $(node).text().trim(); } } },
+          className: 'dt-button-pdf'
+        }
+      ]
+    });
   }
 
   // Client-side filter — now handled by DataTables built-in search
