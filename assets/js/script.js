@@ -129,6 +129,7 @@ $(document).ready(function () {
             </tr>`;
           });
           $('#recentUsersBody').html(tbody);
+          initDataTable('recentUsersTable', 'Recent Users', { paging: false, searching: false });
         }
       } else if (USER_ROLE === 'adminAzhagii') {
         html += statCard('fa-users', 'Users', d.users, '#4285f4');
@@ -214,6 +215,7 @@ $(document).ready(function () {
           <td data-label="Enrolled">${formatDate(e.enrolledAt)}</td></tr>`;
       });
       $('#coordRecentStudents').html(html);
+      initDataTable('coordRecentStudentsTable', 'Recent Student Activity', { paging: false, searching: false });
     });
   }
 
@@ -331,6 +333,7 @@ $(document).ready(function () {
           </td></tr>`;
       });
       $('#collegesBody').html(html);
+      initDataTable('collegesTable', 'Colleges List');
     });
   };
 
@@ -434,6 +437,7 @@ $(document).ready(function () {
           </td></tr>`;
       });
       $('#usersBody').html(html);
+      initDataTable('usersTable', 'Users List');
     });
   };
 
@@ -543,6 +547,7 @@ $(document).ready(function () {
           </td></tr>`;
       });
       $('#coursesBody').html(html);
+      initDataTable('coursesTable', 'Courses List');
     });
   };
 
@@ -653,6 +658,7 @@ $(document).ready(function () {
           <td class="actions"><button class="btn btn-danger btn-sm" onclick="unassignCourse(${cid},${a.collegeId})"><i class="fas fa-unlink"></i></button></td></tr>`;
       });
       $('#assignmentsBody').html(html);
+      initDataTable('assignmentsTable', 'Course Assignments');
     });
   };
 
@@ -763,6 +769,7 @@ $(document).ready(function () {
             </tr>`;
         });
         $('#subjectsBody').html(html);
+        initDataTable('subjectsTable', 'Subjects List');
     });
   };
 
@@ -938,6 +945,7 @@ $(document).ready(function () {
           <td data-label="Enrolled">${formatDate(s.enrolledAt)}</td></tr>`;
       });
       $('#courseStudentsBody').html(html);
+      initDataTable('courseStudentsTable', 'Course Students');
     });
   };
 
@@ -1126,6 +1134,102 @@ $(document).ready(function () {
     Swal.fire({ icon, title: msg, toast: true, position: 'top-end', timer: 3000, showConfirmButton: false });
   }
 
+  // ══════════════════════════════════════════
+  //  DATATABLE HELPER — init with export buttons
+  // ══════════════════════════════════════════
+  /**
+   * Initialize or reinitialize a DataTable with Excel, PDF, CSV export buttons.
+   * @param {string} tableId - The table element ID (e.g. 'collegesTable')
+   * @param {string} exportTitle - Title for exported files (e.g. 'Colleges List')
+   * @param {object} opts - Optional overrides: { ordering, paging, searching, columnDefs, ... }
+   */
+  function initDataTable(tableId, exportTitle, opts) {
+    const $table = $('#' + tableId);
+    if (!$table.length) return;
+
+    // Destroy existing DataTable instance if any
+    if ($.fn.DataTable.isDataTable($table)) {
+      $table.DataTable().destroy();
+    }
+
+    // Detect last column index (for excluding Actions column from export)
+    const colCount = $table.find('thead th').length;
+    const lastColIdx = colCount - 1;
+
+    // Check if last column header is "Actions"
+    const lastHeader = $table.find('thead th').last().text().trim().toLowerCase();
+    const hasActions = lastHeader === 'actions';
+
+    // Build export column range (exclude Actions and # columns)
+    const exportCols = [];
+    for (let i = 0; i < colCount; i++) {
+      const hdrText = $table.find('thead th').eq(i).text().trim().toLowerCase();
+      if (hdrText !== 'actions' && hdrText !== 'photo') {
+        exportCols.push(i);
+      }
+    }
+
+    // Default config
+    const config = {
+      destroy: true,
+      paging: true,
+      searching: true,
+      ordering: true,
+      info: true,
+      pageLength: 10,
+      lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+      language: {
+        search: '<i class="fas fa-search"></i>',
+        searchPlaceholder: 'Search...',
+        lengthMenu: 'Show _MENU_ entries',
+        info: 'Showing _START_ to _END_ of _TOTAL_ entries',
+        infoEmpty: 'No entries found',
+        infoFiltered: '(filtered from _MAX_ total)',
+        emptyTable: 'No data available',
+        paginate: {
+          first: '<i class="fas fa-angle-double-left"></i>',
+          previous: '<i class="fas fa-chevron-left"></i>',
+          next: '<i class="fas fa-chevron-right"></i>',
+          last: '<i class="fas fa-angle-double-right"></i>'
+        }
+      },
+      dom: '<"dt-top-bar"<"dt-top-left"lB><"dt-top-right"f>>rtip',
+      buttons: [
+        {
+          extend: 'excelHtml5',
+          text: '<i class="fas fa-file-excel dt-btn-icon"></i> Excel',
+          title: exportTitle || 'Export',
+          exportOptions: { columns: exportCols, format: { body: function(data, row, column, node) { return $(node).text().trim(); } } },
+          className: 'dt-button-excel'
+        },
+        {
+          extend: 'csvHtml5',
+          text: '<i class="fas fa-file-csv dt-btn-icon"></i> CSV',
+          title: exportTitle || 'Export',
+          exportOptions: { columns: exportCols, format: { body: function(data, row, column, node) { return $(node).text().trim(); } } },
+          className: 'dt-button-csv'
+        },
+        {
+          extend: 'pdfHtml5',
+          text: '<i class="fas fa-file-pdf dt-btn-icon"></i> PDF',
+          title: exportTitle || 'Export',
+          orientation: colCount > 6 ? 'landscape' : 'portrait',
+          pageSize: 'A4',
+          exportOptions: { columns: exportCols, format: { body: function(data, row, column, node) { return $(node).text().trim(); } } },
+          className: 'dt-button-pdf'
+        }
+      ],
+      columnDefs: hasActions ? [{ orderable: false, targets: lastColIdx }] : []
+    };
+
+    // Merge user overrides
+    if (opts) {
+      Object.assign(config, opts);
+    }
+
+    $table.DataTable(config);
+  }
+
   function getYouTubeEmbed(url) {
     if (!url) return '';
     const match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
@@ -1181,6 +1285,7 @@ $(document).ready(function () {
           </td></tr>`;
       });
       $('#pendingCoursesBody').html(html);
+      initDataTable('pendingCoursesTable', 'Pending Courses');
     });
   }
 
@@ -1209,6 +1314,7 @@ $(document).ready(function () {
           </td></tr>`;
       });
       $('#allCoursesApprovalBody').html(html);
+      initDataTable('allCoursesApprovalTable', 'All Courses');
     });
   };
 
@@ -1228,6 +1334,7 @@ $(document).ready(function () {
           <td data-label="Date">${formatDate(c.approvedAt || c.createdAt)}</td></tr>`;
       });
       $('#rejectedCoursesBody').html(html);
+      initDataTable('rejectedCoursesTable', 'Rejected Courses');
     });
   }
 
@@ -1359,6 +1466,7 @@ $(document).ready(function () {
           </td></tr>`;
       });
       $('#topicsBody').html(html);
+      initDataTable('topicsTable', 'Topics List');
     });
   };
 
@@ -1431,6 +1539,7 @@ $(document).ready(function () {
           </td></tr>`;
       });
       $('#mySubmittedCoursesBody').html(html);
+      initDataTable('mySubmittedCoursesTable', 'My Submitted Courses');
     });
   }
 
@@ -1577,18 +1686,7 @@ $(document).ready(function () {
   };
 
   function renderAzhagiiStudents() {
-    const search = ($('#studentSearchInput').val() || '').toLowerCase();
     let filtered = azhagiiStudentsData;
-    if (search) {
-      filtered = filtered.filter(u =>
-        (u.name || '').toLowerCase().includes(search) ||
-        (u.email || '').toLowerCase().includes(search) ||
-        (u.username || '').toLowerCase().includes(search) ||
-        (u.phone || '').toLowerCase().includes(search) ||
-        (u.rollNumber || '').toLowerCase().includes(search) ||
-        (u.department || '').toLowerCase().includes(search)
-      );
-    }
     let html = '';
     if (filtered.length === 0) {
       html = '<tr><td colspan="19" class="empty-state"><i class="fas fa-user-graduate"></i><p>No students found</p></td></tr>';
@@ -1623,12 +1721,11 @@ $(document).ready(function () {
       </tr>`;
     });
     $('#azhagiiStudentsBody').html(html);
+    initDataTable('azhagiiStudentsTable', 'Azhagii Students');
   }
 
-  // Client-side filter for search input (no API re-fetch)
-  window.filterAzhagiiStudents = function () {
-    renderAzhagiiStudents();
-  };
+  // Client-side filter — now handled by DataTables built-in search
+  window.filterAzhagiiStudents = function () { };
 
   // Edit student — full edit modal with all fields
   window.editAzhagiiStudent = function (id) {

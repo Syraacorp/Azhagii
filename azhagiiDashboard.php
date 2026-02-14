@@ -55,7 +55,7 @@ require 'includes/sidebar.php';
 <!-- Recent Users -->
 <div class="dashboard-section-title"><i class="fas fa-clock"></i> Recent Users</div>
 <div class="table-responsive">
-    <table class="table">
+    <table class="table" id="recentUsersTable">
         <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>College</th><th>Joined</th></tr></thead>
         <tbody id="recentUsersBody"></tbody>
     </table>

@@ -17,7 +17,7 @@ require 'includes/sidebar.php';
 </div>
 
 <div class="table-responsive">
-    <table class="table">
+    <table class="table" id="subjectsTable">
         <thead>
             <tr>
                 <th>#</th>

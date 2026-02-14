@@ -23,7 +23,7 @@ require 'includes/sidebar.php';
     <button class="btn btn-primary" onclick="showUserModal()"><i class="fas fa-plus"></i> Add User</button>
 </div>
 <div class="table-responsive">
-    <table class="table">
+    <table class="table" id="usersTable">
         <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Role</th><th>College</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody id="usersBody"></tbody>
     </table>

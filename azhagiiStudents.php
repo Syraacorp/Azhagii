@@ -12,11 +12,10 @@ require 'includes/sidebar.php';
         <select id="studentCollegeFilter" class="form-input form-input-sm" onchange="loadAzhagiiStudents()">
             <option value="">All Colleges</option>
         </select>
-        <input type="text" id="studentSearchInput" class="form-input form-input-sm" placeholder="Search students..." oninput="filterAzhagiiStudents()" style="max-width:250px;">
     </div>
 </div>
 <div class="table-responsive">
-    <table class="table">
+    <table class="table" id="azhagiiStudentsTable">
         <thead>
             <tr>
                 <th>#</th>

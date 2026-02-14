@@ -12,7 +12,7 @@ require 'includes/sidebar.php';
     <button class="btn btn-primary" onclick="showCourseModal()"><i class="fas fa-plus"></i> Add Course</button>
 </div>
 <div class="table-responsive">
-    <table class="table">
+    <table class="table" id="coursesTable">
         <thead><tr><th>#</th><th>Title</th><th>Category</th><th>Semester</th><th>Colleges</th><th>Enrollments</th><th>Content</th><th>Status</th><th>Syllabus</th><th>Actions</th></tr></thead>
         <tbody id="coursesBody"></tbody>
     </table>

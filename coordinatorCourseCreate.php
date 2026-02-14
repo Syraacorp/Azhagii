@@ -111,7 +111,7 @@ require 'includes/sidebar.php';
 <!-- My Submitted Courses -->
 <div class="dashboard-section-title" style="margin-top:2rem;"><i class="fas fa-history"></i> My Submitted Courses</div>
 <div class="table-responsive">
-    <table class="table">
+    <table class="table" id="mySubmittedCoursesTable">
         <thead>
             <tr>
                 <th>#</th>

@@ -62,7 +62,7 @@ require 'includes/sidebar.php';
 <!-- Recent Students -->
 <div class="dashboard-section-title"><i class="fas fa-user-graduate"></i> Recent Student Activity</div>
 <div class="table-responsive">
-    <table class="table">
+    <table class="table" id="coordRecentStudentsTable">
         <thead><tr><th>Student</th><th>Course</th><th>Progress</th><th>Status</th><th>Enrolled</th></tr></thead>
         <tbody id="coordRecentStudents"></tbody>
     </table>

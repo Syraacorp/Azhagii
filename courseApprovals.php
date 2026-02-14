@@ -20,7 +20,7 @@ require 'includes/sidebar.php';
 <!-- Pending Courses Table -->
 <div id="approvalPendingTab">
     <div class="table-responsive">
-        <table class="table">
+        <table class="table" id="pendingCoursesTable">
             <thead>
                 <tr>
                     <th>#</th>
@@ -55,7 +55,7 @@ require 'includes/sidebar.php';
         </div>
     </div>
     <div class="table-responsive">
-        <table class="table">
+        <table class="table" id="allCoursesApprovalTable">
             <thead>
                 <tr>
                     <th>#</th>
@@ -77,7 +77,7 @@ require 'includes/sidebar.php';
 <!-- Rejected Courses Table -->
 <div id="approvalRejectedTab" style="display:none;">
     <div class="table-responsive">
-        <table class="table">
+        <table class="table" id="rejectedCoursesTable">
             <thead>
                 <tr>
                     <th>#</th>

@@ -16,7 +16,7 @@ require 'includes/sidebar.php';
     <button class="btn btn-primary" onclick="showAssignModal()"><i class="fas fa-plus"></i> Assign to College</button>
 </div>
 <div class="table-responsive">
-    <table class="table">
+    <table class="table" id="assignmentsTable">
         <thead><tr><th>#</th><th>College</th><th>Code</th><th>Assigned By</th><th>Date</th><th>Actions</th></tr></thead>
         <tbody id="assignmentsBody"></tbody>
     </table>
