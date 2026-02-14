@@ -20,11 +20,11 @@
 
         <!-- ═══ TOP BAR ═══ -->
         <header class="top-bar">
-            <div style="display:flex;align-items:center;gap:1rem;">
+            <div class="top-bar-left">
                 <button class="hamburger" id="menu-toggle"><i class="fas fa-bars"></i></button>
                 <span class="page-title" id="pageTitle"><?= $pageTitle ?? 'Dashboard' ?></span>
             </div>
-            <div style="display:flex;align-items:center;gap:1rem;">
+            <div class="top-bar-right">
                 <button class="theme-toggle" id="themeToggle"><i class="fas fa-sun"></i></button>
 
                 <!-- User Dropdown -->

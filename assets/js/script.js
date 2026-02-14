@@ -540,14 +540,14 @@ $(document).ready(function () {
 
     load.then(c => {
       Swal.fire({
-        title: isEdit ? 'Edit Course' : 'Add Course', width: 600,
+        title: isEdit ? 'Edit Course' : 'Add Course', width: 600, customClass: { popup: 'swal-responsive' },
         html: `<div class="swal-form">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+          <div class="responsive-grid-2">
             <div class="form-group"><label class="form-label">Title</label><input id="sCourseTitle" class="form-input" value="${esc(c.title || '')}"></div>
             <div class="form-group"><label class="form-label">Course Code</label><input id="sCourseCode" class="form-input" value="${esc(c.courseCode || '')}" placeholder="e.g. CS201"></div>
           </div>
           <div class="form-group"><label class="form-label">Description</label><textarea id="sCourseDesc" class="form-input" rows="2">${esc(c.description || '')}</textarea></div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;">
+          <div class="responsive-grid-3">
             <div class="form-group"><label class="form-label">Category</label><input id="sCourseCat" class="form-input" value="${esc(c.category || '')}" placeholder="e.g. CSE"></div>
             <div class="form-group"><label class="form-label">Type</label><select id="sCourseType" class="form-input">
               <option value="theory" ${c.courseType === 'theory' ? 'selected' : ''}>Theory</option>
@@ -559,7 +559,7 @@ $(document).ready(function () {
               ${[1,2,3,4,5,6,7,8].map(s => `<option value="${s}" ${c.semester == s ? 'selected' : ''}>Sem ${s}</option>`).join('')}
             </select></div>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+          <div class="responsive-grid-2">
             <div class="form-group"><label class="form-label">Regulation</label><input id="sCourseReg" class="form-input" value="${esc(c.regulation || '')}" placeholder="e.g. R2021"></div>
             <div class="form-group"><label class="form-label">Academic Year</label><input id="sCourseYear" class="form-input" value="${esc(c.academicYear || '')}" placeholder="e.g. 2024-2025"></div>
           </div>
@@ -1232,9 +1232,9 @@ $(document).ready(function () {
       }
 
       Swal.fire({
-        title: esc(c.title), width: 650,
+        title: esc(c.title), width: 650, customClass: { popup: 'swal-responsive' },
         html: `<div style="text-align:left;">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1rem;">
+          <div class="responsive-grid-2" style="margin-bottom:1rem;">
             <div><small style="color:var(--text-muted);">Code:</small><br><strong>${esc(c.courseCode || '-')}</strong></div>
             <div><small style="color:var(--text-muted);">Category:</small><br><strong>${esc(c.category || '-')}</strong></div>
             <div><small style="color:var(--text-muted);">Semester:</small><br><strong>${esc(c.semester || '-')}</strong></div>
@@ -1469,14 +1469,14 @@ $(document).ready(function () {
       if (res.status !== 200) return;
       const c = res.data;
       Swal.fire({
-        title: 'Edit Course', width: 600,
+        title: 'Edit Course', width: 600, customClass: { popup: 'swal-responsive' },
         html: `<div class="swal-form">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+          <div class="responsive-grid-2">
             <div class="form-group"><label class="form-label">Title</label><input id="sCourseTitle" class="form-input" value="${esc(c.title || '')}"></div>
             <div class="form-group"><label class="form-label">Course Code</label><input id="sCourseCode" class="form-input" value="${esc(c.courseCode || '')}"></div>
           </div>
           <div class="form-group"><label class="form-label">Description</label><textarea id="sCourseDesc" class="form-input" rows="2">${esc(c.description || '')}</textarea></div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;">
+          <div class="responsive-grid-3">
             <div class="form-group"><label class="form-label">Category</label><input id="sCourseCat" class="form-input" value="${esc(c.category || '')}"></div>
             <div class="form-group"><label class="form-label">Type</label><select id="sCourseType" class="form-input">
               <option value="theory" ${c.courseType==='theory'?'selected':''}>Theory</option>
@@ -1488,7 +1488,7 @@ $(document).ready(function () {
               ${[1,2,3,4,5,6,7,8].map(s => `<option value="${s}" ${c.semester==s?'selected':''}}>Sem ${s}</option>`).join('')}
             </select></div>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+          <div class="responsive-grid-2">
             <div class="form-group"><label class="form-label">Regulation</label><input id="sCourseReg" class="form-input" value="${esc(c.regulation || '')}"></div>
             <div class="form-group"><label class="form-label">Academic Year</label><input id="sCourseYear" class="form-input" value="${esc(c.academicYear || '')}"></div>
           </div>

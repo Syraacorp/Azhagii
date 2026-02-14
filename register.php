@@ -114,6 +114,7 @@ $stmt->close();
         }
         .img-container {
             height: 350px;
+            max-height: 50vh;
             width: 100%;
             background: #000;
             overflow: hidden;

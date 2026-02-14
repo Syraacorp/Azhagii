@@ -272,6 +272,7 @@ require 'includes/sidebar.php';
 
     .img-container {
         height: 400px;
+        max-height: 50vh;
         width: 100%;
         background: #000;
         /* Solid background for image area */
@@ -354,7 +355,7 @@ require 'includes/sidebar.php';
         <div class="profile-card">
             <h3><i class="fas fa-user-circle" style="color:var(--accent-purple);"></i> Personal & Academic Details</h3>
 
-            <div class="row" style="display:grid; grid-template-columns: 1fr 1fr; gap:0.625rem;">
+            <div class="row responsive-grid-2">
                 <div class="form-group-profile">
                     <label class="form-label-profile">Full Name <span style="color:#ef4444">*</span></label>
                     <input type="text" name="name" id="name" class="form-input-profile" required>
@@ -365,7 +366,7 @@ require 'includes/sidebar.php';
                 </div>
             </div>
 
-            <div class="row" style="display:grid; grid-template-columns: 1fr 1fr; gap:0.625rem;">
+            <div class="row responsive-grid-2">
                 <div class="form-group-profile">
                     <label class="form-label-profile">Gender</label>
                     <select name="gender" id="gender" class="form-input-profile">
@@ -381,7 +382,7 @@ require 'includes/sidebar.php';
                 </div>
             </div>
 
-            <div class="row" style="display:grid; grid-template-columns: 1fr 1fr; gap:0.625rem;">
+            <div class="row responsive-grid-2">
                 <div class="form-group-profile">
                     <label class="form-label-profile">Address</label>
                     <input type="text" name="address" id="address" class="form-input-profile" placeholder="Your address...">
@@ -392,7 +393,7 @@ require 'includes/sidebar.php';
                 </div>
             </div>
 
-            <div class="row" style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:0.625rem;">
+            <div class="row responsive-grid-3">
                 <div class="form-group-profile">
                     <label class="form-label-profile">Username</label>
                     <input type="text" id="username" class="form-input-profile" disabled>
@@ -408,7 +409,7 @@ require 'includes/sidebar.php';
             </div>
 
             <div id="studentFields" style="display:none;">
-                <div class="row" style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:0.625rem;">
+                <div class="row responsive-grid-4">
                     <div class="form-group-profile">
                         <label class="form-label-profile">Azhagii ID</label>
                         <input type="text" id="azhagiiID" class="form-input-profile" disabled>
@@ -431,7 +432,7 @@ require 'includes/sidebar.php';
 
         <div class="profile-card" style="margin-top:0;">
             <h3><i class="fas fa-share-alt" style="color:var(--accent-blue);"></i> Social Profiles</h3>
-            <div class="row" style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:0.625rem;">
+            <div class="row responsive-grid-4">
                 <div class="form-group-profile">
                     <label class="form-label-profile">GitHub</label>
                     <div class="social-input-group">

@@ -29,12 +29,12 @@ session_start();
                 <li><a href="#contact">Contact</a></li>
             </ul>
             <?php if (isset($_SESSION['userId'])): ?>
-                <div style="display:flex;gap:1rem;align-items:center;">
+                <div class="nav-auth-buttons">
                     <span style="color:var(--text-muted);font-size:0.9rem;">Hi, <?= htmlspecialchars($_SESSION['user_name']) ?></span>
                     <a href="dashboard.php" class="btn btn-primary" style="padding:0.5rem 1rem;font-size:0.9rem;">Dashboard</a>
                 </div>
             <?php else: ?>
-                <div style="display:flex;gap:0.75rem;">
+                <div class="nav-auth-buttons">
                     <a href="login.php" class="btn btn-outline" style="padding:0.5rem 1.2rem;font-size:0.9rem;">Sign In</a>
                     <a href="register.php" class="btn btn-primary" style="padding:0.5rem 1.2rem;font-size:0.9rem;">Get Started</a>
                 </div>

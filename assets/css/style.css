@@ -1102,6 +1102,14 @@ select.form-input {
   font-weight: 500;
 }
 
+/* Top Bar layout helpers */
+.top-bar-left,
+.top-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
 .hamburger {
   display: none;
   background: none;
@@ -1918,24 +1926,35 @@ select.form-input {
   flex-shrink: 0;
 }
 
-@media (max-width: 768px) {
-  .dashboard-welcome {
-    flex-direction: column;
-    text-align: center;
-    padding: 1.5rem;
-  }
-  .welcome-icon {
-    display: none;
-  }
-  .quick-actions-grid {
-    grid-template-columns: 1fr;
-  }
-  .admin-overview-grid {
-    grid-template-columns: 1fr;
-  }
-  .progress-overview-grid {
-    grid-template-columns: 1fr;
-  }
+/* ══════════════════════════════════════════
+   RESPONSIVE GRID UTILITY CLASSES
+   ══════════════════════════════════════════ */
+.responsive-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+.responsive-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.75rem;
+}
+.responsive-grid-4 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 0.75rem;
+}
+.responsive-btn-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* ── Nav Auth Buttons (Landing) ── */
+.nav-auth-buttons {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
 }
 
 /* ══════════════════════════════════════════
@@ -1959,8 +1978,23 @@ select.form-input {
   h1 {
     font-size: 2.5rem;
   }
+  h2 {
+    font-size: 1.5rem;
+  }
+  h3 {
+    font-size: 1.15rem;
+  }
+  p {
+    font-size: 1rem;
+  }
   .hero h1 {
-    font-size: 2.5rem;
+    font-size: 2.25rem;
+  }
+  .hero p {
+    font-size: 1.05rem;
+  }
+  section {
+    padding: 3rem 1.25rem;
   }
   .about-grid {
     grid-template-columns: 1fr;
@@ -1968,16 +2002,34 @@ select.form-input {
   .features-grid {
     grid-template-columns: 1fr;
   }
+  .steps-grid {
+    grid-template-columns: 1fr;
+  }
   .nav-links {
     display: none;
   }
 
-  /* Auth */
+  /* ── Nav Auth Buttons ── */
+  .nav-auth-buttons {
+    gap: 0.5rem;
+  }
+  .nav-auth-buttons span {
+    display: none;
+  }
+  .nav-auth-buttons .btn {
+    padding: 0.4rem 0.8rem !important;
+    font-size: 0.8rem !important;
+  }
+  .navbar {
+    padding: 0.75rem 1rem;
+  }
+
+  /* ── Auth Pages ── */
   .auth-wrapper {
     flex-direction: column;
   }
   .auth-brand-side {
-    flex: 0 0 140px;
+    flex: 0 0 120px;
   }
   .auth-brand-content p {
     display: none;
@@ -1988,17 +2040,47 @@ select.form-input {
     border-left: none;
     border-top: 1px solid var(--border-color);
     align-items: flex-start;
-    padding-top: 3rem;
+    padding-top: 2rem;
+    padding: 1.5rem;
+  }
+  .reg-form-side {
+    padding: 1.25rem;
+  }
+  .auth-card {
+    max-width: 100%;
+  }
+  .auth-card.reg-card {
+    max-width: 100%;
   }
   .form-row {
     flex-direction: column;
   }
   .reg-tab {
+    font-size: 0.75rem;
+    padding: 0.5rem 0.25rem;
+  }
+  .reg-tab-num {
+    width: 18px;
+    height: 18px;
+    font-size: 0.65rem;
+  }
+  .reg-btn-row {
+    flex-direction: column;
+  }
+  .reg-btn-row .btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .pw-requirements-compact ul {
+    grid-template-columns: 1fr 1fr;
+  }
+  .back-to-home {
+    top: 0.75rem;
+    right: 0.75rem;
     font-size: 0.8rem;
-    padding: 0.6rem 0.5rem;
   }
 
-  /* Dashboard */
+  /* ── Dashboard Layout ── */
   .hamburger {
     display: flex;
   }
@@ -2016,17 +2098,62 @@ select.form-input {
   }
   .top-bar {
     left: 0;
+    padding: 0 1rem;
+  }
+  .top-bar-left {
+    gap: 0.75rem;
+  }
+  .top-bar-right {
+    gap: 0.6rem;
   }
   .content-wrapper {
     padding: 1.25rem;
     padding-top: 5rem;
   }
+
+  /* ── Responsive Grid Classes ── */
+  .responsive-grid-2 {
+    grid-template-columns: 1fr;
+  }
+  .responsive-grid-3 {
+    grid-template-columns: 1fr;
+  }
+  .responsive-grid-4 {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* ── Stats & Cards ── */
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+  }
+  .stat-card {
+    padding: 1.25rem 1.5rem;
+    gap: 1.25rem;
+    border-radius: var(--radius-md);
+  }
+  .stat-icon {
+    width: 52px;
+    height: 52px;
+    font-size: 1.3rem;
+    border-radius: 14px;
+  }
+  .stat-value {
+    font-size: 1.65rem;
+    font-weight: 700;
+  }
+  .stat-label {
+    font-size: 0.88rem;
+    margin-top: 0.2rem;
+  }
   .cards-grid {
     grid-template-columns: 1fr;
   }
-  .stats-grid {
-    grid-template-columns: 1fr 1fr;
+  .course-card-thumb {
+    height: 160px;
   }
+
+  /* ── Section Toolbar & Filters ── */
   .section-toolbar {
     flex-direction: column;
     align-items: stretch;
@@ -2037,6 +2164,18 @@ select.form-input {
   .form-input-sm {
     max-width: 100%;
   }
+
+  /* ── Tables ── */
+  .table th,
+  .table td {
+    padding: 0.75rem 0.85rem;
+    font-size: 0.88rem;
+  }
+  .table th {
+    font-size: 0.75rem;
+  }
+
+  /* ── User Dropdown ── */
   .user-dropdown-name {
     display: none;
   }
@@ -2046,11 +2185,256 @@ select.form-input {
   .user-dropdown-toggle {
     padding: 0.3rem;
   }
+  .user-dropdown-menu {
+    min-width: 240px;
+    right: -0.5rem;
+  }
+
+  /* ── Dashboard Content ── */
+  .dashboard-welcome {
+    flex-direction: column;
+    text-align: center;
+    padding: 1.5rem;
+    margin-bottom: 1.25rem;
+    border-radius: var(--radius-md);
+  }
+  .welcome-text h2 {
+    font-size: 1.35rem;
+    margin-bottom: 0.5rem;
+  }
+  .welcome-text p {
+    font-size: 0.92rem;
+    line-height: 1.5;
+  }
+  .welcome-icon {
+    display: none;
+  }
+  .dashboard-section-title {
+    font-size: 1.05rem;
+    margin-top: 1.75rem;
+    margin-bottom: 1rem;
+  }
+  .quick-actions-grid {
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+  }
+  .quick-action-card {
+    padding: 1.25rem;
+    gap: 1.1rem;
+    border-radius: var(--radius-md);
+  }
+  .quick-action-icon {
+    width: 50px;
+    height: 50px;
+    font-size: 1.2rem;
+    border-radius: 14px;
+  }
+  .quick-action-card h4 {
+    font-size: 1rem;
+    margin-bottom: 0.2rem;
+  }
+  .quick-action-card p {
+    font-size: 0.85rem;
+  }
+  .admin-overview-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .progress-overview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* ── Cards ── */
+  .card {
+    padding: 1.25rem;
+    border-radius: var(--radius-md);
+  }
+
+  /* ── Profile Page ── */
+  .profile-dashboard-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ── Content Items ── */
+  .content-item {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1.25rem;
+  }
+  .content-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .content-body h4 {
+    font-size: 1.05rem;
+  }
+  .content-body p {
+    font-size: 0.88rem;
+  }
+
+  /* ── Cropper Modal ── */
+  .cropper-content {
+    width: 95%;
+    max-width: 95vw;
+    padding: 1rem;
+  }
+
+  /* ── Contact Section ── */
+  .contact-container {
+    padding: 1.5rem;
+  }
+
+  /* ── Footer ── */
+  .footer-links {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  /* ── Button Row ── */
+  .responsive-btn-row {
+    flex-direction: column;
+  }
+  .responsive-btn-row .btn {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  /* ── Profile Requests Grid ── */
+  .requests-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ── Scroll Progress Bar ── */
+  .scroll-progress-container {
+    left: 0 !important;
+    width: 100% !important;
+    top: 64px;
+  }
+
+  /* ── Badges on mobile ── */
+  .badge {
+    font-size: 0.72rem;
+    padding: 0.25rem 0.7rem;
+  }
+
+  /* ── Empty State ── */
+  .empty-state {
+    padding: 2rem 1rem;
+  }
+  .empty-state i {
+    font-size: 2.5rem;
+  }
+  .empty-state p {
+    font-size: 1rem;
+  }
+
+  /* ── Breakdown list ── */
+  .breakdown-item {
+    font-size: 0.92rem;
+    padding: 0.6rem 0;
+  }
+
+  /* ── Progress bars ── */
+  .progress-bar-wrap {
+    height: 10px;
+  }
+
+  /* ── Form inputs ── */
+  .form-input {
+    font-size: 1rem;
+    padding: 0.85rem 1rem;
+  }
+  .form-label {
+    font-size: 0.88rem;
+  }
+}
+
+/* ── SweetAlert2 Responsive ── */
+@media (max-width: 768px) {
+  .swal-responsive,
+  .swal2-popup {
+    width: 95vw !important;
+    max-width: 95vw !important;
+    padding: 1.25rem !important;
+    font-size: 0.9rem;
+  }
+  .swal2-title {
+    font-size: 1.2rem !important;
+  }
+  .swal2-html-container {
+    font-size: 0.88rem !important;
+  }
+  .swal-form .responsive-grid-2,
+  .swal-responsive .responsive-grid-2,
+  .swal2-popup .responsive-grid-2 {
+    grid-template-columns: 1fr !important;
+  }
+  .swal-form .responsive-grid-3,
+  .swal-responsive .responsive-grid-3,
+  .swal2-popup .responsive-grid-3 {
+    grid-template-columns: 1fr !important;
+  }
 }
 
 @media (max-width: 480px) {
-  .stats-grid {
+  h1 {
+    font-size: 2rem;
+  }
+  .hero h1 {
+    font-size: 1.85rem;
+  }
+  .hero-badge {
+    font-size: 0.78rem;
+    padding: 0.4rem 0.75rem;
+  }
+  .responsive-grid-4 {
     grid-template-columns: 1fr;
+  }
+  .content-wrapper {
+    padding: 1rem;
+    padding-top: 4.75rem;
+  }
+  .top-bar {
+    padding: 0 0.75rem;
+  }
+  .pw-requirements-compact ul {
+    grid-template-columns: 1fr;
+  }
+  .reg-tab {
+    font-size: 0.7rem;
+    padding: 0.4rem 0.2rem;
+    gap: 0.2rem;
+  }
+  .feature-card {
+    padding: 1.25rem;
+  }
+  .about-card {
+    padding: 1.5rem;
+  }
+  .course-card-body {
+    padding: 1rem;
+  }
+  .course-card-footer {
+    padding: 0.75rem 1rem;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+}
+
+/* ── Tablet tweaks (between 769px and 1024px) ── */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .responsive-grid-4 {
+    grid-template-columns: 1fr 1fr;
+  }
+  .responsive-grid-3 {
+    grid-template-columns: 1fr 1fr;
+  }
+  .features-grid {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  }
+  .cards-grid {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   }
 }
 

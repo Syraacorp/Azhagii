@@ -12,7 +12,7 @@ require 'includes/sidebar.php';
     <p style="color:var(--text-muted);margin-bottom:1.5rem;">Fill in the course details below. Your course will be submitted for admin approval.</p>
 
     <form id="coordCourseForm" enctype="multipart/form-data">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <div class="responsive-grid-2">
             <div class="form-group">
                 <label class="form-label">Course Title *</label>
                 <input type="text" name="title" class="form-input" required placeholder="e.g. Data Structures">
@@ -28,7 +28,7 @@ require 'includes/sidebar.php';
             <textarea name="description" class="form-input" rows="3" placeholder="Brief description of the course"></textarea>
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;">
+        <div class="responsive-grid-3">
             <div class="form-group">
                 <label class="form-label">Category</label>
                 <input type="text" name="category" class="form-input" placeholder="e.g. Computer Science">
@@ -57,7 +57,7 @@ require 'includes/sidebar.php';
             </div>
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <div class="responsive-grid-2">
             <div class="form-group">
                 <label class="form-label">Regulation</label>
                 <input type="text" name="regulation" class="form-input" placeholder="e.g. R2021">
@@ -101,7 +101,7 @@ require 'includes/sidebar.php';
             </div>
         </div>
 
-        <div style="margin-top:1.5rem;display:flex;gap:1rem;">
+        <div class="responsive-btn-row" style="margin-top:1.5rem;">
             <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane"></i> Submit for Approval</button>
             <a href="myCourses.php" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Cancel</a>
         </div>

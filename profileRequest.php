@@ -7,7 +7,7 @@ require 'includes/header.php';
 require 'includes/sidebar.php';
 ?>
 
-<div class="header-actions" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+<div class="header-actions section-toolbar" style="margin-bottom:1.5rem;">
     <div>
         <h2>Access Requests</h2>
         <p>Manage user requests to unlock and edit their profiles.</p>
