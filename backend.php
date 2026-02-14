@@ -14,6 +14,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 include "db.php";
+include_once "includes/csrf.php";
+
 if (!isset($conn) || !$conn) {
     echo json_encode(['status' => 500, 'message' => 'Database connection failed']);
     exit;
@@ -40,6 +42,51 @@ function esc($v)
     global $conn;
     return mysqli_real_escape_string($conn, $v);
 }
+
+// Secure file upload helper
+function uploadFile($fileKey, $allowedMimes, $allowedExts, $maxSizeMB, $uploadDir, $prefix = 'file') {
+    if (!isset($_FILES[$fileKey]) || $_FILES[$fileKey]['error'] !== UPLOAD_ERR_OK) {
+        return null;
+    }
+    
+    // Check MIME type
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $mime = finfo_file($finfo, $_FILES[$fileKey]['tmp_name']);
+    finfo_close($finfo);
+    
+    if (!in_array($mime, $allowedMimes)) {
+        respond(400, "Invalid file type. Allowed MIME types: " . implode(', ', $allowedMimes));
+    }
+    
+    // Check extension
+    $ext = strtolower(pathinfo($_FILES[$fileKey]['name'], PATHINFO_EXTENSION));
+    if (!in_array($ext, $allowedExts)) {
+        respond(400, "Invalid file extension. Allowed: " . implode(', ', $allowedExts));
+    }
+    
+    // Check file size
+    if ($_FILES[$fileKey]['size'] > $maxSizeMB * 1024 * 1024) {
+        respond(400, "File too large. Maximum size: {$maxSizeMB}MB");
+    }
+    
+    // Generate safe filename
+    $fname = $prefix . '_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+    
+    // Ensure directory exists
+    if (!is_dir($uploadDir)) {
+        if (!mkdir($uploadDir, 0755, true)) {
+            respond(500, "Failed to create upload directory");
+        }
+    }
+    
+    $targetFile = "$uploadDir/$fname";
+    if (move_uploaded_file($_FILES[$fileKey]['tmp_name'], $targetFile)) {
+        return $targetFile;
+    } else {
+        respond(500, "Failed to save uploaded file");
+    }
+}
+
 function isLogged()
 {
     return isset($_SESSION['user_id']);
@@ -209,9 +256,11 @@ if (isset($_POST['register_student'])) {
         $_SESSION['college_id'] = $college_id;
         $_SESSION['college_name'] = $collegeName;
         respond(200, 'Registration successful!');
+    } else {
+        $error = $stmt->error;
+        $stmt->close();
+        respond(500, 'Registration failed: ' . $error);
     }
-    $stmt->close();
-    respond(500, 'Registration failed: ' . mysqli_error($conn));
 }
 
 if (isset($_POST['check_session'])) {
@@ -441,9 +490,11 @@ if (isset($_POST['update_my_profile'])) {
             $_SESSION['profile_photo'] = $photoPath;
         }
         respond(200, 'Profile updated successfully');
+    } else {
+        $error = $stmt->error;
+        $stmt->close();
+        respond(500, 'Update failed: ' . $error);
     }
-    $stmt->close();
-    respond(500, 'Update failed: ' . mysqli_error($conn));
 }
 
 if (isset($_POST['request_profile_unlock'])) {
@@ -468,9 +519,11 @@ if (isset($_POST['request_profile_unlock'])) {
     if ($stmt2->execute()) {
         $stmt2->close();
         respond(200, 'Unlock request sent to admin');
+    } else {
+        $error = $stmt2->error;
+        $stmt2->close();
+        respond(500, 'Request failed: ' . $error);
     }
-    $stmt2->close();
-    respond(500, 'Request failed');
 }
 
 // ── Admin: Review Profile Requests ──────────────────────
@@ -581,9 +634,11 @@ if (isset($_POST['add_college'])) {
     if ($stmt2->execute()) {
         $stmt2->close();
         respond(200, 'College added');
+    } else {
+        $error = $stmt2->error;
+        $stmt2->close();
+        respond(500, 'Failed to add college: ' . $error);
     }
-    $stmt2->close();
-    respond(500, 'Failed to add college');
 }
 
 if (isset($_POST['update_college'])) {
@@ -610,9 +665,11 @@ if (isset($_POST['update_college'])) {
     if ($stmt2->execute()) {
         $stmt2->close();
         respond(200, 'College updated');
+    } else {
+        $error = $stmt2->error;
+        $stmt2->close();
+        respond(500, 'Update failed: ' . $error);
     }
-    $stmt2->close();
-    respond(500, 'Update failed');
 }
 
 if (isset($_POST['delete_college'])) {
@@ -624,9 +681,11 @@ if (isset($_POST['delete_college'])) {
     if ($stmt->execute()) {
         $stmt->close();
         respond(200, 'College deleted');
+    } else {
+        $error = $stmt->error;
+        $stmt->close();
+        respond(500, 'Delete failed: ' . $error);
     }
-    $stmt->close();
-    respond(500, 'Delete failed');
 }
 
 // ══════════════════════════════════════════════════════════
@@ -689,9 +748,11 @@ if (isset($_POST['add_user'])) {
     if ($stmt2->execute()) {
         $stmt2->close();
         respond(200, 'User added');
+    } else {
+        $error = $stmt2->error;
+        $stmt2->close();
+        respond(500, 'Failed to add user: ' . $error);
     }
-    $stmt2->close();
-    respond(500, 'Failed to add user');
 }
 
 if (isset($_POST['update_user'])) {
@@ -749,9 +810,11 @@ if (isset($_POST['update_user'])) {
     if ($stmt3->execute()) {
         $stmt3->close();
         respond(200, 'User updated');
+    } else {
+        $error = $stmt3->error;
+        $stmt3->close();
+        respond(500, 'Update failed: ' . $error);
     }
-    $stmt3->close();
-    respond(500, 'Update failed');
 }
 
 if (isset($_POST['delete_user'])) {
@@ -781,9 +844,11 @@ if (isset($_POST['delete_user'])) {
     if ($stmt2->execute()) {
         $stmt2->close();
         respond(200, 'User deleted');
+    } else {
+        $error = $stmt2->error;
+        $stmt2->close();
+        respond(500, 'Delete failed: ' . $error);
     }
-    $stmt2->close();
-    respond(500, 'Delete failed');
 }
 
 // ══════════════════════════════════════════════════════════
@@ -880,42 +945,48 @@ if (isset($_POST['add_course'])) {
     } else {
         $status = esc($_POST['status'] ?? 'draft');
     }
+    
+    // Handle thumbnail upload with security checks
     $thumb = '';
     if (isset($_FILES['thumbnail']) && $_FILES['thumbnail']['error'] === UPLOAD_ERR_OK) {
-        $ext = strtolower(pathinfo($_FILES['thumbnail']['name'], PATHINFO_EXTENSION));
-        $allowed_thumb = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
-        if (!in_array($ext, $allowed_thumb))
-            respond(400, 'Invalid thumbnail format. Allowed: ' . implode(', ', $allowed_thumb));
-        $fname = 'thumb_' . time() . '_' . rand(1000, 9999) . '.' . $ext;
-        move_uploaded_file($_FILES['thumbnail']['tmp_name'], "uploads/thumbnails/$fname");
-        $thumb = "uploads/thumbnails/$fname";
+        $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+        $allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+        $thumb = uploadFile('thumbnail', $allowedMimes, $allowedExts, 5, 'uploads/thumbnails', 'thumb');
     }
-    // Handle syllabus PDF upload
+    
+    // Handle syllabus PDF upload with security checks
     $syllabus = '';
     if (isset($_FILES['syllabus']) && $_FILES['syllabus']['error'] === UPLOAD_ERR_OK) {
-        $ext = strtolower(pathinfo($_FILES['syllabus']['name'], PATHINFO_EXTENSION));
-        if ($ext !== 'pdf')
-            respond(400, 'Syllabus must be a PDF file');
-        if ($_FILES['syllabus']['size'] > 2 * 1024 * 1024)
-            respond(400, 'Syllabus file must be under 2MB');
-        $fname = 'syllabus_' . time() . '_' . rand(1000, 9999) . '.pdf';
-        move_uploaded_file($_FILES['syllabus']['tmp_name'], "uploads/content/$fname");
-        $syllabus = "uploads/content/$fname";
+        $allowedMimes = ['application/pdf'];
+        $allowedExts = ['pdf'];
+        $syllabus = uploadFile('syllabus', $allowedMimes, $allowedExts, 5, 'uploads/content', 'syllabus');
     }
+    
     if (!$title)
         respond(400, 'Title is required');
     $by = uid();
-    $q = "INSERT INTO courses (title,course_code,description,category,course_type,thumbnail,syllabus,semester,regulation,academic_year,created_by,status)
-          VALUES ('$title','$code','$desc','$cat','$course_type','$thumb','$syllabus','$semester','$regulation','$academic_year',$by,'$status')";
-    if (mysqli_query($conn, $q)) {
-        $newCourseId = mysqli_insert_id($conn);
+    
+    $stmt = $conn->prepare("INSERT INTO courses (title,course_code,description,category,course_type,thumbnail,syllabus,semester,regulation,academic_year,created_by,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)");
+    $stmt->bind_param("ssssssssssss", $title, $code, $desc, $cat, $course_type, $thumb, $syllabus, $semester, $regulation, $academic_year, $by, $status);
+    
+    if ($stmt->execute()) {
+        $newCourseId = $stmt->insert_id;
+        $stmt->close();
+        
         // If coordinator created, auto-assign to their college
         if (hasRole('ziyaaCoordinator') && cid()) {
-            mysqli_query($conn, "INSERT IGNORE INTO course_colleges (course_id,college_id,assigned_by) VALUES ($newCourseId," . cid() . ",$by)");
+            $college_id = cid();
+            $stmt2 = $conn->prepare("INSERT IGNORE INTO course_colleges (course_id,college_id,assigned_by) VALUES (?,?,?)");
+            $stmt2->bind_param("iii", $newCourseId, $college_id, $by);
+            $stmt2->execute();
+            $stmt2->close();
         }
         respond(200, 'Course created' . (hasRole('ziyaaCoordinator') ? ' and submitted for approval' : ''), ['id' => $newCourseId]);
+    } else {
+        $error = $stmt->error;
+        $stmt->close();
+        respond(500, 'Failed to create course: ' . $error);
     }
-    respond(500, 'Failed to create course');
 }
 
 if (isset($_POST['update_course'])) {
@@ -923,13 +994,21 @@ if (isset($_POST['update_course'])) {
     $id = intval($_POST['id'] ?? 0);
     // Coordinators can only edit their own pending/rejected courses
     if (hasRole('ziyaaCoordinator')) {
-        $chk = mysqli_query($conn, "SELECT status, created_by FROM courses WHERE id=$id");
-        if ($chk && $row = mysqli_fetch_assoc($chk)) {
-            if ($row['created_by'] != uid())
+        $stmt_check = $conn->prepare("SELECT status, created_by FROM courses WHERE id=?");
+        $stmt_check->bind_param("i", $id);
+        $stmt_check->execute();
+        $result_check = $stmt_check->get_result();
+        if ($row = $result_check->fetch_assoc()) {
+            if ($row['created_by'] != uid()) {
+                $stmt_check->close();
                 respond(403, 'Cannot edit this course');
-            if (!in_array($row['status'], ['pending', 'rejected']))
+            }
+            if (!in_array($row['status'], ['pending', 'rejected'])) {
+                $stmt_check->close();
                 respond(403, 'Can only edit pending or rejected courses');
+            }
         }
+        $stmt_check->close();
     }
     $title = esc($_POST['title'] ?? '');
     $code = esc($_POST['course_code'] ?? '');
@@ -946,25 +1025,21 @@ if (isset($_POST['update_course'])) {
         $status = esc($_POST['status'] ?? 'draft');
     }
     $set = "title='$title',course_code='$code',description='$desc',category='$cat',course_type='$course_type',semester='$semester',regulation='$regulation',academic_year='$academic_year',status='$status'";
+    
+    // Handle thumbnail upload with security checks
     if (isset($_FILES['thumbnail']) && $_FILES['thumbnail']['error'] === UPLOAD_ERR_OK) {
-        $ext = strtolower(pathinfo($_FILES['thumbnail']['name'], PATHINFO_EXTENSION));
-        $allowed_thumb = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
-        if (!in_array($ext, $allowed_thumb))
-            respond(400, 'Invalid thumbnail format. Allowed: ' . implode(', ', $allowed_thumb));
-        $fname = 'thumb_' . time() . '_' . rand(1000, 9999) . '.' . $ext;
-        move_uploaded_file($_FILES['thumbnail']['tmp_name'], "uploads/thumbnails/$fname");
-        $set .= ",thumbnail='uploads/thumbnails/$fname'";
+        $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+        $allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+        $thumb_path = uploadFile('thumbnail', $allowedMimes, $allowedExts, 5, 'uploads/thumbnails', 'thumb');
+        $set .= ",thumbnail='" . esc($thumb_path) . "'";
     }
-    // Handle syllabus PDF upload
+    
+    // Handle syllabus PDF upload with security checks
     if (isset($_FILES['syllabus']) && $_FILES['syllabus']['error'] === UPLOAD_ERR_OK) {
-        $ext = strtolower(pathinfo($_FILES['syllabus']['name'], PATHINFO_EXTENSION));
-        if ($ext !== 'pdf')
-            respond(400, 'Syllabus must be a PDF file');
-        if ($_FILES['syllabus']['size'] > 2 * 1024 * 1024)
-            respond(400, 'Syllabus file must be under 2MB');
-        $fname = 'syllabus_' . time() . '_' . rand(1000, 9999) . '.pdf';
-        move_uploaded_file($_FILES['syllabus']['tmp_name'], "uploads/content/$fname");
-        $set .= ",syllabus='uploads/content/$fname'";
+        $allowedMimes = ['application/pdf'];
+        $allowedExts = ['pdf'];
+        $syllabus_path = uploadFile('syllabus', $allowedMimes, $allowedExts, 5, 'uploads/content', 'syllabus');
+        $set .= ",syllabus='" . esc($syllabus_path) . "'";
     }
     if (mysqli_query($conn, "UPDATE courses SET $set WHERE id=$id"))
         respond(200, 'Course updated');
@@ -976,17 +1051,33 @@ if (isset($_POST['delete_course'])) {
     $id = intval($_POST['id'] ?? 0);
     // Coordinators can only delete their own pending/rejected courses
     if (hasRole('ziyaaCoordinator')) {
-        $chk = mysqli_query($conn, "SELECT status, created_by FROM courses WHERE id=$id");
-        if ($chk && $row = mysqli_fetch_assoc($chk)) {
-            if ($row['created_by'] != uid())
+        $stmt_check = $conn->prepare("SELECT status, created_by FROM courses WHERE id=?");
+        $stmt_check->bind_param("i", $id);
+        $stmt_check->execute();
+        $result_check = $stmt_check->get_result();
+        if ($row = $result_check->fetch_assoc()) {
+            if ($row['created_by'] != uid()) {
+                $stmt_check->close();
                 respond(403, 'Cannot delete this course');
-            if (!in_array($row['status'], ['pending', 'rejected']))
+            }
+            if (!in_array($row['status'], ['pending', 'rejected'])) {
+                $stmt_check->close();
                 respond(403, 'Can only delete pending or rejected courses');
+            }
         }
+        $stmt_check->close();
     }
-    if (mysqli_query($conn, "DELETE FROM courses WHERE id=$id"))
+    
+    $stmt = $conn->prepare("DELETE FROM courses WHERE id=?");
+    $stmt->bind_param("i", $id);
+    if ($stmt->execute()) {
+        $stmt->close();
         respond(200, 'Course deleted');
-    respond(500, 'Delete failed');
+    } else {
+        $error = $stmt->error;
+        $stmt->close();
+        respond(500, 'Delete failed: ' . $error);
+    }
 }
 
 // ── Course Approval / Rejection ──────────────────────────
@@ -995,9 +1086,17 @@ if (isset($_POST['approve_course'])) {
     requireRole(['superAdmin', 'adminZiyaa']);
     $id = intval($_POST['id'] ?? 0);
     $by = uid();
-    if (mysqli_query($conn, "UPDATE courses SET status='active', approved_by=$by, approved_at=NOW(), rejection_reason=NULL WHERE id=$id AND status='pending'"))
+    
+    $stmt = $conn->prepare("UPDATE courses SET status='active', approved_by=?, approved_at=NOW(), rejection_reason=NULL WHERE id=? AND status='pending'");
+    $stmt->bind_param("ii", $by, $id);
+    
+    if ($stmt->execute() && $stmt->affected_rows > 0) {
+        $stmt->close();
         respond(200, 'Course approved and published');
-    respond(500, 'Approval failed');
+    } else {
+        $stmt->close();
+        respond(500, 'Approval failed');
+    }
 }
 
 if (isset($_POST['reject_course'])) {
@@ -1005,9 +1104,17 @@ if (isset($_POST['reject_course'])) {
     $id = intval($_POST['id'] ?? 0);
     $reason = esc($_POST['reason'] ?? '');
     $by = uid();
-    if (mysqli_query($conn, "UPDATE courses SET status='rejected', approved_by=$by, approved_at=NOW(), rejection_reason='$reason' WHERE id=$id AND status='pending'"))
+    
+    $stmt = $conn->prepare("UPDATE courses SET status='rejected', approved_by=?, approved_at=NOW(), rejection_reason=? WHERE id=? AND status='pending'");
+    $stmt->bind_param("isi", $by, $reason, $id);
+    
+    if ($stmt->execute() && $stmt->affected_rows > 0) {
+        $stmt->close();
         respond(200, 'Course rejected');
-    respond(500, 'Rejection failed');
+    } else {
+        $stmt->close();
+        respond(500, 'Rejection failed');
+    }
 }
 
 // ── Course Assignments ───────────────────────────────────
@@ -1033,23 +1140,47 @@ if (isset($_POST['assign_course'])) {
     $college_id = intval($_POST['college_id'] ?? 0);
     if (!$course_id || !$college_id)
         respond(400, 'Course and college required');
-    $chk = mysqli_query($conn, "SELECT id FROM course_colleges WHERE course_id=$course_id AND college_id=$college_id");
-    if ($chk && mysqli_num_rows($chk) > 0)
+    
+    // Check if already assigned
+    $stmt_check = $conn->prepare("SELECT id FROM course_colleges WHERE course_id=? AND college_id=?");
+    $stmt_check->bind_param("ii", $course_id, $college_id);
+    $stmt_check->execute();
+    if ($stmt_check->get_result()->num_rows > 0) {
+        $stmt_check->close();
         respond(409, 'Already assigned');
+    }
+    $stmt_check->close();
+    
     $by = uid();
-    $q = "INSERT INTO course_colleges (course_id,college_id,assigned_by) VALUES ($course_id,$college_id,$by)";
-    if (mysqli_query($conn, $q))
+    $stmt = $conn->prepare("INSERT INTO course_colleges (course_id,college_id,assigned_by) VALUES (?,?,?)");
+    $stmt->bind_param("iii", $course_id, $college_id, $by);
+    
+    if ($stmt->execute()) {
+        $stmt->close();
         respond(200, 'Course assigned to college');
-    respond(500, 'Assignment failed');
+    } else {
+        $error = $stmt->error;
+        $stmt->close();
+        respond(500, 'Assignment failed: ' . $error);
+    }
 }
 
 if (isset($_POST['unassign_course'])) {
     requireRole(['superAdmin', 'adminZiyaa']);
     $course_id = intval($_POST['course_id'] ?? 0);
     $college_id = intval($_POST['college_id'] ?? 0);
-    if (mysqli_query($conn, "DELETE FROM course_colleges WHERE course_id=$course_id AND college_id=$college_id"))
+    
+    $stmt = $conn->prepare("DELETE FROM course_colleges WHERE course_id=? AND college_id=?");
+    $stmt->bind_param("ii", $course_id, $college_id);
+    
+    if ($stmt->execute()) {
+        $stmt->close();
         respond(200, 'Course unassigned');
-    respond(500, 'Failed');
+    } else {
+        $error = $stmt->error;
+        $stmt->close();
+        respond(500, 'Failed: ' . $error);
+    }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1080,16 +1211,30 @@ if (isset($_POST['add_subject'])) {
         respond(400, 'Course and Title are required');
     // Coordinators can only add subjects to their own courses
     if (hasRole('ziyaaCoordinator')) {
-        $chk = mysqli_query($conn, "SELECT created_by FROM courses WHERE id=$course_id");
-        if ($chk && $row = mysqli_fetch_assoc($chk)) {
-            if ($row['created_by'] != uid())
+        $stmt_check = $conn->prepare("SELECT created_by FROM courses WHERE id=?");
+        $stmt_check->bind_param("i", $course_id);
+        $stmt_check->execute();
+        $result_check = $stmt_check->get_result();
+        if ($row = $result_check->fetch_assoc()) {
+            if ($row['created_by'] != uid()) {
+                $stmt_check->close();
                 respond(403, 'Can only add subjects to your own courses');
+            }
         }
+        $stmt_check->close();
     }
-    $q = "INSERT INTO subjects (course_id, title, code, description) VALUES ($course_id, '$title', '$code', '$desc')";
-    if (mysqli_query($conn, $q))
+    
+    $stmt = $conn->prepare("INSERT INTO subjects (course_id, title, code, description) VALUES (?, ?, ?, ?)");
+    $stmt->bind_param("isss", $course_id, $title, $code, $desc);
+    
+    if ($stmt->execute()) {
+        $stmt->close();
         respond(200, 'Subject added');
-    respond(500, 'Failed to add subject');
+    } else {
+        $error = $stmt->error;
+        $stmt->close();
+        respond(500, 'Failed to add subject: ' . $error);
+    }
 }
 
 if (isset($_POST['update_subject'])) {
@@ -1100,18 +1245,34 @@ if (isset($_POST['update_subject'])) {
     $desc = esc($_POST['description'] ?? '');
     $status = esc($_POST['status'] ?? 'active');
 
-    $q = "UPDATE subjects SET title='$title', code='$code', description='$desc', status='$status' WHERE id=$id";
-    if (mysqli_query($conn, $q))
+    $stmt = $conn->prepare("UPDATE subjects SET title=?, code=?, description=?, status=? WHERE id=?");
+    $stmt->bind_param("ssssi", $title, $code, $desc, $status, $id);
+    
+    if ($stmt->execute()) {
+        $stmt->close();
         respond(200, 'Subject updated');
-    respond(500, 'Update failed');
+    } else {
+        $error = $stmt->error;
+        $stmt->close();
+        respond(500, 'Update failed: ' . $error);
+    }
 }
 
 if (isset($_POST['delete_subject'])) {
     requireRole(['superAdmin', 'adminZiyaa', 'ziyaaCoordinator']);
     $id = intval($_POST['id'] ?? 0);
-    if (mysqli_query($conn, "DELETE FROM subjects WHERE id=$id"))
+    
+    $stmt = $conn->prepare("DELETE FROM subjects WHERE id=?");
+    $stmt->bind_param("i", $id);
+    
+    if ($stmt->execute()) {
+        $stmt->close();
         respond(200, 'Subject deleted');
-    respond(500, 'Delete failed');
+    } else {
+        $error = $stmt->error;
+        $stmt->close();
+        respond(500, 'Delete failed: ' . $error);
+    }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1139,10 +1300,18 @@ if (isset($_POST['add_topic'])) {
     if (!$subject_id || !$title)
         respond(400, 'Subject and title are required');
     $by = uid();
-    $q = "INSERT INTO topics (subject_id, title, description, created_by) VALUES ($subject_id, '$title', '$desc', $by)";
-    if (mysqli_query($conn, $q))
+    
+    $stmt = $conn->prepare("INSERT INTO topics (subject_id, title, description, created_by) VALUES (?, ?, ?, ?)");
+    $stmt->bind_param("issi", $subject_id, $title, $desc, $by);
+    
+    if ($stmt->execute()) {
+        $stmt->close();
         respond(200, 'Topic added');
-    respond(500, 'Failed to add topic');
+    } else {
+        $error = $stmt->error;
+        $stmt->close();
+        respond(500, 'Failed to add topic: ' . $error);
+    }
 }
 
 if (isset($_POST['update_topic'])) {
@@ -1151,18 +1320,35 @@ if (isset($_POST['update_topic'])) {
     $title = esc($_POST['title'] ?? '');
     $desc = esc($_POST['description'] ?? '');
     $status = esc($_POST['status'] ?? 'active');
-    $q = "UPDATE topics SET title='$title', description='$desc', status='$status' WHERE id=$id";
-    if (mysqli_query($conn, $q))
+    
+    $stmt = $conn->prepare("UPDATE topics SET title=?, description=?, status=? WHERE id=?");
+    $stmt->bind_param("sssi", $title, $desc, $status, $id);
+    
+    if ($stmt->execute()) {
+        $stmt->close();
         respond(200, 'Topic updated');
-    respond(500, 'Update failed');
+    } else {
+        $error = $stmt->error;
+        $stmt->close();
+        respond(500, 'Update failed: ' . $error);
+    }
 }
 
 if (isset($_POST['delete_topic'])) {
     requireRole(['superAdmin', 'adminZiyaa', 'ziyaaCoordinator']);
     $id = intval($_POST['id'] ?? 0);
-    if (mysqli_query($conn, "DELETE FROM topics WHERE id=$id"))
+    
+    $stmt = $conn->prepare("DELETE FROM topics WHERE id=?");
+    $stmt->bind_param("i", $id);
+    
+    if ($stmt->execute()) {
+        $stmt->close();
         respond(200, 'Topic deleted');
-    respond(500, 'Delete failed');
+    } else {
+        $error = $stmt->error;
+        $stmt->close();
+        respond(500, 'Delete failed: ' . $error);
+    }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1203,25 +1389,36 @@ if (isset($_POST['add_content'])) {
     if (!$course_id || !$title)
         respond(400, 'Course and title required');
 
-    // Handle file uploads for PDF type
+    // Handle file uploads for PDF type with security checks
     if ($type === 'pdf' && isset($_FILES['content_file']) && $_FILES['content_file']['error'] === UPLOAD_ERR_OK) {
-        $ext = strtolower(pathinfo($_FILES['content_file']['name'], PATHINFO_EXTENSION));
-        $allowed_content = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'txt', 'zip'];
-        if (!in_array($ext, $allowed_content))
-            respond(400, 'Invalid file format. Allowed: ' . implode(', ', $allowed_content));
-        $fname = 'content_' . time() . '_' . rand(1000, 9999) . '.' . $ext;
-        move_uploaded_file($_FILES['content_file']['tmp_name'], "uploads/content/$fname");
-        $data_val = "uploads/content/$fname";
+        $allowedMimes = [
+            'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'text/plain', 'application/zip', 'application/x-zip-compressed'
+        ];
+        $allowedExts = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'txt', 'zip'];
+        $data_val = uploadFile('content_file', $allowedMimes, $allowedExts, 10, 'uploads/content', 'content');
     }
 
     $college_id = hasRole('ziyaaCoordinator') ? cid() : intval($_POST['college_id'] ?? 0);
     $subject_id = intval($_POST['subject_id'] ?? 0);
     $by = uid();
-    $q = "INSERT INTO course_content (course_id,subject_id,title,description,content_type,content_data,uploaded_by,college_id,sort_order)
-          VALUES ($course_id," . ($subject_id ?: "NULL") . ",'$title','$desc','$type','$data_val',$by," . ($college_id ?: "NULL") . ",$sort)";
-    if (mysqli_query($conn, $q))
+    
+    $subject_id_val = $subject_id ?: null;
+    $college_id_val = $college_id ?: null;
+    
+    $stmt = $conn->prepare("INSERT INTO course_content (course_id,subject_id,title,description,content_type,content_data,uploaded_by,college_id,sort_order) VALUES (?,?,?,?,?,?,?,?,?)");
+    $stmt->bind_param("iisssssii", $course_id, $subject_id_val, $title, $desc, $type, $data_val, $by, $college_id_val, $sort);
+    
+    if ($stmt->execute()) {
+        $stmt->close();
         respond(200, 'Content added');
-    respond(500, 'Failed to add content');
+    } else {
+        $error = $stmt->error;
+        $stmt->close();
+        respond(500, 'Failed to add content: ' . $error);
+    }
 }
 
 if (isset($_POST['update_content'])) {
@@ -1234,33 +1431,62 @@ if (isset($_POST['update_content'])) {
     $sort = intval($_POST['sort_order'] ?? 0);
     $status = esc($_POST['status'] ?? 'active');
 
+    // Handle file uploads for PDF type with security checks
     if ($type === 'pdf' && isset($_FILES['content_file']) && $_FILES['content_file']['error'] === UPLOAD_ERR_OK) {
-        $ext = strtolower(pathinfo($_FILES['content_file']['name'], PATHINFO_EXTENSION));
-        $allowed_content = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'txt', 'zip'];
-        if (!in_array($ext, $allowed_content))
-            respond(400, 'Invalid file format. Allowed: ' . implode(', ', $allowed_content));
-        $fname = 'content_' . time() . '_' . rand(1000, 9999) . '.' . $ext;
-        move_uploaded_file($_FILES['content_file']['tmp_name'], "uploads/content/$fname");
-        $data_val = "uploads/content/$fname";
+        $allowedMimes = [
+            'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'text/plain', 'application/zip', 'application/x-zip-compressed'
+        ];
+        $allowedExts = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'txt', 'zip'];
+        $data_val = uploadFile('content_file', $allowedMimes, $allowedExts, 10, 'uploads/content', 'content');
     }
 
     // Coordinators can only edit their own content
-    $extra = hasRole('ziyaaCoordinator') ? " AND uploaded_by=" . uid() : "";
     $subject_id = intval($_POST['subject_id'] ?? 0);
-    $subj_sql = $subject_id ? $subject_id : "NULL";
-    $q = "UPDATE course_content SET title='$title',description='$desc',content_type='$type',content_data='$data_val',sort_order=$sort,status='$status',subject_id=$subj_sql WHERE id=$id $extra";
-    if (mysqli_query($conn, $q))
+    $subject_id_val = $subject_id ?: null;
+    
+    if (hasRole('ziyaaCoordinator')) {
+        $uploader = uid();
+        $stmt = $conn->prepare("UPDATE course_content SET title=?,description=?,content_type=?,content_data=?,sort_order=?,status=?,subject_id=? WHERE id=? AND uploaded_by=?");
+        $stmt->bind_param("ssssisiii", $title, $desc, $type, $data_val, $sort, $status, $subject_id_val, $id, $uploader);
+    } else {
+        $stmt = $conn->prepare("UPDATE course_content SET title=?,description=?,content_type=?,content_data=?,sort_order=?,status=?,subject_id=? WHERE id=?");
+        $stmt->bind_param("ssssisii", $title, $desc, $type, $data_val, $sort, $status, $subject_id_val, $id);
+    }
+    
+    if ($stmt->execute()) {
+        $stmt->close();
         respond(200, 'Content updated');
-    respond(500, 'Update failed');
+    } else {
+        $error = $stmt->error;
+        $stmt->close();
+        respond(500, 'Update failed: ' . $error);
+    }
 }
 
 if (isset($_POST['delete_content'])) {
     requireRole(['superAdmin', 'adminZiyaa', 'ziyaaCoordinator']);
     $id = intval($_POST['id'] ?? 0);
-    $extra = hasRole('ziyaaCoordinator') ? " AND uploaded_by=" . uid() : "";
-    if (mysqli_query($conn, "DELETE FROM course_content WHERE id=$id $extra"))
+    
+    if (hasRole('ziyaaCoordinator')) {
+        $uploader = uid();
+        $stmt = $conn->prepare("DELETE FROM course_content WHERE id=? AND uploaded_by=?");
+        $stmt->bind_param("ii", $id, $uploader);
+    } else {
+        $stmt = $conn->prepare("DELETE FROM course_content WHERE id=?");
+        $stmt->bind_param("i", $id);
+    }
+    
+    if ($stmt->execute()) {
+        $stmt->close();
         respond(200, 'Content deleted');
-    respond(500, 'Delete failed');
+    } else {
+        $error = $stmt->error;
+        $stmt->close();
+        respond(500, 'Delete failed: ' . $error);
+    }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1271,27 +1497,61 @@ if (isset($_POST['enroll_student'])) {
     requireRole('ziyaaStudents');
     $course_id = intval($_POST['course_id'] ?? 0);
     // Check course is assigned to student's college
-    $cid = cid();
-    $chk = mysqli_query($conn, "SELECT id FROM course_colleges WHERE course_id=$course_id AND college_id=$cid");
-    if (!$chk || mysqli_num_rows($chk) == 0)
+    $student_college_id = cid();
+    
+    $stmt_check = $conn->prepare("SELECT id FROM course_colleges WHERE course_id=? AND college_id=?");
+    $stmt_check->bind_param("ii", $course_id, $student_college_id);
+    $stmt_check->execute();
+    if ($stmt_check->get_result()->num_rows == 0) {
+        $stmt_check->close();
         respond(403, 'Course not available for your college');
+    }
+    $stmt_check->close();
+    
     $sid = uid();
-    $chk2 = mysqli_query($conn, "SELECT id FROM enrollments WHERE student_id=$sid AND course_id=$course_id");
-    if ($chk2 && mysqli_num_rows($chk2) > 0)
+    $stmt_check2 = $conn->prepare("SELECT id FROM enrollments WHERE student_id=? AND course_id=?");
+    $stmt_check2->bind_param("ii", $sid, $course_id);
+    $stmt_check2->execute();
+    if ($stmt_check2->get_result()->num_rows > 0) {
+        $stmt_check2->close();
         respond(409, 'Already enrolled');
-    $q = "INSERT INTO enrollments (student_id,course_id) VALUES ($sid,$course_id)";
-    if (mysqli_query($conn, $q))
+    }
+    $stmt_check2->close();
+    
+    $stmt = $conn->prepare("INSERT INTO enrollments (student_id,course_id) VALUES (?,?)");
+    $stmt->bind_param("ii", $sid, $course_id);
+    
+    if ($stmt->execute()) {
+        $stmt->close();
         respond(200, 'Enrolled successfully');
-    respond(500, 'Enrollment failed');
+    } else {
+        $error = $stmt->error;
+        $stmt->close();
+        respond(500, 'Enrollment failed: ' . $error);
+    }
 }
 
 if (isset($_POST['unenroll_student'])) {
     requireLogin();
     $id = intval($_POST['id'] ?? 0);
-    $extra = hasRole('ziyaaStudents') ? " AND student_id=" . uid() : "";
-    if (mysqli_query($conn, "DELETE FROM enrollments WHERE id=$id $extra"))
+    
+    if (hasRole('ziyaaStudents')) {
+        $sid = uid();
+        $stmt = $conn->prepare("DELETE FROM enrollments WHERE id=? AND student_id=?");
+        $stmt->bind_param("ii", $id, $sid);
+    } else {
+        $stmt = $conn->prepare("DELETE FROM enrollments WHERE id=?");
+        $stmt->bind_param("i", $id);
+    }
+    
+    if ($stmt->execute()) {
+        $stmt->close();
         respond(200, 'Unenrolled');
-    respond(500, 'Failed');
+    } else {
+        $error = $stmt->error;
+        $stmt->close();
+        respond(500, 'Failed: ' . $error);
+    }
 }
 
 if (isset($_POST['get_enrollments'])) {

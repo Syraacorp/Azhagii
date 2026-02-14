@@ -3,8 +3,13 @@ session_start();
 if (isset($_SESSION['user_id'])) { header('Location: dashboard.php'); exit; }
 include 'db.php';
 $colleges = [];
-$r = mysqli_query($conn, "SELECT id, name, code, city FROM colleges WHERE status='active' ORDER BY name");
-while ($r && $row = mysqli_fetch_assoc($r)) $colleges[] = $row;
+$stmt = $conn->prepare("SELECT id, name, code, city FROM colleges WHERE status='active' ORDER BY name");
+$stmt->execute();
+$result = $stmt->get_result();
+while ($row = $result->fetch_assoc()) {
+    $colleges[] = $row;
+}
+$stmt->close();
 ?>
 <!DOCTYPE html>
 <html lang="en">

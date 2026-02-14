@@ -644,8 +644,13 @@ require 'includes/sidebar.php';
                     // Admin View: Warn but allow edit
                     $('#completionNote').html('<span class="text-warning"><i class="fas fa-unlock"></i> Locked (Admin Override)</span>');
                 }
+            } else {
+                Swal.fire('Error', res.message || 'Failed to load profile', 'error');
             }
-        }, 'json');
+        }, 'json').fail(function(xhr, status, error) {
+            console.error('Failed to load profile:', status, error);
+            Swal.fire('Error', 'Failed to load profile data. Please refresh the page.', 'error');
+        });
 
         // Submit
         $('#profileForm').submit(function (e) {
@@ -675,6 +680,11 @@ require 'includes/sidebar.php';
                         Swal.fire('Error', res.message, 'error');
                         btn.prop('disabled', false).html(oldHtml);
                     }
+                },
+                error: function (xhr, status, error) {
+                    console.error('AJAX Error:', status, error, xhr.responseText);
+                    Swal.fire('Error', 'Failed to save profile. Please try again.', 'error');
+                    btn.prop('disabled', false).html(oldHtml);
                 }
             });
         });
@@ -696,7 +706,10 @@ require 'includes/sidebar.php';
                     } else {
                         Swal.fire('Error', res.message, 'error');
                     }
-                }, 'json');
+                }, 'json').fail(function(xhr, status, error) {
+                    console.error('Failed to send unlock request:', status, error);
+                    Swal.fire('Error', 'Failed to send request. Please try again.', 'error');
+                });
             }
         });
     }

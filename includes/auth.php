@@ -6,6 +6,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 include_once __DIR__ . '/../db.php';
+include_once __DIR__ . '/csrf.php';
 
 // ── Session helpers ──
 $userId = $_SESSION['user_id'];
