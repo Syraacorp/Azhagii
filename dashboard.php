@@ -8,10 +8,10 @@ if (!isset($_SESSION['user_id'])) {
 
 $role = $_SESSION['role'] ?? '';
 $dashboardMap = [
-    'superAdmin'       => 'ziyaaDashboard.php',
-    'adminZiyaa'       => 'adminDashboard.php',
-    'ziyaaCoordinator' => 'coordinatorDashboard.php',
-    'ziyaaStudents'    => 'studentDashboard.php',
+    'superAdmin'       => 'azhagiiDashboard.php',
+    'adminAzhagii'       => 'adminDashboard.php',
+    'azhagiiCoordinator' => 'coordinatorDashboard.php',
+    'azhagiiStudents'    => 'studentDashboard.php',
 ];
 
 $target = $dashboardMap[$role] ?? null;

@@ -2,7 +2,7 @@
 $pageTitle   = 'My Courses';
 $currentPage = 'myCourses';
 require 'includes/auth.php';
-requirePageRole('ziyaaCoordinator');
+requirePageRole('azhagiiCoordinator');
 require 'includes/header.php';
 require 'includes/sidebar.php';
 ?>

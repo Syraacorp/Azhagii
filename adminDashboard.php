@@ -2,7 +2,7 @@
 $pageTitle   = 'Admin Dashboard';
 $currentPage = 'dashboard';
 require 'includes/auth.php';
-requirePageRole('adminZiyaa');
+requirePageRole('adminAzhagii');
 require 'includes/header.php';
 require 'includes/sidebar.php';
 ?>

@@ -3,6 +3,7 @@
 $servername = getenv('DB_HOST') ?: 'localhost';
 $username = getenv('DB_USER') ?: 'root';
 $password = getenv('DB_PASSWORD') ?: '';
+// Database name: 'ziya' works fine, or rename to 'azhagii' (see OPTIONAL_rename_database.sql)
 $dbname = getenv('DB_NAME') ?: 'ziya';
 
 // Secure session settings

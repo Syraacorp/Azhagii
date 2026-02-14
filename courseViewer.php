@@ -2,7 +2,7 @@
 $pageTitle   = 'Course Viewer';
 $currentPage = 'courseViewer';
 require 'includes/auth.php';
-requirePageRole('ziyaaStudents');
+requirePageRole('azhagiiStudents');
 require 'includes/header.php';
 require 'includes/sidebar.php';
 ?>

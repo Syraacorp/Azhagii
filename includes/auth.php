@@ -33,10 +33,10 @@ function dashboardUrl()
 {
     global $role;
     $map = [
-        'superAdmin' => 'ziyaaDashboard.php',
-        'adminZiyaa' => 'adminDashboard.php',
-        'ziyaaCoordinator' => 'coordinatorDashboard.php',
-        'ziyaaStudents' => 'studentDashboard.php',
+        'superAdmin' => 'azhagiiDashboard.php',
+        'adminAzhagii' => 'adminDashboard.php',
+        'azhagiiCoordinator' => 'coordinatorDashboard.php',
+        'azhagiiStudents' => 'studentDashboard.php',
     ];
     return $map[$role] ?? 'dashboard.php';
 }
@@ -90,7 +90,7 @@ if (!in_array($currentScript, $exemptScripts) && isset($_SESSION['user_id'])) {
         }
 
         // Academic (Depends on role)
-        if ($crow['role'] == 'ziyaaStudents') {
+        if ($crow['role'] == 'azhagiiStudents') {
             $acadProps = ['college_id', 'department', 'year', 'roll_number'];
             foreach ($acadProps as $p) {
                 $total++;

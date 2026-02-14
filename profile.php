@@ -533,6 +533,18 @@ require 'includes/sidebar.php';
 
     function cropAndSave() {
         if (cropper) {
+            // Show saving state
+            Swal.fire({
+                title: 'Saving Photo...',
+                html: 'Please wait while we upload your photo',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                willOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
             cropper.getCroppedCanvas({
                 width: 400, height: 400,
                 fillColor: '#fff',
@@ -540,9 +552,44 @@ require 'includes/sidebar.php';
                 imageSmoothingQuality: 'high',
             }).toBlob((blob) => {
                 croppedBlob = blob;
-                const url = URL.createObjectURL(blob);
-                $('#profileAvatarDisplay').html(`<img src="${url}" alt="Avatar"><div class="upload-overlay">Change</div>`);
-                closeCropper();
+                
+                // Create FormData and send immediately to backend
+                const formData = new FormData();
+                formData.append('update_my_profile', 1);
+                formData.append('profile_photo', blob, 'profile.jpg');
+                
+                // Send only the photo update to backend
+                $.ajax({
+                    url: 'backend.php',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    dataType: 'json',
+                    success: function(res) {
+                        if (res.status === 200) {
+                            const url = URL.createObjectURL(blob);
+                            $('#profileAvatarDisplay').html(`<img src="${url}" alt="Avatar"><div class="upload-overlay">Change</div>`);
+                            closeCropper();
+                            
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Photo Saved!',
+                                text: 'Your profile photo has been updated',
+                                toast: true,
+                                position: 'top-end',
+                                showConfirmButton: false,
+                                timer: 2000
+                            });
+                        } else {
+                            Swal.fire('Error', res.message || 'Failed to save photo', 'error');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Failed to save photo:', status, error);
+                        Swal.fire('Error', 'Failed to upload photo. Please try again.', 'error');
+                    }
+                });
             }, 'image/jpeg', 0.9);
         }
     }
@@ -578,7 +625,7 @@ require 'includes/sidebar.php';
                 $('#bio').val(d.bio);
 
                 $('#college').val(d.college_name + ' (' + d.college_code + ')');
-                if (d.role === 'ziyaaStudents') {
+                if (d.role === 'azhagiiStudents') {
                     $('#department').val(d.department);
                     $('#year').val(d.year);
                     $('#roll_number').val(d.roll_number);
@@ -610,7 +657,7 @@ require 'includes/sidebar.php';
                 }
 
                 // HANDLE LOCKED STATE (Admins bypass)
-                const adminRoles = ['superAdmin', 'adminZiyaa'];
+                const adminRoles = ['superAdmin', 'adminAzhagii'];
                 const isAdmin = adminRoles.includes(d.role);
 
                 if (d.is_locked == 1 && !isAdmin) {

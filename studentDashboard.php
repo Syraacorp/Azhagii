@@ -2,7 +2,7 @@
 $pageTitle   = 'Student Dashboard';
 $currentPage = 'dashboard';
 require 'includes/auth.php';
-requirePageRole('ziyaaStudents');
+requirePageRole('azhagiiStudents');
 require 'includes/header.php';
 require 'includes/sidebar.php';
 ?>

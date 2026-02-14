@@ -6,7 +6,7 @@ $currentPage = $currentPage ?? 'dashboard';
 <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
         <a href="<?= $dashboardLink ?>" class="logo" style="text-decoration:none;">
-            <span class="sparkle-icon"></span> Ziyaa
+            <span class="sparkle-icon"></span> Azhagii
         </a>
     </div>
     <nav class="sidebar-menu">
@@ -23,8 +23,8 @@ $currentPage = $currentPage ?? 'dashboard';
             </a>
         <?php endif; ?>
 
-        <?php if (in_array($role, ['superAdmin', 'adminZiyaa'])): ?>
-            <!-- superAdmin + adminZiyaa -->
+        <?php if (in_array($role, ['superAdmin', 'adminAzhagii'])): ?>
+            <!-- superAdmin + adminAzhagii -->
             <a href="manageUsers.php" class="nav-item <?= $currentPage === 'manageUsers' ? 'active' : '' ?>">
                 <i class="fas fa-users"></i> Users
             </a>
@@ -45,7 +45,7 @@ $currentPage = $currentPage ?? 'dashboard';
             </a>
         <?php endif; ?>
 
-        <?php if ($role === 'ziyaaCoordinator'): ?>
+        <?php if ($role === 'azhagiiCoordinator'): ?>
             <!-- Coordinator -->
             <a href="myCourses.php" class="nav-item <?= $currentPage === 'myCourses' ? 'active' : '' ?>">
                 <i class="fas fa-book-open"></i> My Courses
@@ -65,7 +65,7 @@ $currentPage = $currentPage ?? 'dashboard';
             </a>
         <?php endif; ?>
 
-        <?php if ($role === 'ziyaaStudents'): ?>
+        <?php if ($role === 'azhagiiStudents'): ?>
             <!-- Student -->
             <a href="browseCourses.php" class="nav-item <?= $currentPage === 'browseCourses' ? 'active' : '' ?>">
                 <i class="fas fa-compass"></i> Browse Courses

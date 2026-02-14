@@ -2,7 +2,7 @@
 $pageTitle   = 'Content Management';
 $currentPage = 'manageContent';
 require 'includes/auth.php';
-requirePageRole('ziyaaCoordinator');
+requirePageRole('azhagiiCoordinator');
 require 'includes/header.php';
 require 'includes/sidebar.php';
 ?>

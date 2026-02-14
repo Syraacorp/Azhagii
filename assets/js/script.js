@@ -35,7 +35,7 @@ $(document).ready(function () {
   // ══════════════════════════════════════════
   //  THEME TOGGLE
   // ══════════════════════════════════════════
-  const savedTheme = localStorage.getItem('ziya-theme') || 'dark';
+  const savedTheme = localStorage.getItem('Azhagii-theme') || 'dark';
   $('body').attr('data-theme', savedTheme);
   updateThemeIcon(savedTheme);
 
@@ -43,7 +43,7 @@ $(document).ready(function () {
     const current = $('body').attr('data-theme');
     const next = current === 'dark' ? 'light' : 'dark';
     $('body').attr('data-theme', next);
-    localStorage.setItem('ziya-theme', next);
+    localStorage.setItem('Azhagii-theme', next);
     updateThemeIcon(next);
   });
 
@@ -124,14 +124,14 @@ $(document).ready(function () {
           });
           $('#recentUsersBody').html(tbody);
         }
-      } else if (USER_ROLE === 'adminZiyaa') {
+      } else if (USER_ROLE === 'adminAzhagii') {
         html += statCard('fa-users', 'Users', d.users, '#4285f4');
         html += statCard('fa-book', 'Courses', d.courses, '#9b72cb');
         html += statCard('fa-clock', 'Pending Approvals', d.pending_courses, '#f87171');
         html += statCard('fa-clipboard-list', 'Enrollments', d.enrollments, '#fbbf24');
         // Load admin-specific extras
         loadAdminDashboardExtras();
-      } else if (USER_ROLE === 'ziyaaCoordinator') {
+      } else if (USER_ROLE === 'azhagiiCoordinator') {
         html += statCard('fa-book-open', 'Assigned Courses', d.courses, '#4285f4');
         html += statCard('fa-plus-circle', 'My Courses', d.my_courses, '#9b72cb');
         html += statCard('fa-clock', 'Pending', d.my_pending, '#fbbf24');
@@ -140,7 +140,7 @@ $(document).ready(function () {
         html += statCard('fa-user-graduate', 'My Students', d.students, '#a78bfa');
         // Load coordinator recent students
         loadCoordinatorDashboardExtras();
-      } else if (USER_ROLE === 'ziyaaStudents') {
+      } else if (USER_ROLE === 'azhagiiStudents') {
         html += statCard('fa-book-reader', 'Enrolled Courses', d.enrolled, '#4285f4');
         html += statCard('fa-check-circle', 'Completed', d.completed, '#34d399');
         html += statCard('fa-compass', 'Available Courses', d.available, '#9b72cb');
@@ -163,7 +163,7 @@ $(document).ready(function () {
       const roles = {};
       res.data.forEach(u => { roles[u.role] = (roles[u.role] || 0) + 1; });
       let html = '<div class="breakdown-list">';
-      const roleMap = { ziyaaCoordinator: { label: 'Coordinators', color: '#9b72cb' }, ziyaaStudents: { label: 'Students', color: '#4285f4' } };
+      const roleMap = { azhagiiCoordinator: { label: 'Coordinators', color: '#9b72cb' }, azhagiiStudents: { label: 'Students', color: '#4285f4' } };
       Object.keys(roleMap).forEach(r => {
         const count = roles[r] || 0;
         const info = roleMap[r];
@@ -387,7 +387,7 @@ $(document).ready(function () {
   };
 
   // ══════════════════════════════════════════
-  //  USERS (superAdmin, adminZiyaa)
+  //  USERS (superAdmin, adminAzhagii)
   // ══════════════════════════════════════════
   let collegesCache = [];
 
@@ -443,10 +443,10 @@ $(document).ready(function () {
       let roleOpts = '';
       if (USER_ROLE === 'superAdmin') {
         roleOpts = `<option value="superAdmin" ${u.role === 'superAdmin' ? 'selected' : ''}>Super Admin</option>
-          <option value="adminZiyaa" ${u.role === 'adminZiyaa' ? 'selected' : ''}>Admin Ziyaa</option>`;
+          <option value="adminAzhagii" ${u.role === 'adminAzhagii' ? 'selected' : ''}>Admin Azhagii</option>`;
       }
-      roleOpts += `<option value="ziyaaCoordinator" ${u.role === 'ziyaaCoordinator' ? 'selected' : ''}>Coordinator</option>
-        <option value="ziyaaStudents" ${u.role === 'ziyaaStudents' ? 'selected' : ''}>Student</option>`;
+      roleOpts += `<option value="azhagiiCoordinator" ${u.role === 'azhagiiCoordinator' ? 'selected' : ''}>Coordinator</option>
+        <option value="azhagiiStudents" ${u.role === 'azhagiiStudents' ? 'selected' : ''}>Student</option>`;
 
       Swal.fire({
         title: isEdit ? 'Edit User' : 'Add User', width: 500,
@@ -501,7 +501,7 @@ $(document).ready(function () {
   };
 
   // ══════════════════════════════════════════
-  //  COURSES (superAdmin, adminZiyaa)
+  //  COURSES (superAdmin, adminAzhagii)
   // ══════════════════════════════════════════
   let coursesCache = [];
 
@@ -606,7 +606,7 @@ $(document).ready(function () {
   };
 
   // ══════════════════════════════════════════
-  //  ASSIGNMENTS (superAdmin, adminZiyaa)
+  //  ASSIGNMENTS (superAdmin, adminAzhagii)
   // ══════════════════════════════════════════
   function loadCourseDropdowns() {
     api({ get_courses: 1 }, function (res) {
@@ -703,7 +703,7 @@ $(document).ready(function () {
   }
 
   // ══════════════════════════════════════════
-  //  SUBJECTS (superAdmin, adminZiyaa)
+  //  SUBJECTS (superAdmin, adminAzhagii)
   // ══════════════════════════════════════════
   
   function loadSubjectCourses() {
@@ -1103,7 +1103,7 @@ $(document).ready(function () {
   }
 
   function roleLabel(role) {
-    const map = { superAdmin: 'Super Admin', adminZiyaa: 'Admin', ziyaaCoordinator: 'Coordinator', ziyaaStudents: 'Student' };
+    const map = { superAdmin: 'Super Admin', adminAzhagii: 'Admin', azhagiiCoordinator: 'Coordinator', azhagiiStudents: 'Student' };
     return map[role] || role;
   }
 
@@ -1123,7 +1123,7 @@ $(document).ready(function () {
   }
 
   // ══════════════════════════════════════════
-  //  COURSE APPROVALS (superAdmin, adminZiyaa)
+  //  COURSE APPROVALS (superAdmin, adminAzhagii)
   // ══════════════════════════════════════════
 
   window.switchApprovalTab = function(tab) {
@@ -1303,7 +1303,7 @@ $(document).ready(function () {
   };
 
   // ══════════════════════════════════════════
-  //  TOPICS MANAGEMENT (ziyaaCoordinator)
+  //  TOPICS MANAGEMENT (azhagiiCoordinator)
   // ══════════════════════════════════════════
 
   function loadTopicCourseDropdowns() {

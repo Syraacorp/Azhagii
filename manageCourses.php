@@ -2,7 +2,7 @@
 $pageTitle   = 'Manage Courses';
 $currentPage = 'manageCourses';
 require 'includes/auth.php';
-requirePageRole(['superAdmin', 'adminZiyaa']);
+requirePageRole(['superAdmin', 'adminAzhagii']);
 require 'includes/header.php';
 require 'includes/sidebar.php';
 ?>

@@ -2,7 +2,7 @@
 $pageTitle   = 'Manage Users';
 $currentPage = 'manageUsers';
 require 'includes/auth.php';
-requirePageRole(['superAdmin', 'adminZiyaa']);
+requirePageRole(['superAdmin', 'adminAzhagii']);
 require 'includes/header.php';
 require 'includes/sidebar.php';
 ?>
@@ -12,9 +12,9 @@ require 'includes/sidebar.php';
         <select id="userRoleFilter" class="form-input form-input-sm" onchange="loadUsers()">
             <option value="">All Roles</option>
             <?php if ($role === 'superAdmin'): ?><option value="superAdmin">Super Admin</option><?php endif; ?>
-            <?php if ($role === 'superAdmin'): ?><option value="adminZiyaa">Admin Ziyaa</option><?php endif; ?>
-            <option value="ziyaaCoordinator">Coordinator</option>
-            <option value="ziyaaStudents">Student</option>
+            <?php if ($role === 'superAdmin'): ?><option value="adminAzhagii">Admin Azhagii</option><?php endif; ?>
+            <option value="azhagiiCoordinator">Coordinator</option>
+            <option value="azhagiiStudents">Student</option>
         </select>
         <select id="userCollegeFilter" class="form-input form-input-sm" onchange="loadUsers()">
             <option value="">All Colleges</option>

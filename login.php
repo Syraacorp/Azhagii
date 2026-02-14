@@ -11,7 +11,7 @@ if (isset($_SESSION['user_id'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Ziyaa LMS</title>
+    <title>Login - Azhagii LMS</title>
     <link rel="stylesheet" href="assets/css/style.css">
     <link
         href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Inter:wght@400;500;600&display=swap"
@@ -23,7 +23,7 @@ if (isset($_SESSION['user_id'])) {
 
 <body>
     <script>
-        const savedTheme = localStorage.getItem('ziya-theme') || 'dark';
+        const savedTheme = localStorage.getItem('Azhagii-theme') || 'dark';
         document.body.setAttribute('data-theme', savedTheme);
     </script>
     <div class="auth-wrapper">
@@ -31,7 +31,7 @@ if (isset($_SESSION['user_id'])) {
             <div class="auth-brand-bg"></div>
             <div class="auth-brand-content">
                 <div class="logo" style="font-size:3.5rem;justify-content:center;margin-bottom:1rem;">
-                    <span class="sparkle-icon" style="width:40px;height:40px;"></span> Ziyaa
+                    <span class="sparkle-icon" style="width:40px;height:40px;"></span> Azhagii
                 </div>
                 <p>Multi-College Learning Management System</p>
             </div>

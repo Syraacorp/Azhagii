@@ -6,7 +6,7 @@ session_start();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ziyaa - Multi-College Learning Management System</title>
+    <title>Azhagii - Multi-College Learning Management System</title>
     <link rel="stylesheet" href="assets/css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -14,13 +14,13 @@ session_start();
 <body>
     <script>
         // Persist theme from dashboard
-        const savedTheme = localStorage.getItem('ziya-theme') || 'dark';
+        const savedTheme = localStorage.getItem('Azhagii-theme') || 'dark';
         document.body.setAttribute('data-theme', savedTheme);
     </script>
     <!-- Navbar -->
     <nav class="navbar">
         <div class="nav-container">
-            <a href="#" class="logo"><span class="sparkle-icon"></span> Ziyaa</a>
+            <a href="#" class="logo"><span class="sparkle-icon"></span> Azhagii</a>
             <ul class="nav-links">
                 <li><a href="#hero">Home</a></li>
                 <li><a href="#about">About</a></li>
@@ -48,7 +48,7 @@ session_start();
         <div class="hero-content">
             <div class="hero-badge"><i class="fas fa-graduation-cap"></i> Multi-College LMS Platform</div>
             <h1>The Future of <br><span>Learning Experience</span></h1>
-            <p>Ziyaa empowers colleges with a unified learning platform. Manage courses, deliver content, and track progress across multiple institutions seamlessly.</p>
+            <p>Azhagii empowers colleges with a unified learning platform. Manage courses, deliver content, and track progress across multiple institutions seamlessly.</p>
             <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
                 <a href="register.php" class="btn btn-primary"><i class="fas fa-rocket"></i> Start Learning</a>
                 <a href="#features" class="btn btn-outline"><i class="fas fa-info-circle"></i> Learn More</a>
@@ -58,15 +58,15 @@ session_start();
 
     <!-- About -->
     <section id="about">
-        <div class="section-header"><h2>About Ziyaa LMS</h2></div>
+        <div class="section-header"><h2>About Azhagii LMS</h2></div>
         <div class="about-grid">
             <div class="about-card">
                 <h3><i class="fas fa-globe" style="color:var(--accent-purple);margin-right:10px;"></i> Multi-College SaaS</h3>
-                <p>One platform, many institutions. Ziyaa is built for the multi-college use case — each college operates independently while administrators have a global view.</p>
+                <p>One platform, many institutions. Azhagii is built for the multi-college use case — each college operates independently while administrators have a global view.</p>
             </div>
             <div class="about-card" style="border-color:var(--accent-blue);">
                 <h3><i class="fas fa-shield-alt" style="color:var(--accent-blue);margin-right:10px;"></i> Role-Based Access</h3>
-                <p>Four distinct user roles — Super Admin, Admin Ziyaa, Coordinator, and Student — each with carefully designed permissions and dashboards.</p>
+                <p>Four distinct user roles — Super Admin, Admin Azhagii, Coordinator, and Student — each with carefully designed permissions and dashboards.</p>
             </div>
         </div>
     </section>
@@ -115,7 +115,7 @@ session_start();
             <div class="step-card">
                 <div class="step-number">1</div>
                 <h3>Admin Creates Courses</h3>
-                <p>Super Admins or Admin Ziyaa create courses and assign them to colleges on the platform.</p>
+                <p>Super Admins or Admin Azhagii create courses and assign them to colleges on the platform.</p>
             </div>
             <div class="step-card">
                 <div class="step-number">2</div>
@@ -153,9 +153,9 @@ session_start();
     <footer class="site-footer">
         <div class="footer-content">
             <h3 class="logo" style="justify-content:center;margin-bottom:1rem;">
-                <span class="sparkle-icon"></span> Ziyaa
+                <span class="sparkle-icon"></span> Azhagii
             </h3>
-            <p>&copy; <?= date('Y') ?> Ziyaa LMS. All rights reserved.</p>
+            <p>&copy; <?= date('Y') ?> Azhagii LMS. All rights reserved.</p>
             <div class="footer-links">
                 <a href="#">Privacy Policy</a>
                 <a href="#">Terms of Service</a>

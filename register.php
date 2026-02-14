@@ -16,7 +16,7 @@ $stmt->close();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register - Ziyaa LMS</title>
+    <title>Register - Azhagii LMS</title>
     <link rel="stylesheet" href="assets/css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -25,7 +25,7 @@ $stmt->close();
 </head>
 <body>
     <script>
-        const savedTheme = localStorage.getItem('ziya-theme') || 'dark';
+        const savedTheme = localStorage.getItem('Azhagii-theme') || 'dark';
         document.body.setAttribute('data-theme', savedTheme);
     </script>
     <div class="auth-wrapper">
@@ -33,7 +33,7 @@ $stmt->close();
             <div class="auth-brand-bg"></div>
             <div class="auth-brand-content">
                 <div class="logo" style="font-size:3.5rem;justify-content:center;margin-bottom:1rem;">
-                    <span class="sparkle-icon" style="width:40px;height:40px;"></span> Ziyaa
+                    <span class="sparkle-icon" style="width:40px;height:40px;"></span> Azhagii
                 </div>
                 <p>Join your college learning community</p>
             </div>
@@ -61,7 +61,7 @@ $stmt->close();
                     <div class="reg-tab-panel active" id="tabPanel1">
                         <div class="form-group">
                             <label class="form-label">Full Name <span class="req">*</span></label>
-                            <input type="text" name="name" id="name" class="form-input" placeholder="Ziyaa" required>
+                            <input type="text" name="name" id="name" class="form-input" placeholder="Azhagii" required>
                         </div>
 
                         <div class="form-group">

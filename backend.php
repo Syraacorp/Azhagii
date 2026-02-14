@@ -133,25 +133,8 @@ if (isset($_POST['login_user'])) {
     $result = $stmt->get_result();
     
     if ($u = $result->fetch_assoc()) {
-        // Check if password is hashed (starts with $2y$ for bcrypt)
-        $passwordValid = false;
-        if (strpos($u['password'], '$2y$') === 0) {
-            // Password is hashed, use password_verify
-            $passwordValid = password_verify($password, $u['password']);
-        } else {
-            // Legacy plaintext password - verify and rehash
-            if ($password === $u['password']) {
-                $passwordValid = true;
-                // Rehash password for security
-                $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-                $updateStmt = $conn->prepare("UPDATE users SET password=? WHERE id=?");
-                $updateStmt->bind_param("si", $hashedPassword, $u['id']);
-                $updateStmt->execute();
-                $updateStmt->close();
-            }
-        }
-        
-        if ($passwordValid) {
+        // Check plain text password
+        if ($password === $u['password']) {
             $_SESSION['user_id'] = $u['id'];
             $_SESSION['user_name'] = $u['name'];
             $_SESSION['user_email'] = $u['email'];
@@ -226,12 +209,11 @@ if (isset($_POST['register_student'])) {
     }
     $stmt->close();
     
-    // Hash password securely
-    $hashed = password_hash($raw_password, PASSWORD_DEFAULT);
+    // Store password in plain text
     
     // Insert user
-    $stmt = $conn->prepare("INSERT INTO users (name,email,username,password,role,college_id,department,year,roll_number,phone) VALUES (?,?,?,?,'ziyaaStudents',?,?,?,?,?)");
-    $stmt->bind_param("ssssissss", $name, $email, $username, $hashed, $college_id, $department, $year, $roll_number, $phone);
+    $stmt = $conn->prepare("INSERT INTO users (name,email,username,password,role,college_id,department,year,roll_number,phone) VALUES (?,?,?,?,'azhagiiStudents',?,?,?,?,?)");
+    $stmt->bind_param("ssssissss", $name, $email, $username, $raw_password, $college_id, $department, $year, $roll_number, $phone);
     
     if ($stmt->execute()) {
         $newId = $stmt->insert_id;
@@ -252,7 +234,7 @@ if (isset($_POST['register_student'])) {
         $_SESSION['user_id'] = $newId;
         $_SESSION['user_name'] = $name;
         $_SESSION['user_email'] = $email;
-        $_SESSION['role'] = 'ziyaaStudents';
+        $_SESSION['role'] = 'azhagiiStudents';
         $_SESSION['college_id'] = $college_id;
         $_SESSION['college_name'] = $collegeName;
         respond(200, 'Registration successful!');
@@ -338,7 +320,7 @@ if (isset($_POST['get_my_profile'])) {
         }
 
         // Academic (4) - only for students/coordinators mainly, but let's count for all for now or check role
-        if ($row['role'] == 'ziyaaStudents') {
+        if ($row['role'] == 'azhagiiStudents') {
             $acadProps = ['college_id', 'department', 'year', 'roll_number'];
             foreach ($acadProps as $p) {
                 $total++;
@@ -403,7 +385,7 @@ if (isset($_POST['update_my_profile'])) {
     $stmt->execute();
     $result = $stmt->get_result();
     if ($row = $result->fetch_assoc()) {
-        $allowedRoles = ['superAdmin', 'adminZiyaa'];
+        $allowedRoles = ['superAdmin', 'adminAzhagii'];
         if ($row['is_locked'] == 1 && !in_array($row['role'], $allowedRoles)) {
             $stmt->close();
             respond(403, 'Profile is locked. Request unlock from admin.');
@@ -423,9 +405,9 @@ if (isset($_POST['update_my_profile'])) {
     $lc = esc($_POST['leetcode_url'] ?? '');
 
     // Optional: Password update
-    $hashedPassword = null;
+    $plainPassword = null;
     if (!empty($_POST['password'])) {
-        $hashedPassword = password_hash($_POST['password'], PASSWORD_DEFAULT);
+        $plainPassword = $_POST['password'];
     }
 
     // Optional: Profile Photo
@@ -469,12 +451,12 @@ if (isset($_POST['update_my_profile'])) {
     }
 
     // Build update query with prepared statement
-    if ($hashedPassword !== null && $photoPath !== null) {
+    if ($plainPassword !== null && $photoPath !== null) {
         $stmt = $conn->prepare("UPDATE users SET name=?, phone=?, bio=?, gender=?, dob=NULLIF(?,''), address=?, github_url=?, linkedin_url=?, hackerrank_url=?, leetcode_url=?, password=?, profile_photo=? WHERE id=?");
-        $stmt->bind_param("ssssssssssssi", $name, $phone, $bio, $gender, $dob, $address, $git, $li, $hr, $lc, $hashedPassword, $photoPath, $uid);
-    } elseif ($hashedPassword !== null) {
+        $stmt->bind_param("ssssssssssssi", $name, $phone, $bio, $gender, $dob, $address, $git, $li, $hr, $lc, $plainPassword, $photoPath, $uid);
+    } elseif ($plainPassword !== null) {
         $stmt = $conn->prepare("UPDATE users SET name=?, phone=?, bio=?, gender=?, dob=NULLIF(?,''), address=?, github_url=?, linkedin_url=?, hackerrank_url=?, leetcode_url=?, password=? WHERE id=?");
-        $stmt->bind_param("sssssssssssi", $name, $phone, $bio, $gender, $dob, $address, $git, $li, $hr, $lc, $hashedPassword, $uid);
+        $stmt->bind_param("sssssssssssi", $name, $phone, $bio, $gender, $dob, $address, $git, $li, $hr, $lc, $plainPassword, $uid);
     } elseif ($photoPath !== null) {
         $stmt = $conn->prepare("UPDATE users SET name=?, phone=?, bio=?, gender=?, dob=NULLIF(?,''), address=?, github_url=?, linkedin_url=?, hackerrank_url=?, leetcode_url=?, profile_photo=? WHERE id=?");
         $stmt->bind_param("sssssssssssi", $name, $phone, $bio, $gender, $dob, $address, $git, $li, $hr, $lc, $photoPath, $uid);
@@ -528,7 +510,7 @@ if (isset($_POST['request_profile_unlock'])) {
 
 // ── Admin: Review Profile Requests ──────────────────────
 if (isset($_POST['get_profile_requests'])) {
-    requireRole(['superAdmin', 'adminZiyaa']);
+    requireRole(['superAdmin', 'adminAzhagii']);
     $q = "SELECT pr.*, u.name as user_name, u.email as user_email, col.name as college_name 
           FROM profile_requests pr 
           JOIN users u ON pr.user_id=u.id 
@@ -542,7 +524,7 @@ if (isset($_POST['get_profile_requests'])) {
 }
 
 if (isset($_POST['resolve_profile_request'])) {
-    requireRole(['superAdmin', 'adminZiyaa']);
+    requireRole(['superAdmin', 'adminAzhagii']);
     $req_id = intval($_POST['request_id'] ?? 0);
     $action = $_POST['action'] ?? ''; // approve or reject
     $by = uid();
@@ -689,18 +671,18 @@ if (isset($_POST['delete_college'])) {
 }
 
 // ══════════════════════════════════════════════════════════
-//  USERS (superAdmin, adminZiyaa)
+//  USERS (superAdmin, adminAzhagii)
 // ══════════════════════════════════════════════════════════
 
 if (isset($_POST['get_users'])) {
-    requireRole(['superAdmin', 'adminZiyaa']);
+    requireRole(['superAdmin', 'adminAzhagii']);
     $where = "1=1";
     if (isset($_POST['role_filter']) && $_POST['role_filter'])
         $where .= " AND u.role='" . esc($_POST['role_filter']) . "'";
     if (isset($_POST['college_filter']) && $_POST['college_filter'])
         $where .= " AND u.college_id=" . intval($_POST['college_filter']);
-    // adminZiyaa cannot see superAdmin users
-    if (role() === 'adminZiyaa')
+    // adminAzhagii cannot see superAdmin users
+    if (role() === 'adminAzhagii')
         $where .= " AND u.role != 'superAdmin'";
     $q = "SELECT u.*, c.name as college_name FROM users u LEFT JOIN colleges c ON u.college_id=c.id WHERE $where ORDER BY u.created_at DESC";
     $r = mysqli_query($conn, $q);
@@ -713,7 +695,7 @@ if (isset($_POST['get_users'])) {
 }
 
 if (isset($_POST['add_user'])) {
-    requireRole(['superAdmin', 'adminZiyaa']);
+    requireRole(['superAdmin', 'adminAzhagii']);
     $name = esc($_POST['name'] ?? '');
     $email = esc($_POST['email'] ?? '');
     $raw_password = $_POST['password'] ?? '';
@@ -724,8 +706,8 @@ if (isset($_POST['add_user'])) {
     if (!$name || !$email || !$raw_password || !$urole)
         respond(400, 'Required fields missing');
     
-    // adminZiyaa cannot create superAdmin or other adminZiyaa
-    if (role() === 'adminZiyaa' && in_array($urole, ['superAdmin', 'adminZiyaa']))
+    // adminAzhagii cannot create superAdmin or other adminAzhagii
+    if (role() === 'adminAzhagii' && in_array($urole, ['superAdmin', 'adminAzhagii']))
         respond(403, 'Cannot create this role');
     
     // Check if email exists
@@ -738,12 +720,11 @@ if (isset($_POST['add_user'])) {
     }
     $stmt->close();
     
-    // Hash password securely
-    $hashed_pw = password_hash($raw_password, PASSWORD_DEFAULT);
+    // Store password in plain text
     $cid_sql = $college_id ? $college_id : null;
     
     $stmt2 = $conn->prepare("INSERT INTO users (name,email,password,role,college_id,phone) VALUES (?,?,?,?,?,?)");
-    $stmt2->bind_param("ssssis", $name, $email, $hashed_pw, $urole, $cid_sql, $phone);
+    $stmt2->bind_param("ssssis", $name, $email, $raw_password, $urole, $cid_sql, $phone);
     
     if ($stmt2->execute()) {
         $stmt2->close();
@@ -756,11 +737,11 @@ if (isset($_POST['add_user'])) {
 }
 
 if (isset($_POST['update_user'])) {
-    requireRole(['superAdmin', 'adminZiyaa']);
+    requireRole(['superAdmin', 'adminAzhagii']);
     $id = intval($_POST['id'] ?? 0);
     
-    // adminZiyaa cannot edit superAdmin users
-    if (role() === 'adminZiyaa') {
+    // adminAzhagii cannot edit superAdmin users
+    if (role() === 'adminAzhagii') {
         $stmt = $conn->prepare("SELECT role FROM users WHERE id=?");
         $stmt->bind_param("i", $id);
         $stmt->execute();
@@ -781,8 +762,8 @@ if (isset($_POST['update_user'])) {
     $phone = esc($_POST['phone'] ?? '');
     $status = esc($_POST['status'] ?? 'active');
     
-    // adminZiyaa cannot escalate roles to superAdmin or adminZiyaa
-    if (role() === 'adminZiyaa' && in_array($urole, ['superAdmin', 'adminZiyaa']))
+    // adminAzhagii cannot escalate roles to superAdmin or adminAzhagii
+    if (role() === 'adminAzhagii' && in_array($urole, ['superAdmin', 'adminAzhagii']))
         respond(403, 'Cannot assign this role');
     
     $cid_sql = $college_id ? $college_id : null;
@@ -799,9 +780,9 @@ if (isset($_POST['update_user'])) {
     
     // Update with or without password
     if (isset($_POST['password']) && $_POST['password'] !== '') {
-        $hashed_pw = password_hash($_POST['password'], PASSWORD_DEFAULT);
+        $plain_pw = $_POST['password'];
         $stmt3 = $conn->prepare("UPDATE users SET name=?,email=?,role=?,college_id=?,phone=?,status=?,password=? WHERE id=?");
-        $stmt3->bind_param("sssisssi", $name, $email, $urole, $cid_sql, $phone, $status, $hashed_pw, $id);
+        $stmt3->bind_param("sssisssi", $name, $email, $urole, $cid_sql, $phone, $status, $plain_pw, $id);
     } else {
         $stmt3 = $conn->prepare("UPDATE users SET name=?,email=?,role=?,college_id=?,phone=?,status=? WHERE id=?");
         $stmt3->bind_param("sssissi", $name, $email, $urole, $cid_sql, $phone, $status, $id);
@@ -818,14 +799,14 @@ if (isset($_POST['update_user'])) {
 }
 
 if (isset($_POST['delete_user'])) {
-    requireRole(['superAdmin', 'adminZiyaa']);
+    requireRole(['superAdmin', 'adminAzhagii']);
     $id = intval($_POST['id'] ?? 0);
     
     if ($id == uid())
         respond(400, 'Cannot delete yourself');
     
-    // adminZiyaa cannot delete superAdmin users
-    if (role() === 'adminZiyaa') {
+    // adminAzhagii cannot delete superAdmin users
+    if (role() === 'adminAzhagii') {
         $stmt = $conn->prepare("SELECT role FROM users WHERE id=?");
         $stmt->bind_param("i", $id);
         $stmt->execute();
@@ -852,18 +833,18 @@ if (isset($_POST['delete_user'])) {
 }
 
 // ══════════════════════════════════════════════════════════
-//  COURSES (superAdmin, adminZiyaa)
+//  COURSES (superAdmin, adminAzhagii)
 // ══════════════════════════════════════════════════════════
 
 if (isset($_POST['get_courses'])) {
     requireLogin();
     $where = "1=1";
-    if (hasRole(['ziyaaCoordinator'])) {
+    if (hasRole(['azhagiiCoordinator'])) {
         // Coordinator sees courses assigned to their college + courses they created
         $cid = cid();
         $uid = uid();
         $where = "(c.id IN (SELECT course_id FROM course_colleges WHERE college_id=$cid) OR c.created_by=$uid)";
-    } else if (hasRole(['ziyaaStudents'])) {
+    } else if (hasRole(['azhagiiStudents'])) {
         $cid = cid();
         $where = "c.status='active' AND c.id IN (SELECT course_id FROM course_colleges WHERE college_id=$cid)";
     }
@@ -887,7 +868,7 @@ if (isset($_POST['get_courses'])) {
 
 // ── Get Pending Courses (for approval) ───────────────────
 if (isset($_POST['get_pending_courses'])) {
-    requireRole(['superAdmin', 'adminZiyaa']);
+    requireRole(['superAdmin', 'adminAzhagii']);
     $q = "SELECT c.*, u.name as creator_name, col.name as creator_college,
           (SELECT COUNT(*) FROM subjects WHERE course_id=c.id) as subject_count
           FROM courses c
@@ -930,7 +911,7 @@ if (isset($_POST['get_course_detail'])) {
 }
 
 if (isset($_POST['add_course'])) {
-    requireRole(['superAdmin', 'adminZiyaa', 'ziyaaCoordinator']);
+    requireRole(['superAdmin', 'adminAzhagii', 'azhagiiCoordinator']);
     $title = esc($_POST['title'] ?? '');
     $code = esc($_POST['course_code'] ?? '');
     $desc = esc($_POST['description'] ?? '');
@@ -940,7 +921,7 @@ if (isset($_POST['add_course'])) {
     $regulation = esc($_POST['regulation'] ?? '');
     $academic_year = esc($_POST['academic_year'] ?? '');
     // Coordinators always submit as pending; admins choose status
-    if (hasRole('ziyaaCoordinator')) {
+    if (hasRole('azhagiiCoordinator')) {
         $status = 'pending';
     } else {
         $status = esc($_POST['status'] ?? 'draft');
@@ -974,14 +955,14 @@ if (isset($_POST['add_course'])) {
         $stmt->close();
         
         // If coordinator created, auto-assign to their college
-        if (hasRole('ziyaaCoordinator') && cid()) {
+        if (hasRole('azhagiiCoordinator') && cid()) {
             $college_id = cid();
             $stmt2 = $conn->prepare("INSERT IGNORE INTO course_colleges (course_id,college_id,assigned_by) VALUES (?,?,?)");
             $stmt2->bind_param("iii", $newCourseId, $college_id, $by);
             $stmt2->execute();
             $stmt2->close();
         }
-        respond(200, 'Course created' . (hasRole('ziyaaCoordinator') ? ' and submitted for approval' : ''), ['id' => $newCourseId]);
+        respond(200, 'Course created' . (hasRole('azhagiiCoordinator') ? ' and submitted for approval' : ''), ['id' => $newCourseId]);
     } else {
         $error = $stmt->error;
         $stmt->close();
@@ -990,10 +971,10 @@ if (isset($_POST['add_course'])) {
 }
 
 if (isset($_POST['update_course'])) {
-    requireRole(['superAdmin', 'adminZiyaa', 'ziyaaCoordinator']);
+    requireRole(['superAdmin', 'adminAzhagii', 'azhagiiCoordinator']);
     $id = intval($_POST['id'] ?? 0);
     // Coordinators can only edit their own pending/rejected courses
-    if (hasRole('ziyaaCoordinator')) {
+    if (hasRole('azhagiiCoordinator')) {
         $stmt_check = $conn->prepare("SELECT status, created_by FROM courses WHERE id=?");
         $stmt_check->bind_param("i", $id);
         $stmt_check->execute();
@@ -1019,7 +1000,7 @@ if (isset($_POST['update_course'])) {
     $regulation = esc($_POST['regulation'] ?? '');
     $academic_year = esc($_POST['academic_year'] ?? '');
     // Coordinators resubmit as pending; admins set status
-    if (hasRole('ziyaaCoordinator')) {
+    if (hasRole('azhagiiCoordinator')) {
         $status = 'pending';
     } else {
         $status = esc($_POST['status'] ?? 'draft');
@@ -1047,10 +1028,10 @@ if (isset($_POST['update_course'])) {
 }
 
 if (isset($_POST['delete_course'])) {
-    requireRole(['superAdmin', 'adminZiyaa', 'ziyaaCoordinator']);
+    requireRole(['superAdmin', 'adminAzhagii', 'azhagiiCoordinator']);
     $id = intval($_POST['id'] ?? 0);
     // Coordinators can only delete their own pending/rejected courses
-    if (hasRole('ziyaaCoordinator')) {
+    if (hasRole('azhagiiCoordinator')) {
         $stmt_check = $conn->prepare("SELECT status, created_by FROM courses WHERE id=?");
         $stmt_check->bind_param("i", $id);
         $stmt_check->execute();
@@ -1083,7 +1064,7 @@ if (isset($_POST['delete_course'])) {
 // ── Course Approval / Rejection ──────────────────────────
 
 if (isset($_POST['approve_course'])) {
-    requireRole(['superAdmin', 'adminZiyaa']);
+    requireRole(['superAdmin', 'adminAzhagii']);
     $id = intval($_POST['id'] ?? 0);
     $by = uid();
     
@@ -1100,7 +1081,7 @@ if (isset($_POST['approve_course'])) {
 }
 
 if (isset($_POST['reject_course'])) {
-    requireRole(['superAdmin', 'adminZiyaa']);
+    requireRole(['superAdmin', 'adminAzhagii']);
     $id = intval($_POST['id'] ?? 0);
     $reason = esc($_POST['reason'] ?? '');
     $by = uid();
@@ -1120,7 +1101,7 @@ if (isset($_POST['reject_course'])) {
 // ── Course Assignments ───────────────────────────────────
 
 if (isset($_POST['get_course_assignments'])) {
-    requireRole(['superAdmin', 'adminZiyaa']);
+    requireRole(['superAdmin', 'adminAzhagii']);
     $cid = intval($_POST['course_id'] ?? 0);
     $q = "SELECT cc.*, c.name as college_name, c.code as college_code, u.name as assigned_by_name
           FROM course_colleges cc
@@ -1135,7 +1116,7 @@ if (isset($_POST['get_course_assignments'])) {
 }
 
 if (isset($_POST['assign_course'])) {
-    requireRole(['superAdmin', 'adminZiyaa']);
+    requireRole(['superAdmin', 'adminAzhagii']);
     $course_id = intval($_POST['course_id'] ?? 0);
     $college_id = intval($_POST['college_id'] ?? 0);
     if (!$course_id || !$college_id)
@@ -1166,7 +1147,7 @@ if (isset($_POST['assign_course'])) {
 }
 
 if (isset($_POST['unassign_course'])) {
-    requireRole(['superAdmin', 'adminZiyaa']);
+    requireRole(['superAdmin', 'adminAzhagii']);
     $course_id = intval($_POST['course_id'] ?? 0);
     $college_id = intval($_POST['college_id'] ?? 0);
     
@@ -1184,7 +1165,7 @@ if (isset($_POST['unassign_course'])) {
 }
 
 // ══════════════════════════════════════════════════════════
-//  SUBJECTS (superAdmin, adminZiyaa)
+//  SUBJECTS (superAdmin, adminAzhagii)
 // ══════════════════════════════════════════════════════════
 
 if (isset($_POST['get_subjects'])) {
@@ -1202,7 +1183,7 @@ if (isset($_POST['get_subjects'])) {
 }
 
 if (isset($_POST['add_subject'])) {
-    requireRole(['superAdmin', 'adminZiyaa', 'ziyaaCoordinator']);
+    requireRole(['superAdmin', 'adminAzhagii', 'azhagiiCoordinator']);
     $course_id = intval($_POST['course_id'] ?? 0);
     $title = esc($_POST['title'] ?? '');
     $code = esc($_POST['code'] ?? '');
@@ -1210,7 +1191,7 @@ if (isset($_POST['add_subject'])) {
     if (!$course_id || !$title)
         respond(400, 'Course and Title are required');
     // Coordinators can only add subjects to their own courses
-    if (hasRole('ziyaaCoordinator')) {
+    if (hasRole('azhagiiCoordinator')) {
         $stmt_check = $conn->prepare("SELECT created_by FROM courses WHERE id=?");
         $stmt_check->bind_param("i", $course_id);
         $stmt_check->execute();
@@ -1238,7 +1219,7 @@ if (isset($_POST['add_subject'])) {
 }
 
 if (isset($_POST['update_subject'])) {
-    requireRole(['superAdmin', 'adminZiyaa', 'ziyaaCoordinator']);
+    requireRole(['superAdmin', 'adminAzhagii', 'azhagiiCoordinator']);
     $id = intval($_POST['id'] ?? 0);
     $title = esc($_POST['title'] ?? '');
     $code = esc($_POST['code'] ?? '');
@@ -1259,7 +1240,7 @@ if (isset($_POST['update_subject'])) {
 }
 
 if (isset($_POST['delete_subject'])) {
-    requireRole(['superAdmin', 'adminZiyaa', 'ziyaaCoordinator']);
+    requireRole(['superAdmin', 'adminAzhagii', 'azhagiiCoordinator']);
     $id = intval($_POST['id'] ?? 0);
     
     $stmt = $conn->prepare("DELETE FROM subjects WHERE id=?");
@@ -1293,7 +1274,7 @@ if (isset($_POST['get_topics'])) {
 }
 
 if (isset($_POST['add_topic'])) {
-    requireRole(['superAdmin', 'adminZiyaa', 'ziyaaCoordinator']);
+    requireRole(['superAdmin', 'adminAzhagii', 'azhagiiCoordinator']);
     $subject_id = intval($_POST['subject_id'] ?? 0);
     $title = esc($_POST['title'] ?? '');
     $desc = esc($_POST['description'] ?? '');
@@ -1315,7 +1296,7 @@ if (isset($_POST['add_topic'])) {
 }
 
 if (isset($_POST['update_topic'])) {
-    requireRole(['superAdmin', 'adminZiyaa', 'ziyaaCoordinator']);
+    requireRole(['superAdmin', 'adminAzhagii', 'azhagiiCoordinator']);
     $id = intval($_POST['id'] ?? 0);
     $title = esc($_POST['title'] ?? '');
     $desc = esc($_POST['description'] ?? '');
@@ -1335,7 +1316,7 @@ if (isset($_POST['update_topic'])) {
 }
 
 if (isset($_POST['delete_topic'])) {
-    requireRole(['superAdmin', 'adminZiyaa', 'ziyaaCoordinator']);
+    requireRole(['superAdmin', 'adminAzhagii', 'azhagiiCoordinator']);
     $id = intval($_POST['id'] ?? 0);
     
     $stmt = $conn->prepare("DELETE FROM topics WHERE id=?");
@@ -1352,7 +1333,7 @@ if (isset($_POST['delete_topic'])) {
 }
 
 // ══════════════════════════════════════════════════════════
-//  CONTENT (ziyaaCoordinator primarily)
+//  CONTENT (azhagiiCoordinator primarily)
 // ══════════════════════════════════════════════════════════
 
 if (isset($_POST['get_content'])) {
@@ -1360,10 +1341,10 @@ if (isset($_POST['get_content'])) {
     $course_id = intval($_POST['course_id'] ?? 0);
     $where = "cc.course_id=$course_id";
     // Coordinators see only their college content
-    if (hasRole('ziyaaCoordinator'))
+    if (hasRole('azhagiiCoordinator'))
         $where .= " AND cc.college_id=" . cid();
     // Students see content from their college
-    if (hasRole('ziyaaStudents'))
+    if (hasRole('azhagiiStudents'))
         $where .= " AND cc.college_id=" . cid() . " AND cc.status='active'";
     $q = "SELECT cc.*, u.name as uploader_name, cl.name as college_name, s.title as subject_title
           FROM course_content cc
@@ -1379,7 +1360,7 @@ if (isset($_POST['get_content'])) {
 }
 
 if (isset($_POST['add_content'])) {
-    requireRole(['superAdmin', 'adminZiyaa', 'ziyaaCoordinator']);
+    requireRole(['superAdmin', 'adminAzhagii', 'azhagiiCoordinator']);
     $course_id = intval($_POST['course_id'] ?? 0);
     $title = esc($_POST['title'] ?? '');
     $desc = esc($_POST['description'] ?? '');
@@ -1401,7 +1382,7 @@ if (isset($_POST['add_content'])) {
         $data_val = uploadFile('content_file', $allowedMimes, $allowedExts, 10, 'uploads/content', 'content');
     }
 
-    $college_id = hasRole('ziyaaCoordinator') ? cid() : intval($_POST['college_id'] ?? 0);
+    $college_id = hasRole('azhagiiCoordinator') ? cid() : intval($_POST['college_id'] ?? 0);
     $subject_id = intval($_POST['subject_id'] ?? 0);
     $by = uid();
     
@@ -1422,7 +1403,7 @@ if (isset($_POST['add_content'])) {
 }
 
 if (isset($_POST['update_content'])) {
-    requireRole(['superAdmin', 'adminZiyaa', 'ziyaaCoordinator']);
+    requireRole(['superAdmin', 'adminAzhagii', 'azhagiiCoordinator']);
     $id = intval($_POST['id'] ?? 0);
     $title = esc($_POST['title'] ?? '');
     $desc = esc($_POST['description'] ?? '');
@@ -1447,7 +1428,7 @@ if (isset($_POST['update_content'])) {
     $subject_id = intval($_POST['subject_id'] ?? 0);
     $subject_id_val = $subject_id ?: null;
     
-    if (hasRole('ziyaaCoordinator')) {
+    if (hasRole('azhagiiCoordinator')) {
         $uploader = uid();
         $stmt = $conn->prepare("UPDATE course_content SET title=?,description=?,content_type=?,content_data=?,sort_order=?,status=?,subject_id=? WHERE id=? AND uploaded_by=?");
         $stmt->bind_param("ssssisiii", $title, $desc, $type, $data_val, $sort, $status, $subject_id_val, $id, $uploader);
@@ -1467,10 +1448,10 @@ if (isset($_POST['update_content'])) {
 }
 
 if (isset($_POST['delete_content'])) {
-    requireRole(['superAdmin', 'adminZiyaa', 'ziyaaCoordinator']);
+    requireRole(['superAdmin', 'adminAzhagii', 'azhagiiCoordinator']);
     $id = intval($_POST['id'] ?? 0);
     
-    if (hasRole('ziyaaCoordinator')) {
+    if (hasRole('azhagiiCoordinator')) {
         $uploader = uid();
         $stmt = $conn->prepare("DELETE FROM course_content WHERE id=? AND uploaded_by=?");
         $stmt->bind_param("ii", $id, $uploader);
@@ -1494,7 +1475,7 @@ if (isset($_POST['delete_content'])) {
 // ══════════════════════════════════════════════════════════
 
 if (isset($_POST['enroll_student'])) {
-    requireRole('ziyaaStudents');
+    requireRole('azhagiiStudents');
     $course_id = intval($_POST['course_id'] ?? 0);
     // Check course is assigned to student's college
     $student_college_id = cid();
@@ -1535,7 +1516,7 @@ if (isset($_POST['unenroll_student'])) {
     requireLogin();
     $id = intval($_POST['id'] ?? 0);
     
-    if (hasRole('ziyaaStudents')) {
+    if (hasRole('azhagiiStudents')) {
         $sid = uid();
         $stmt = $conn->prepare("DELETE FROM enrollments WHERE id=? AND student_id=?");
         $stmt->bind_param("ii", $id, $sid);
@@ -1559,9 +1540,9 @@ if (isset($_POST['get_enrollments'])) {
     $where = "1=1";
     if (isset($_POST['course_id']) && $_POST['course_id'])
         $where .= " AND e.course_id=" . intval($_POST['course_id']);
-    if (hasRole('ziyaaStudents'))
+    if (hasRole('azhagiiStudents'))
         $where .= " AND e.student_id=" . uid();
-    if (hasRole('ziyaaCoordinator')) {
+    if (hasRole('azhagiiCoordinator')) {
         $cid = cid();
         $where .= " AND e.course_id IN (SELECT course_id FROM course_colleges WHERE college_id=$cid)";
         $where .= " AND u.college_id=$cid";
@@ -1580,7 +1561,7 @@ if (isset($_POST['get_enrollments'])) {
 }
 
 if (isset($_POST['update_progress'])) {
-    requireRole('ziyaaStudents');
+    requireRole('azhagiiStudents');
     $id = intval($_POST['id'] ?? 0);
     $progress = intval($_POST['progress'] ?? 0);
     $sid = uid();
@@ -1593,7 +1574,7 @@ if (isset($_POST['update_progress'])) {
 }
 
 if (isset($_POST['get_my_courses'])) {
-    requireRole('ziyaaStudents');
+    requireRole('azhagiiStudents');
     $sid = uid();
     $q = "SELECT c.*, e.id as enrollment_id, e.progress, e.status as enroll_status, e.enrolled_at,
           (SELECT COUNT(*) FROM course_content WHERE course_id=c.id AND college_id=" . cid() . " AND status='active') as content_count
@@ -1624,9 +1605,9 @@ if (isset($_POST['get_dashboard_stats'])) {
         $stats['courses'] = mysqli_fetch_assoc($r)['c'];
         $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM enrollments");
         $stats['enrollments'] = mysqli_fetch_assoc($r)['c'];
-        $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM users WHERE role='ziyaaStudents'");
+        $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM users WHERE role='azhagiiStudents'");
         $stats['students'] = mysqli_fetch_assoc($r)['c'];
-        $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM users WHERE role='ziyaaCoordinator'");
+        $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM users WHERE role='azhagiiCoordinator'");
         $stats['coordinators'] = mysqli_fetch_assoc($r)['c'];
         // Approval stats
         $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM courses WHERE status='pending'");
@@ -1638,8 +1619,8 @@ if (isset($_POST['get_dashboard_stats'])) {
         $stats['recent_users'] = [];
         while ($r && $row = mysqli_fetch_assoc($r))
             $stats['recent_users'][] = $row;
-    } else if (hasRole('adminZiyaa')) {
-        $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM users WHERE role IN ('ziyaaCoordinator','ziyaaStudents')");
+    } else if (hasRole('adminAzhagii')) {
+        $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM users WHERE role IN ('azhagiiCoordinator','azhagiiStudents')");
         $stats['users'] = mysqli_fetch_assoc($r)['c'];
         $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM courses");
         $stats['courses'] = mysqli_fetch_assoc($r)['c'];
@@ -1652,12 +1633,12 @@ if (isset($_POST['get_dashboard_stats'])) {
         $stats['pending_courses'] = mysqli_fetch_assoc($r)['c'];
         $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM courses WHERE status='rejected'");
         $stats['rejected_courses'] = mysqli_fetch_assoc($r)['c'];
-    } else if (hasRole('ziyaaCoordinator')) {
+    } else if (hasRole('azhagiiCoordinator')) {
         $cid = cid();
         $uid_val = uid();
         $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM course_colleges WHERE college_id=$cid");
         $stats['courses'] = mysqli_fetch_assoc($r)['c'];
-        $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM users WHERE college_id=$cid AND role='ziyaaStudents'");
+        $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM users WHERE college_id=$cid AND role='azhagiiStudents'");
         $stats['students'] = mysqli_fetch_assoc($r)['c'];
         $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM course_content WHERE college_id=$cid");
         $stats['content'] = mysqli_fetch_assoc($r)['c'];
@@ -1672,7 +1653,7 @@ if (isset($_POST['get_dashboard_stats'])) {
         $stats['my_approved'] = mysqli_fetch_assoc($r)['c'];
         $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM courses WHERE created_by=$uid_val AND status='rejected'");
         $stats['my_rejected'] = mysqli_fetch_assoc($r)['c'];
-    } else if (hasRole('ziyaaStudents')) {
+    } else if (hasRole('azhagiiStudents')) {
         $sid = uid();
         $cid = cid();
 
@@ -1748,10 +1729,10 @@ if (isset($_POST['get_profile'])) {
 // ══════════════════════════════════════════════════════════
 
 if (isset($_POST['get_course_students'])) {
-    requireRole(['superAdmin', 'adminZiyaa', 'ziyaaCoordinator']);
+    requireRole(['superAdmin', 'adminAzhagii', 'azhagiiCoordinator']);
     $course_id = intval($_POST['course_id'] ?? 0);
     $where = "e.course_id=$course_id";
-    if (hasRole('ziyaaCoordinator'))
+    if (hasRole('azhagiiCoordinator'))
         $where .= " AND u.college_id=" . cid();
     $q = "SELECT e.*, u.name as student_name, u.email as student_email, u.phone, cl.name as college_name
           FROM enrollments e
