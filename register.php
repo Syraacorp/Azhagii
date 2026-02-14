@@ -160,16 +160,16 @@ $stmt->close();
                 <!-- Tab Navigation -->
                 <div class="reg-tabs">
                     <button type="button" class="reg-tab active" data-tab="1">
-                        <span class="reg-tab-num">1</span> Personal Info
+                        <span class="reg-tab-num">1</span> Personal
                     </button>
                     <button type="button" class="reg-tab" data-tab="2">
-                        <span class="reg-tab-num">2</span> Additional Info
+                        <span class="reg-tab-num">2</span> Additional
                     </button>
                     <button type="button" class="reg-tab" data-tab="3">
-                        <span class="reg-tab-num">3</span> Profile Photo
+                        <span class="reg-tab-num">3</span> Profile
                     </button>
                     <button type="button" class="reg-tab" data-tab="4">
-                        <span class="reg-tab-num">4</span> Account Setup
+                        <span class="reg-tab-num">4</span> Account
                     </button>
                 </div>
 
@@ -233,8 +233,8 @@ $stmt->close();
                                 <input type="email" name="email" id="email" class="form-input" placeholder="you@example.com" required>
                             </div>
                             <div class="form-group" style="flex:0.8;">
-                                <label class="form-label">Phone</label>
-                                <input type="text" name="phone" id="phone" class="form-input" placeholder="+91 9876543210">
+                                <label class="form-label">Phone <span class="req">*</span></label>
+                                <input type="text" name="phone" id="phone" class="form-input" placeholder="+91 9876543210" required>
                             </div>
                         </div>
 
@@ -479,6 +479,7 @@ $stmt->close();
             const year = document.getElementById('year').value;
             const roll = document.getElementById('rollNumber').value.trim();
             const email = document.getElementById('email').value.trim();
+            const phone = document.getElementById('phone').value.trim();
 
             if (!name) { showFieldError('name', 'Full name is required'); return false; }
             if (!college) { showFieldError('college', 'Please select your college'); return false; }
@@ -486,6 +487,7 @@ $stmt->close();
             if (!year) { showFieldError('year', 'Please select your year'); return false; }
             if (!roll || roll.length !== 12) { showFieldError('rollNumber', 'Valid 12-digit roll number is required'); return false; }
             if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showFieldError('email', 'Valid email is required'); return false; }
+            if (!phone) { showFieldError('phone', 'Phone number is required'); return false; }
             return true;
         }
 

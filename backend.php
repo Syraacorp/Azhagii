@@ -170,7 +170,7 @@ if (isset($_POST['register_student'])) {
     $hackerrankUrl = esc($_POST['hackerrankUrl'] ?? '');
     $leetcodeUrl = esc($_POST['leetcodeUrl'] ?? '');
     
-    if (!$name || !$email || !$username || !$raw_password || !$collegeId || !$department || !$year || !$rollNumber)
+    if (!$name || !$email || !$username || !$raw_password || !$collegeId || !$department || !$year || !$rollNumber || !$phone)
         respond(400, 'All required fields must be filled');
     if (strlen($username) < 4 || !preg_match('/^[a-zA-Z0-9_]+$/', $username))
         respond(400, 'Username must be at least 4 characters (letters, numbers, underscores only)');
@@ -242,7 +242,7 @@ if (isset($_POST['register_student'])) {
             respond(400, "File too large. Maximum size: 5MB");
         }
 
-        $fname = 'profile_reg_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+        $fname = $rollNumber . '.' . $ext;
         $targetDir = 'uploads/profiles';
 
         if (!is_dir($targetDir)) {
@@ -259,13 +259,29 @@ if (isset($_POST['register_student'])) {
         }
     }
     
+    // Generate unique azhagiiID: AZG + collegeCode + sequential number
+    $codeStmt = $conn->prepare("SELECT code FROM colleges WHERE id=?");
+    $codeStmt->bind_param("i", $collegeId);
+    $codeStmt->execute();
+    $codeRow = $codeStmt->get_result()->fetch_assoc();
+    $codeStmt->close();
+    $collegeCode = strtoupper($codeRow['code'] ?? 'UNKN');
+    
+    $countStmt = $conn->prepare("SELECT COUNT(*) as cnt FROM users WHERE role='azhagiiStudents' AND collegeId=?");
+    $countStmt->bind_param("i", $collegeId);
+    $countStmt->execute();
+    $countRow = $countStmt->get_result()->fetch_assoc();
+    $countStmt->close();
+    $nextNum = ($countRow['cnt'] ?? 0) + 1;
+    $azhagiiID = 'AZG' . $collegeCode . str_pad($nextNum, 4, '0', STR_PAD_LEFT);
+    
     // Insert user with all profile data
     if ($photoPath !== null) {
-        $stmt = $conn->prepare("INSERT INTO users (name,email,username,password,role,collegeId,department,year,rollNumber,phone,gender,dob,address,bio,githubUrl,linkedinUrl,hackerrankUrl,leetcodeUrl,profilePhoto) VALUES (?,?,?,?,'azhagiiStudents',?,?,?,?,?,?,NULLIF(?,''),?,?,?,?,?,?,?)");
-        $stmt->bind_param("ssssisssssssssssss", $name, $email, $username, $raw_password, $collegeId, $department, $year, $rollNumber, $phone, $gender, $dob, $address, $bio, $githubUrl, $linkedinUrl, $hackerrankUrl, $leetcodeUrl, $photoPath);
+        $stmt = $conn->prepare("INSERT INTO users (name,email,username,password,role,collegeId,department,year,rollNumber,azhagiiID,phone,gender,dob,address,bio,githubUrl,linkedinUrl,hackerrankUrl,leetcodeUrl,profilePhoto) VALUES (?,?,?,?,'azhagiiStudents',?,?,?,?,?,?,?,NULLIF(?,''),?,?,?,?,?,?,?)");
+        $stmt->bind_param("ssssissssssssssssss", $name, $email, $username, $raw_password, $collegeId, $department, $year, $rollNumber, $azhagiiID, $phone, $gender, $dob, $address, $bio, $githubUrl, $linkedinUrl, $hackerrankUrl, $leetcodeUrl, $photoPath);
     } else {
-        $stmt = $conn->prepare("INSERT INTO users (name,email,username,password,role,collegeId,department,year,rollNumber,phone,gender,dob,address,bio,githubUrl,linkedinUrl,hackerrankUrl,leetcodeUrl) VALUES (?,?,?,?,'azhagiiStudents',?,?,?,?,?,?,NULLIF(?,''),?,?,?,?,?,?)");
-        $stmt->bind_param("ssssissssssssssss", $name, $email, $username, $raw_password, $collegeId, $department, $year, $rollNumber, $phone, $gender, $dob, $address, $bio, $githubUrl, $linkedinUrl, $hackerrankUrl, $leetcodeUrl);
+        $stmt = $conn->prepare("INSERT INTO users (name,email,username,password,role,collegeId,department,year,rollNumber,azhagiiID,phone,gender,dob,address,bio,githubUrl,linkedinUrl,hackerrankUrl,leetcodeUrl) VALUES (?,?,?,?,'azhagiiStudents',?,?,?,?,?,?,?,NULLIF(?,''),?,?,?,?,?,?)");
+        $stmt->bind_param("ssssisssssssssssss", $name, $email, $username, $raw_password, $collegeId, $department, $year, $rollNumber, $azhagiiID, $phone, $gender, $dob, $address, $bio, $githubUrl, $linkedinUrl, $hackerrankUrl, $leetcodeUrl);
     }
     
     if ($stmt->execute()) {
@@ -488,7 +504,15 @@ if (isset($_POST['update_my_profile'])) {
             respond(400, "File too large. Maximum size: 5MB");
         }
 
-        $fname = 'profile_' . $uid . '_' . time() . '.' . $ext;
+        // Fetch rollNumber for filename
+        $rnStmt = $conn->prepare("SELECT rollNumber FROM users WHERE id=?");
+        $rnStmt->bind_param("i", $uid);
+        $rnStmt->execute();
+        $rnRow = $rnStmt->get_result()->fetch_assoc();
+        $rnStmt->close();
+        $userRoll = $rnRow['rollNumber'] ?? $uid;
+
+        $fname = $userRoll . '.' . $ext;
         $targetDir = 'uploads/profiles';
 
         if (!is_dir($targetDir)) {
@@ -561,7 +585,15 @@ if (isset($_POST['update_profile_photo'])) {
         respond(400, "File too large. Maximum size: 5MB");
     }
 
-    $fname = 'profile_' . $uid . '_' . time() . '.' . $ext;
+    // Fetch rollNumber for filename
+    $rnStmt = $conn->prepare("SELECT rollNumber FROM users WHERE id=?");
+    $rnStmt->bind_param("i", $uid);
+    $rnStmt->execute();
+    $rnRow = $rnStmt->get_result()->fetch_assoc();
+    $rnStmt->close();
+    $userRoll = $rnRow['rollNumber'] ?? $uid;
+
+    $fname = $userRoll . '.' . $ext;
     $targetDir = 'uploads/profiles';
     if (!is_dir($targetDir)) {
         mkdir($targetDir, 0755, true);

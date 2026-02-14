@@ -313,7 +313,7 @@ require 'includes/sidebar.php';
                 onchange="previewImage(this)">
 
             <div class="user-name-lg" id="displayNameHeader">Loading...</div>
-            <div class="user-role-badge" id="displayRoleHeader">...</div>
+            <div class="user-role-badge" id="displayAzhagiiID">...</div>
             <div style="font-size:0.85rem;color:var(--text-muted);margin-top:0.375rem;" id="displayDeptHeader"></div>
 
             <div class="profile-progress-wrap">
@@ -408,7 +408,11 @@ require 'includes/sidebar.php';
             </div>
 
             <div id="studentFields" style="display:none;">
-                <div class="row" style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:0.625rem;">
+                <div class="row" style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:0.625rem;">
+                    <div class="form-group-profile">
+                        <label class="form-label-profile">Azhagii ID</label>
+                        <input type="text" id="azhagiiID" class="form-input-profile" disabled>
+                    </div>
                     <div class="form-group-profile">
                         <label class="form-label-profile">Dept</label>
                         <input type="text" id="department" class="form-input-profile" disabled>
@@ -621,7 +625,7 @@ require 'includes/sidebar.php';
                 const d = res.data;
 
                 $('#displayNameHeader').text(d.name);
-                $('#displayRoleHeader').text(d.role.replace(/([A-Z])/g, ' $1').trim());
+                $('#displayAzhagiiID').text(d.azhagiiID || d.role.replace(/([A-Z])/g, ' $1').trim());
                 const deptText = (d.department ? d.department : '') + (d.year ? ' - ' + d.year : '');
                 $('#displayDeptHeader').text(deptText);
 
@@ -636,6 +640,7 @@ require 'includes/sidebar.php';
 
                 $('#college').val(d.college_name + ' (' + d.college_code + ')');
                 if (d.role === 'azhagiiStudents') {
+                    $('#azhagiiID').val(d.azhagiiID);
                     $('#department').val(d.department);
                     $('#year').val(d.year);
                     $('#rollNumber').val(d.rollNumber);
