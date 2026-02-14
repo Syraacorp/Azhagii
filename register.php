@@ -20,8 +20,119 @@ $stmt->close();
     <link rel="stylesheet" href="assets/css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <style>
+        /* Profile Photo Upload Styles */
+        .reg-avatar-preview {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: var(--bg-surface);
+            border: 3px dashed var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        .reg-avatar-preview:hover {
+            border-color: var(--primary);
+            transform: scale(1.05);
+        }
+        .reg-avatar-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .reg-avatar-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            font-size: 0.75rem;
+            padding: 8px 0;
+            text-align: center;
+            opacity: 0;
+            transition: 0.2s;
+        }
+        .reg-avatar-preview:hover .reg-avatar-overlay {
+            opacity: 1;
+        }
+        .reg-avatar-preview.has-image {
+            border-style: solid;
+            border-color: var(--primary);
+        }
+        
+        /* Cropper Modal Styles */
+        .cropper-modal {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(4px);
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .cropper-modal.show {
+            opacity: 1;
+        }
+        .cropper-content {
+            background-color: var(--bg-surface);
+            color: var(--text-main);
+            padding: 1.5rem;
+            border-radius: var(--radius-lg);
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border-color);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .cropper-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .cropper-header h3 {
+            margin: 0;
+            font-size: 1.15rem;
+        }
+        .img-container {
+            height: 350px;
+            width: 100%;
+            background: #000;
+            overflow: hidden;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .img-container img {
+            max-width: 100%;
+            max-height: 100%;
+            display: block;
+        }
+        .cropper-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+        }
+    </style>
 </head>
 <body>
     <script>
@@ -52,11 +163,17 @@ $stmt->close();
                         <span class="reg-tab-num">1</span> Personal Info
                     </button>
                     <button type="button" class="reg-tab" data-tab="2">
-                        <span class="reg-tab-num">2</span> Account Setup
+                        <span class="reg-tab-num">2</span> Additional Info
+                    </button>
+                    <button type="button" class="reg-tab" data-tab="3">
+                        <span class="reg-tab-num">3</span> Profile Photo
+                    </button>
+                    <button type="button" class="reg-tab" data-tab="4">
+                        <span class="reg-tab-num">4</span> Account Setup
                     </button>
                 </div>
 
-                <form id="registerForm" autocomplete="off">
+                <form id="registerForm" autocomplete="off" enctype="multipart/form-data">
                     <!-- ═══ TAB 1: Personal Information ═══ -->
                     <div class="reg-tab-panel active" id="tabPanel1">
                         <div class="form-group">
@@ -126,8 +243,111 @@ $stmt->close();
                         </button>
                     </div>
 
-                    <!-- ═══ TAB 2: Account Setup ═══ -->
+                    <!-- ═══ TAB 2: Additional Information ═══ -->
                     <div class="reg-tab-panel" id="tabPanel2">
+                        <div class="form-row">
+                            <div class="form-group" style="flex:1;">
+                                <label class="form-label">Gender</label>
+                                <select name="gender" id="gender" class="form-input">
+                                    <option value="">Select Gender</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="flex:1;">
+                                <label class="form-label">Date of Birth</label>
+                                <input type="date" name="dob" id="dob" class="form-input">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Address</label>
+                            <input type="text" name="address" id="address" class="form-input" placeholder="Your address">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Bio / Tagline</label>
+                            <input type="text" name="bio" id="bio" class="form-input" placeholder="Tell us about yourself">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" style="margin-bottom:0.5rem;display:flex;align-items:center;gap:0.5rem;">
+                                <i class="fas fa-share-alt" style="color:var(--accent-blue);"></i>
+                                Social Profiles <span style="color:var(--text-muted);font-weight:normal;">(Optional)</span>
+                            </label>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group" style="flex:1;">
+                                <label class="form-label"><i class="fab fa-github"></i> GitHub</label>
+                                <input type="url" name="githubUrl" id="githubUrl" class="form-input" placeholder="https://github.com/username">
+                            </div>
+                            <div class="form-group" style="flex:1;">
+                                <label class="form-label"><i class="fab fa-linkedin" style="color:#0077b5;"></i> LinkedIn</label>
+                                <input type="url" name="linkedinUrl" id="linkedinUrl" class="form-input" placeholder="https://linkedin.com/in/username">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group" style="flex:1;">
+                                <label class="form-label"><i class="fab fa-hackerrank" style="color:#2ec866;"></i> HackerRank</label>
+                                <input type="url" name="hackerrankUrl" id="hackerrankUrl" class="form-input" placeholder="https://hackerrank.com/username">
+                            </div>
+                            <div class="form-group" style="flex:1;">
+                                <label class="form-label"><i class="fas fa-code" style="color:#ffa116;"></i> LeetCode</label>
+                                <input type="url" name="leetcodeUrl" id="leetcodeUrl" class="form-input" placeholder="https://leetcode.com/username">
+                            </div>
+                        </div>
+
+                        <div class="reg-btn-row">
+                            <button type="button" class="btn btn-secondary btn-compact" id="btnBack1" style="flex:1;justify-content:center;">
+                                <i class="fas fa-arrow-left"></i> Back
+                            </button>
+                            <button type="button" class="btn btn-primary btn-compact" id="btnNext2" style="flex:2;justify-content:center;">
+                                Next <i class="fas fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- ═══ TAB 3: Profile Photo ═══ -->
+                    <div class="reg-tab-panel" id="tabPanel3">
+                        <div style="text-align:center;margin-bottom:1rem;">
+                            <label class="form-label" style="font-size:1rem;color:var(--text-heading);margin-bottom:1rem;display:block;">
+                                <i class="fas fa-camera" style="color:var(--accent-purple);"></i> Upload Profile Photo
+                            </label>
+                            <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1.5rem;">Add a profile photo to personalize your account (Optional)</p>
+                        </div>
+
+                        <div style="display:flex;flex-direction:column;align-items:center;gap:1rem;">
+                            <div class="reg-avatar-preview" id="regAvatarPreview" onclick="document.getElementById('profilePhotoInput').click()">
+                                <i class="fas fa-camera" style="font-size:3rem;color:var(--text-muted);"></i>
+                                <div class="reg-avatar-overlay">Click to Upload</div>
+                            </div>
+                            <input type="file" id="profilePhotoInput" name="profilePhoto" accept="image/*" style="display:none;">
+                            <div style="text-align:center;">
+                                <button type="button" class="btn btn-outline btn-compact" id="btnChangePhoto" style="display:none;" onclick="document.getElementById('profilePhotoInput').click()">
+                                    <i class="fas fa-exchange-alt"></i> Change Photo
+                                </button>
+                                <button type="button" class="btn btn-outline btn-compact" id="btnRemovePhoto" style="display:none;margin-left:0.5rem;" onclick="removePhoto()">
+                                    <i class="fas fa-trash"></i> Remove
+                                </button>
+                            </div>
+                            <small style="color:var(--text-muted);font-size:0.8rem;">Recommended: Square image, at least 200x200px (Max 5MB)</small>
+                        </div>
+
+                        <div class="reg-btn-row" style="margin-top:2rem;">
+                            <button type="button" class="btn btn-secondary btn-compact" id="btnBack2" style="flex:1;justify-content:center;">
+                                <i class="fas fa-arrow-left"></i> Back
+                            </button>
+                            <button type="button" class="btn btn-primary btn-compact" id="btnNext3" style="flex:2;justify-content:center;">
+                                Next <i class="fas fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- ═══ TAB 4: Account Setup ═══ -->
+                    <div class="reg-tab-panel" id="tabPanel4">
                         <div class="form-group">
                             <label class="form-label">Username <span class="req">*</span></label>
                             <input type="text" name="username" id="username" class="form-input" placeholder="Choose a unique username" required minlength="4">
@@ -168,7 +388,7 @@ $stmt->close();
                         </div>
 
                         <div class="reg-btn-row">
-                            <button type="button" class="btn btn-secondary btn-compact" id="btnBack" style="flex:1;justify-content:center;">
+                            <button type="button" class="btn btn-secondary btn-compact" id="btnBack3" style="flex:1;justify-content:center;">
                                 <i class="fas fa-arrow-left"></i> Back
                             </button>
                             <button type="submit" class="btn btn-primary btn-compact" id="btnRegister" style="flex:2;justify-content:center;" disabled>
@@ -185,7 +405,33 @@ $stmt->close();
         </div>
     </div>
 
+    <!-- Cropper Modal -->
+    <div id="cropperModal" class="cropper-modal">
+        <div class="cropper-content">
+            <div class="cropper-header">
+                <h3>Adjust Your Photo</h3>
+                <button type="button" class="btn-close" onclick="closeCropper()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1.5rem;padding:0;width:30px;height:30px;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="img-container">
+                <img id="imageToCrop" src="" alt="Crop Preview">
+            </div>
+            <div class="cropper-actions">
+                <button type="button" class="btn btn-outline btn-compact" onclick="closeCropper()">Cancel</button>
+                <button type="button" class="btn btn-primary btn-compact" onclick="applyCrop()">
+                    <i class="fas fa-check"></i> Apply
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
+    $(document).ready(function() {
+        // Move modal to body to avoid stacking context issues
+        $('#cropperModal').appendTo('body');
+    });
+    
     (function() {
         // ══════════════════════════════════════════
         //  TAB NAVIGATION
@@ -193,7 +439,11 @@ $stmt->close();
         const tabs = document.querySelectorAll('.reg-tab');
         const panels = document.querySelectorAll('.reg-tab-panel');
         const btnNext = document.getElementById('btnNext');
-        const btnBack = document.getElementById('btnBack');
+        const btnNext2 = document.getElementById('btnNext2');
+        const btnNext3 = document.getElementById('btnNext3');
+        const btnBack1 = document.getElementById('btnBack1');
+        const btnBack2 = document.getElementById('btnBack2');
+        const btnBack3 = document.getElementById('btnBack3');
 
         function switchTab(num) {
             tabs.forEach(t => t.classList.toggle('active', t.dataset.tab == num));
@@ -204,7 +454,7 @@ $stmt->close();
         tabs.forEach(tab => {
             tab.addEventListener('click', function() {
                 const target = parseInt(this.dataset.tab);
-                if (target === 2 && !validateTab1()) return;
+                if (target >= 2 && !validateTab1()) return;
                 switchTab(target);
             });
         });
@@ -212,7 +462,15 @@ $stmt->close();
         btnNext.addEventListener('click', function() {
             if (validateTab1()) switchTab(2);
         });
-        btnBack.addEventListener('click', function() { switchTab(1); });
+        btnNext2.addEventListener('click', function() {
+            switchTab(3);
+        });
+        btnNext3.addEventListener('click', function() {
+            switchTab(4);
+        });
+        btnBack1.addEventListener('click', function() { switchTab(1); });
+        btnBack2.addEventListener('click', function() { switchTab(2); });
+        btnBack3.addEventListener('click', function() { switchTab(3); });
 
         function validateTab1() {
             const name = document.getElementById('name').value.trim();
@@ -238,6 +496,126 @@ $stmt->close();
             Swal.fire({ icon:'warning', title:'Missing Info', text: msg, timer: 2000, showConfirmButton: false });
             setTimeout(() => el.classList.remove('input-error'), 3000);
         }
+
+        // ══════════════════════════════════════════
+        //  PROFILE PHOTO CROPPING
+        // ══════════════════════════════════════════
+        const profilePhotoInput = document.getElementById('profilePhotoInput');
+        const regAvatarPreview = document.getElementById('regAvatarPreview');
+        const btnChangePhoto = document.getElementById('btnChangePhoto');
+        const btnRemovePhoto = document.getElementById('btnRemovePhoto');
+        
+        let cropper = null;
+        let croppedBlob = null;
+
+        profilePhotoInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Validate file type
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+            if (!allowedTypes.includes(file.type)) {
+                Swal.fire({ icon:'error', title:'Invalid File', text:'Please upload a JPG, PNG, WEBP or GIF image' });
+                this.value = '';
+                return;
+            }
+
+            // Validate file size (5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                Swal.fire({ icon:'error', title:'File Too Large', text:'Maximum file size is 5MB' });
+                this.value = '';
+                return;
+            }
+
+            // Open cropper modal
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                $('#imageToCrop').attr('src', event.target.result);
+                $('#cropperModal').css('display', 'flex');
+                // Trigger reflow
+                void document.getElementById('cropperModal').offsetWidth;
+                $('#cropperModal').addClass('show');
+
+                // Initialize cropper
+                setTimeout(() => {
+                    const image = document.getElementById('imageToCrop');
+                    if (cropper) cropper.destroy();
+
+                    cropper = new Cropper(image, {
+                        aspectRatio: 1,
+                        viewMode: 1,
+                        dragMode: 'move',
+                        autoCropArea: 1,
+                        background: false,
+                        responsive: true,
+                        restore: false,
+                        guides: true,
+                        center: true,
+                        highlight: false,
+                        cropBoxMovable: true,
+                        cropBoxResizable: true,
+                    });
+                }, 100);
+            };
+            reader.readAsDataURL(file);
+        });
+
+        function closeCropper() {
+            $('#cropperModal').removeClass('show');
+            setTimeout(() => {
+                $('#cropperModal').hide();
+                if (cropper) {
+                    cropper.destroy();
+                    cropper = null;
+                }
+                profilePhotoInput.value = '';
+            }, 300);
+        }
+
+        // Close cropper on ESC key
+        $(document).on('keydown', function(e) {
+            if (e.key === 'Escape' && $('#cropperModal').hasClass('show')) {
+                closeCropper();
+            }
+        });
+
+        function applyCrop() {
+            if (cropper) {
+                cropper.getCroppedCanvas({
+                    width: 400,
+                    height: 400,
+                    fillColor: '#fff',
+                    imageSmoothingEnabled: true,
+                    imageSmoothingQuality: 'high',
+                }).toBlob((blob) => {
+                    croppedBlob = blob;
+                    
+                    // Preview the cropped image
+                    const url = URL.createObjectURL(blob);
+                    regAvatarPreview.innerHTML = '<img src="' + url + '" alt="Preview"><div class="reg-avatar-overlay">Click to Change</div>';
+                    regAvatarPreview.classList.add('has-image');
+                    btnChangePhoto.style.display = 'inline-block';
+                    btnRemovePhoto.style.display = 'inline-block';
+                    
+                    // Close cropper modal
+                    closeCropper();
+                }, 'image/jpeg', 0.9);
+            }
+        }
+
+        function removePhoto() {
+            profilePhotoInput.value = '';
+            regAvatarPreview.innerHTML = '<i class="fas fa-camera" style="font-size:3rem;color:var(--text-muted);"></i><div class="reg-avatar-overlay">Click to Upload</div>';
+            regAvatarPreview.classList.remove('has-image');
+            btnChangePhoto.style.display = 'none';
+            btnRemovePhoto.style.display = 'none';
+            croppedBlob = null;
+        }
+        
+        // Make functions global
+        window.removePhoto = removePhoto;
+        window.closeCropper = closeCropper;
+        window.applyCrop = applyCrop;
 
         // ══════════════════════════════════════════
         //  ROLL NUMBER AUTO-FILL
@@ -499,28 +877,52 @@ $stmt->close();
             const btn = $('#btnRegister');
             btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Registering...');
 
-            $.post('backend.php', {
-                register_student: 1,
-                name: $('#name').val(),
-                email: $('#email').val(),
-                username: $('#username').val(),
-                password: pw,
-                collegeId: $('#college').val(),
-                department: $('#department').val(),
-                year: $('#year').val(),
-                rollNumber: $('#rollNumber').val(),
-                phone: $('#phone').val()
-            }, function(res) {
-                if (res.status === 200) {
-                    Swal.fire({ icon:'success', title:'Registered!', text:res.message, timer:2000, showConfirmButton:false })
-                    .then(() => window.location.href = 'studentDashboard.php');
-                } else {
-                    Swal.fire({ icon:'error', title:'Failed', text:res.message });
+            // Use FormData to handle file upload
+            const formData = new FormData();
+            formData.append('register_student', '1');
+            formData.append('name', $('#name').val());
+            formData.append('email', $('#email').val());
+            formData.append('username', $('#username').val());
+            formData.append('password', pw);
+            formData.append('collegeId', $('#college').val());
+            formData.append('department', $('#department').val());
+            formData.append('year', $('#year').val());
+            formData.append('rollNumber', $('#rollNumber').val());
+            formData.append('phone', $('#phone').val());
+            formData.append('gender', $('#gender').val());
+            formData.append('dob', $('#dob').val());
+            formData.append('address', $('#address').val());
+            formData.append('bio', $('#bio').val());
+            formData.append('githubUrl', $('#githubUrl').val());
+            formData.append('linkedinUrl', $('#linkedinUrl').val());
+            formData.append('hackerrankUrl', $('#hackerrankUrl').val());
+            formData.append('leetcodeUrl', $('#leetcodeUrl').val());
+            
+            // Append cropped profile photo if available
+            if (croppedBlob) {
+                formData.append('profilePhoto', croppedBlob, 'profile.jpg');
+            }
+
+            $.ajax({
+                url: 'backend.php',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                dataType: 'json',
+                success: function(res) {
+                    if (res.status === 200) {
+                        Swal.fire({ icon:'success', title:'Registered!', text:res.message, timer:2000, showConfirmButton:false })
+                        .then(() => window.location.href = 'studentDashboard.php');
+                    } else {
+                        Swal.fire({ icon:'error', title:'Failed', text:res.message });
+                        btn.prop('disabled', false).html('<i class="fas fa-user-plus"></i> Register');
+                    }
+                },
+                error: function() {
+                    Swal.fire({ icon:'error', title:'Error', text:'Connection failed' });
                     btn.prop('disabled', false).html('<i class="fas fa-user-plus"></i> Register');
                 }
-            }, 'json').fail(function() {
-                Swal.fire({ icon:'error', title:'Error', text:'Connection failed' });
-                btn.prop('disabled', false).html('<i class="fas fa-user-plus"></i> Register');
             });
         });
     })();

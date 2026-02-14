@@ -160,6 +160,16 @@ if (isset($_POST['register_student'])) {
     $rollNumber = esc($_POST['rollNumber'] ?? '');
     $phone = esc($_POST['phone'] ?? '');
     
+    // Additional profile fields (optional)
+    $gender = esc($_POST['gender'] ?? '');
+    $dob = esc($_POST['dob'] ?? '');
+    $address = esc($_POST['address'] ?? '');
+    $bio = esc($_POST['bio'] ?? '');
+    $githubUrl = esc($_POST['githubUrl'] ?? '');
+    $linkedinUrl = esc($_POST['linkedinUrl'] ?? '');
+    $hackerrankUrl = esc($_POST['hackerrankUrl'] ?? '');
+    $leetcodeUrl = esc($_POST['leetcodeUrl'] ?? '');
+    
     if (!$name || !$email || !$username || !$raw_password || !$collegeId || !$department || !$year || !$rollNumber)
         respond(400, 'All required fields must be filled');
     if (strlen($username) < 4 || !preg_match('/^[a-zA-Z0-9_]+$/', $username))
@@ -211,9 +221,52 @@ if (isset($_POST['register_student'])) {
     
     // Store password in plain text
     
-    // Insert user
-    $stmt = $conn->prepare("INSERT INTO users (name,email,username,password,role,collegeId,department,year,rollNumber,phone) VALUES (?,?,?,?,'azhagiiStudents',?,?,?,?,?)");
-    $stmt->bind_param("ssssissss", $name, $email, $username, $raw_password, $collegeId, $department, $year, $rollNumber, $phone);
+    // Handle profile photo upload
+    $photoPath = null;
+    if (isset($_FILES['profilePhoto']) && $_FILES['profilePhoto']['error'] === UPLOAD_ERR_OK) {
+        // Check file type by MIME type AND extension
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $mime = finfo_file($finfo, $_FILES['profilePhoto']['tmp_name']);
+        finfo_close($finfo);
+        
+        $allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+        $ext = strtolower(pathinfo($_FILES['profilePhoto']['name'], PATHINFO_EXTENSION));
+        $allowedExts = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+
+        if (!in_array($mime, $allowedMimes) || !in_array($ext, $allowedExts)) {
+            respond(400, "Invalid image format. Allowed: JPG, PNG, WEBP, GIF");
+        }
+
+        // Check file size (max 5MB)
+        if ($_FILES['profilePhoto']['size'] > 5 * 1024 * 1024) {
+            respond(400, "File too large. Maximum size: 5MB");
+        }
+
+        $fname = 'profile_reg_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+        $targetDir = 'uploads/profiles';
+
+        if (!is_dir($targetDir)) {
+            if (!mkdir($targetDir, 0755, true)) {
+                respond(500, "Failed to create upload directory");
+            }
+        }
+
+        $targetFile = "$targetDir/$fname";
+        if (move_uploaded_file($_FILES['profilePhoto']['tmp_name'], $targetFile)) {
+            $photoPath = $targetFile;
+        } else {
+            respond(500, "Failed to save uploaded file");
+        }
+    }
+    
+    // Insert user with all profile data
+    if ($photoPath !== null) {
+        $stmt = $conn->prepare("INSERT INTO users (name,email,username,password,role,collegeId,department,year,rollNumber,phone,gender,dob,address,bio,githubUrl,linkedinUrl,hackerrankUrl,leetcodeUrl,profilePhoto) VALUES (?,?,?,?,'azhagiiStudents',?,?,?,?,?,?,NULLIF(?,''),?,?,?,?,?,?,?)");
+        $stmt->bind_param("sssssisssssssssss", $name, $email, $username, $raw_password, $collegeId, $department, $year, $rollNumber, $phone, $gender, $dob, $address, $bio, $githubUrl, $linkedinUrl, $hackerrankUrl, $leetcodeUrl, $photoPath);
+    } else {
+        $stmt = $conn->prepare("INSERT INTO users (name,email,username,password,role,collegeId,department,year,rollNumber,phone,gender,dob,address,bio,githubUrl,linkedinUrl,hackerrankUrl,leetcodeUrl) VALUES (?,?,?,?,'azhagiiStudents',?,?,?,?,?,?,NULLIF(?,''),?,?,?,?,?,?)");
+        $stmt->bind_param("ssssissssssssssss", $name, $email, $username, $raw_password, $collegeId, $department, $year, $rollNumber, $phone, $gender, $dob, $address, $bio, $githubUrl, $linkedinUrl, $hackerrankUrl, $leetcodeUrl);
+    }
     
     if ($stmt->execute()) {
         $newId = $stmt->insert_id;
@@ -237,6 +290,9 @@ if (isset($_POST['register_student'])) {
         $_SESSION['role'] = 'azhagiiStudents';
         $_SESSION['collegeId'] = $collegeId;
         $_SESSION['college_name'] = $collegeName;
+        if ($photoPath !== null) {
+            $_SESSION['profilePhoto'] = $photoPath;
+        }
         respond(200, 'Registration successful!');
     } else {
         $error = $stmt->error;
@@ -336,12 +392,13 @@ if (isset($_POST['get_my_profile'])) {
             } // college is usually required for logic
         }
 
-        // Assets (5)
-        $assetProps = ['profilePhoto', 'githubUrl', 'linkedinUrl', 'hackerrankUrl', 'leetcodeUrl'];
-        foreach ($assetProps as $p) {
+        // Assets (1) - Only profile photo counts towards completion
+        // Social profiles are optional extras
+        if (!empty($row['profilePhoto'])) {
             $total++;
-            if (!empty($row[$p]))
-                $filled++;
+            $filled++;
+        } else {
+            $total++;
         }
 
         $pct = ($total > 0) ? round(($filled / $total) * 100) : 0;

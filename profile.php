@@ -7,12 +7,18 @@ require 'includes/sidebar.php';
 ?>
 
 <style>
+    /* Reduce page padding for profile page */
+    .content-wrapper {
+        padding-top: 5rem !important;
+        padding-bottom: 0.75rem !important;
+    }
+    
     /* Profile specific layout */
     .profile-dashboard-grid {
         display: grid;
-        grid-template-columns: 320px 1fr;
+        grid-template-columns: 280px 1fr;
         /* Sidebar-like Left, Main Content */
-        gap: 1rem;
+        gap: 0.75rem;
         align-items: start;
     }
 
@@ -20,7 +26,7 @@ require 'includes/sidebar.php';
     .profile-col {
         display: flex;
         flex-direction: column;
-        gap: 1rem;
+        gap: 0.75rem;
     }
 
     /* Cards matching dashboard stats/progress cards */
@@ -28,7 +34,7 @@ require 'includes/sidebar.php';
         background: var(--bg-surface);
         border: 1px solid var(--border-color);
         border-radius: var(--radius-md);
-        padding: 1.25rem;
+        padding: 0.875rem;
         transition: all 0.2s;
     }
 
@@ -39,8 +45,8 @@ require 'includes/sidebar.php';
 
     /* Typography matches dashboard */
     .profile-card h3 {
-        font-size: 1.1rem;
-        margin-bottom: 1rem;
+        font-size: 1rem;
+        margin-bottom: 0.625rem;
         color: var(--text-heading);
         display: flex;
         align-items: center;
@@ -49,13 +55,13 @@ require 'includes/sidebar.php';
 
     /* Avatar styling */
     .profile-avatar-lg {
-        width: 100px;
-        height: 100px;
-        margin: 0 auto 1rem auto;
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 0.75rem auto;
         border-radius: 50%;
         background: var(--primary);
         color: #fff;
-        font-size: 3rem;
+        font-size: 2.25rem;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -95,7 +101,7 @@ require 'includes/sidebar.php';
     }
 
     .user-name-lg {
-        font-size: 1.4rem;
+        font-size: 1.15rem;
         font-weight: 700;
         color: var(--text-heading);
         margin-bottom: 0.25rem;
@@ -103,7 +109,7 @@ require 'includes/sidebar.php';
 
     .user-role-badge {
         display: inline-block;
-        padding: 0.25rem 0.75rem;
+        padding: 0.2rem 0.6rem;
         border-radius: 100px;
         background: rgba(66, 133, 244, 0.1);
         color: var(--accent-blue);
@@ -113,13 +119,13 @@ require 'includes/sidebar.php';
 
     /* Progress similar to dashboard bars */
     .profile-progress-wrap {
-        margin-top: 1.5rem;
+        margin-top: 0.875rem;
         text-align: left;
     }
 
     .profile-progress-track {
         width: 100%;
-        height: 8px;
+        height: 6px;
         background: var(--bg-surface-hover);
         border-radius: 4px;
         overflow: hidden;
@@ -135,14 +141,14 @@ require 'includes/sidebar.php';
 
     /* Form Styles from Dashboard */
     .form-group-profile {
-        margin-bottom: 0.75rem;
+        margin-bottom: 0.5rem;
     }
 
     .form-label-profile {
         display: block;
-        font-size: 0.85rem;
+        font-size: 0.8rem;
         color: var(--text-muted);
-        margin-bottom: 0.4rem;
+        margin-bottom: 0.3rem;
     }
 
     .form-input-profile {
@@ -150,9 +156,10 @@ require 'includes/sidebar.php';
         background: var(--input-bg);
         border: 1px solid var(--border-color);
         border-radius: var(--radius-sm);
-        padding: 0.75rem 1rem;
+        padding: 0.5rem 0.75rem;
         color: var(--text-main);
-        font-size: 0.95rem;
+        font-size: 0.875rem;
+        line-height: 1.3;
     }
 
     .form-input-profile:disabled {
@@ -163,6 +170,11 @@ require 'includes/sidebar.php';
     .form-input-profile:focus {
         outline: none;
         border-color: var(--primary);
+    }
+    
+    /* Compact select dropdowns */
+    select.form-input-profile {
+        height: auto;
     }
 
     /* Social Icons */
@@ -302,25 +314,25 @@ require 'includes/sidebar.php';
 
             <div class="user-name-lg" id="displayNameHeader">Loading...</div>
             <div class="user-role-badge" id="displayRoleHeader">...</div>
-            <div style="font-size:0.9rem;color:var(--text-muted);margin-top:0.5rem;" id="displayDeptHeader"></div>
+            <div style="font-size:0.85rem;color:var(--text-muted);margin-top:0.375rem;" id="displayDeptHeader"></div>
 
             <div class="profile-progress-wrap">
                 <div class="d-flex justify-content-between"
-                    style="font-size:0.85rem; display:flex; justify-content:space-between;">
+                    style="font-size:0.8rem; display:flex; justify-content:space-between;">
                     <span style="color:var(--text-heading);">Profile Strength</span>
                     <span id="progressText" style="font-weight:600;">0%</span>
                 </div>
                 <div class="profile-progress-track">
                     <div class="profile-progress-fill" id="progressBar" style="width: 0%"></div>
                 </div>
-                <div id="completionNote" style="font-size:0.8rem;margin-top:0.5rem;color:var(--text-muted);">Complete
+                <div id="completionNote" style="font-size:0.75rem;margin-top:0.375rem;color:var(--text-muted);">Complete
                     all fields to finish.</div>
             </div>
 
-            <hr style="border:0; border-top:1px solid var(--border-color); margin: 1.5rem 0;">
+            <hr style="border:0; border-top:1px solid var(--border-color); margin: 0.75rem 0;">
 
             <div class="save-btn-wrapper">
-                <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">
+                <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; padding: 0.625rem;">
                     <i class="fas fa-save"></i> Save Changes
                 </button>
             </div>
@@ -342,7 +354,7 @@ require 'includes/sidebar.php';
         <div class="profile-card">
             <h3><i class="fas fa-user-circle" style="color:var(--accent-purple);"></i> Personal & Academic Details</h3>
 
-            <div class="row" style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+            <div class="row" style="display:grid; grid-template-columns: 1fr 1fr; gap:0.625rem;">
                 <div class="form-group-profile">
                     <label class="form-label-profile">Full Name <span style="color:#ef4444">*</span></label>
                     <input type="text" name="name" id="name" class="form-input-profile" required>
@@ -353,7 +365,7 @@ require 'includes/sidebar.php';
                 </div>
             </div>
 
-            <div class="row" style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+            <div class="row" style="display:grid; grid-template-columns: 1fr 1fr; gap:0.625rem;">
                 <div class="form-group-profile">
                     <label class="form-label-profile">Gender</label>
                     <select name="gender" id="gender" class="form-input-profile">
@@ -369,20 +381,18 @@ require 'includes/sidebar.php';
                 </div>
             </div>
 
-            <div class="row" style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+            <div class="row" style="display:grid; grid-template-columns: 1fr 1fr; gap:0.625rem;">
                 <div class="form-group-profile">
                     <label class="form-label-profile">Address</label>
-                    <textarea name="address" id="address" class="form-input-profile" rows="1"
-                        placeholder="Your address..."></textarea>
+                    <input type="text" name="address" id="address" class="form-input-profile" placeholder="Your address...">
                 </div>
                 <div class="form-group-profile">
                     <label class="form-label-profile">Bio / Tagline</label>
-                    <textarea name="bio" id="bio" class="form-input-profile" rows="1"
-                        placeholder="Tell us about yourself..."></textarea>
+                    <input type="text" name="bio" id="bio" class="form-input-profile" placeholder="Tell us about yourself...">
                 </div>
             </div>
 
-            <div class="row" style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:1rem;">
+            <div class="row" style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:0.625rem;">
                 <div class="form-group-profile">
                     <label class="form-label-profile">Username</label>
                     <input type="text" id="username" class="form-input-profile" disabled>
@@ -398,7 +408,7 @@ require 'includes/sidebar.php';
             </div>
 
             <div id="studentFields" style="display:none;">
-                <div class="row" style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:1rem;">
+                <div class="row" style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:0.625rem;">
                     <div class="form-group-profile">
                         <label class="form-label-profile">Dept</label>
                         <input type="text" id="department" class="form-input-profile" disabled>
@@ -415,9 +425,9 @@ require 'includes/sidebar.php';
             </div>
         </div>
 
-        <div class="profile-card" style="margin-top:1.5rem;">
+        <div class="profile-card" style="margin-top:0;">
             <h3><i class="fas fa-share-alt" style="color:var(--accent-blue);"></i> Social Profiles</h3>
-            <div class="row" style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:1rem;">
+            <div class="row" style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:0.625rem;">
                 <div class="form-group-profile">
                     <label class="form-label-profile">GitHub</label>
                     <div class="social-input-group">
