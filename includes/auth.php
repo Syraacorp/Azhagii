@@ -44,19 +44,31 @@ $dashboardLink = dashboardUrl();
 
 // ── Avatar initial ──
 $avatarInitial = strtoupper(substr($userName, 0, 1));
+if (!isset($_SESSION['profile_photo'])) {
+    $uid = $_SESSION['user_id'];
+    $stmt = $conn->prepare("SELECT profile_photo FROM users WHERE id=?");
+    $stmt->bind_param("i", $uid);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($prow = $result->fetch_assoc()) {
+        $_SESSION['profile_photo'] = $prow['profile_photo'];
+    }
+    $stmt->close();
+}
+$profilePhoto = $_SESSION['profile_photo'] ?? '';
 
 // ── Profile Completion Check ──
 $currentScript = basename($_SERVER['PHP_SELF']);
 $exemptScripts = ['profile.php', 'backend.php', 'logout.php', 'login.php', 'register.php', 'index.php'];
 
 if (!in_array($currentScript, $exemptScripts) && isset($_SESSION['user_id'])) {
-    // We need to check if profile is complete.
-    // To avoid heavy DB calls on every request, we could store 'profile_complete' in session.
-    // But for now, let's query.
     $uid = $_SESSION['user_id'];
-    $cq = mysqli_query($conn, "SELECT name, email, username, role, phone, bio, college_id, department, year, roll_number, profile_photo, github_url, linkedin_url, hackerrank_url, leetcode_url FROM users WHERE id=$uid");
+    $stmt = $conn->prepare("SELECT name, email, username, role, phone, bio, college_id, department, year, roll_number, profile_photo, github_url, linkedin_url, hackerrank_url, leetcode_url FROM users WHERE id=?");
+    $stmt->bind_param("i", $uid);
+    $stmt->execute();
+    $result = $stmt->get_result();
 
-    if ($cq && $crow = mysqli_fetch_assoc($cq)) {
+    if ($crow = $result->fetch_assoc()) {
         $filled = 0;
         $total = 0;
 

@@ -10,9 +10,9 @@ require 'includes/sidebar.php';
     /* Profile specific layout */
     .profile-dashboard-grid {
         display: grid;
-        grid-template-columns: 320px 1fr 340px;
-        /* Sidebar-like Left, Main, Actions Right */
-        gap: 1.5rem;
+        grid-template-columns: 320px 1fr;
+        /* Sidebar-like Left, Main Content */
+        gap: 1rem;
         align-items: start;
     }
 
@@ -20,7 +20,7 @@ require 'includes/sidebar.php';
     .profile-col {
         display: flex;
         flex-direction: column;
-        gap: 1.5rem;
+        gap: 1rem;
     }
 
     /* Cards matching dashboard stats/progress cards */
@@ -28,7 +28,7 @@ require 'includes/sidebar.php';
         background: var(--bg-surface);
         border: 1px solid var(--border-color);
         border-radius: var(--radius-md);
-        padding: 1.5rem;
+        padding: 1.25rem;
         transition: all 0.2s;
     }
 
@@ -40,7 +40,7 @@ require 'includes/sidebar.php';
     /* Typography matches dashboard */
     .profile-card h3 {
         font-size: 1.1rem;
-        margin-bottom: 1.25rem;
+        margin-bottom: 1rem;
         color: var(--text-heading);
         display: flex;
         align-items: center;
@@ -49,8 +49,8 @@ require 'includes/sidebar.php';
 
     /* Avatar styling */
     .profile-avatar-lg {
-        width: 120px;
-        height: 120px;
+        width: 100px;
+        height: 100px;
         margin: 0 auto 1rem auto;
         border-radius: 50%;
         background: var(--primary);
@@ -135,7 +135,7 @@ require 'includes/sidebar.php';
 
     /* Form Styles from Dashboard */
     .form-group-profile {
-        margin-bottom: 1.25rem;
+        margin-bottom: 0.75rem;
     }
 
     .form-label-profile {
@@ -201,9 +201,86 @@ require 'includes/sidebar.php';
             order: 2;
         }
 
-        .profile-col:nth-child(3) {
-            order: 3;
+        .profile-col:nth-child(2) {
+            order: 2;
         }
+    }
+</style>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+<style>
+    /* Cropper Modal */
+    .cropper-modal {
+        display: none;
+        position: fixed;
+        z-index: 10000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(4px);
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .cropper-modal.show {
+        opacity: 1;
+    }
+
+    .cropper-content {
+        background-color: var(--bg-surface) !important;
+        /* Force solid background */
+        color: var(--text-main);
+        padding: 2rem;
+        border-radius: var(--radius-lg);
+        width: 90%;
+        max-width: 500px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        border: 1px solid var(--border-color);
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .cropper-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .cropper-header h3 {
+        margin: 0;
+        font-size: 1.25rem;
+    }
+
+    .img-container {
+        height: 400px;
+        width: 100%;
+        background: #000;
+        /* Solid background for image area */
+        overflow: hidden;
+        border-radius: var(--radius-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .img-container img {
+        max-width: 100%;
+        max-height: 100%;
+        display: block;
+    }
+
+    .cropper-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+        margin-top: 0.5rem;
     }
 </style>
 
@@ -248,6 +325,16 @@ require 'includes/sidebar.php';
                 </button>
             </div>
         </div>
+
+        <div class="profile-card">
+            <h3><i class="fas fa-lock" style="color:var(--accent-pink);"></i> Security</h3>
+            <div class="form-group-profile" style="margin-bottom:0;">
+                <label class="form-label-profile">Change Password <span class="text-muted"
+                        style="font-weight:normal;">(Optional)</span></label>
+                <input type="password" name="password" id="password" class="form-input-profile"
+                    placeholder="New Password">
+            </div>
+        </div>
     </div>
 
     <!-- ═══ COL 2: MAIN DETAILS (Center Panel) ═══ -->
@@ -266,13 +353,36 @@ require 'includes/sidebar.php';
                 </div>
             </div>
 
-            <div class="form-group-profile">
-                <label class="form-label-profile">Bio / Tagline</label>
-                <textarea name="bio" id="bio" class="form-input-profile" rows="2"
-                    placeholder="Tell us about yourself..."></textarea>
+            <div class="row" style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+                <div class="form-group-profile">
+                    <label class="form-label-profile">Gender</label>
+                    <select name="gender" id="gender" class="form-input-profile">
+                        <option value="">Select Gender</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group-profile">
+                    <label class="form-label-profile">Date of Birth</label>
+                    <input type="date" name="dob" id="dob" class="form-input-profile">
+                </div>
             </div>
 
             <div class="row" style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+                <div class="form-group-profile">
+                    <label class="form-label-profile">Address</label>
+                    <textarea name="address" id="address" class="form-input-profile" rows="1"
+                        placeholder="Your address..."></textarea>
+                </div>
+                <div class="form-group-profile">
+                    <label class="form-label-profile">Bio / Tagline</label>
+                    <textarea name="bio" id="bio" class="form-input-profile" rows="1"
+                        placeholder="Tell us about yourself..."></textarea>
+                </div>
+            </div>
+
+            <div class="row" style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:1rem;">
                 <div class="form-group-profile">
                     <label class="form-label-profile">Username</label>
                     <input type="text" id="username" class="form-input-profile" disabled>
@@ -281,11 +391,10 @@ require 'includes/sidebar.php';
                     <label class="form-label-profile">Email Address</label>
                     <input type="email" id="email" class="form-input-profile" disabled>
                 </div>
-            </div>
-
-            <div class="form-group-profile">
-                <label class="form-label-profile">College</label>
-                <input type="text" id="college" class="form-input-profile" disabled>
+                <div class="form-group-profile">
+                    <label class="form-label-profile">College</label>
+                    <input type="text" id="college" class="form-input-profile" disabled>
+                </div>
             </div>
 
             <div id="studentFields" style="display:none;">
@@ -305,70 +414,136 @@ require 'includes/sidebar.php';
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- ═══ COL 3: SOCIAL & SECURITY (Right Panel) ═══ -->
-    <div class="profile-col">
-        <div class="profile-card">
+        <div class="profile-card" style="margin-top:1.5rem;">
             <h3><i class="fas fa-share-alt" style="color:var(--accent-blue);"></i> Social Profiles</h3>
-            <!-- <p style="font-size:0.85rem; margin-bottom:1.5rem;">Connect your coding profiles.</p> -->
-
-            <div class="form-group-profile">
-                <label class="form-label-profile">GitHub</label>
-                <div class="social-input-group">
-                    <i class="fab fa-github"></i>
-                    <input type="url" name="github_url" id="github_url" class="form-input-profile"
-                        placeholder="https://github.com/...">
+            <div class="row" style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:1rem;">
+                <div class="form-group-profile">
+                    <label class="form-label-profile">GitHub</label>
+                    <div class="social-input-group">
+                        <i class="fab fa-github"></i>
+                        <input type="url" name="github_url" id="github_url" class="form-input-profile"
+                            placeholder="https://github.com/...">
+                    </div>
                 </div>
-            </div>
-            <div class="form-group-profile">
-                <label class="form-label-profile">LinkedIn</label>
-                <div class="social-input-group">
-                    <i class="fab fa-linkedin" style="color:#0077b5;"></i>
-                    <input type="url" name="linkedin_url" id="linkedin_url" class="form-input-profile"
-                        placeholder="https://linkedin.com/...">
+                <div class="form-group-profile">
+                    <label class="form-label-profile">LinkedIn</label>
+                    <div class="social-input-group">
+                        <i class="fab fa-linkedin" style="color:#0077b5;"></i>
+                        <input type="url" name="linkedin_url" id="linkedin_url" class="form-input-profile"
+                            placeholder="https://linkedin.com/...">
+                    </div>
                 </div>
-            </div>
-            <div class="form-group-profile">
-                <label class="form-label-profile">HackerRank</label>
-                <div class="social-input-group">
-                    <i class="fab fa-hackerrank" style="color:#2ec866;"></i>
-                    <input type="url" name="hackerrank_url" id="hackerrank_url" class="form-input-profile"
-                        placeholder="https://hackerrank.com/...">
+                <div class="form-group-profile">
+                    <label class="form-label-profile">HackerRank</label>
+                    <div class="social-input-group">
+                        <i class="fab fa-hackerrank" style="color:#2ec866;"></i>
+                        <input type="url" name="hackerrank_url" id="hackerrank_url" class="form-input-profile"
+                            placeholder="https://hackerrank.com/...">
+                    </div>
                 </div>
-            </div>
-            <div class="form-group-profile">
-                <label class="form-label-profile">LeetCode</label>
-                <div class="social-input-group">
-                    <i class="fas fa-code" style="color:#ffa116;"></i>
-                    <input type="url" name="leetcode_url" id="leetcode_url" class="form-input-profile"
-                        placeholder="https://leetcode.com/...">
+                <div class="form-group-profile">
+                    <label class="form-label-profile">LeetCode</label>
+                    <div class="social-input-group">
+                        <i class="fas fa-code" style="color:#ffa116;"></i>
+                        <input type="url" name="leetcode_url" id="leetcode_url" class="form-input-profile"
+                            placeholder="https://leetcode.com/...">
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="profile-card" style="margin-top:auto;">
-            <h3><i class="fas fa-lock" style="color:var(--accent-pink);"></i> Security</h3>
-            <div class="form-group-profile" style="margin-bottom:0;">
-                <label class="form-label-profile">Change Password <span class="text-muted"
-                        style="font-weight:normal;">(Optional)</span></label>
-                <input type="password" name="password" id="password" class="form-input-profile"
-                    placeholder="New Password">
-            </div>
-        </div>
+
     </div>
 
 </form>
 
+<!-- Cropper Modal -->
+<div id="cropperModal" class="cropper-modal">
+    <div class="cropper-content">
+        <div class="cropper-header">
+            <h3>Adjust Image</h3>
+            <button type="button" class="btn-close" onclick="closeCropper()"
+                style="background:none;border:none;color:var(--text-muted);cursor:pointer;"><i
+                    class="fas fa-times"></i></button>
+        </div>
+        <div class="img-container">
+            <img id="imageToCrop" src="" alt="Crop Preview">
+        </div>
+        <div class="cropper-actions">
+            <button type="button" class="btn btn-outline" onclick="closeCropper()">Cancel</button>
+            <button type="button" class="btn btn-primary" onclick="cropAndSave()">
+                <i class="fas fa-check"></i> Save Photo
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
+    let cropper;
+    let croppedBlob = null;
+
+    $(document).ready(function () {
+        // Move modal to body to avoid stacking context issues
+        $('#cropperModal').appendTo('body');
+    });
+
     function previewImage(input) {
         if (input.files && input.files[0]) {
-            var reader = new FileReader();
+            const file = input.files[0];
+            const reader = new FileReader();
             reader.onload = function (e) {
-                $('#profileAvatarDisplay').html(`<img src="${e.target.result}" alt="Avatar">` +
-                    `<div class="upload-overlay">Change</div>`);
+                $('#imageToCrop').attr('src', e.target.result);
+                $('#cropperModal').css('display', 'flex');
+                // Trigger reflow
+                void document.getElementById('cropperModal').offsetWidth;
+                $('#cropperModal').addClass('show');
+
+                // Small delay to ensure modal is visible before initializing cropper
+                setTimeout(() => {
+                    const image = document.getElementById('imageToCrop');
+                    if (cropper) cropper.destroy();
+
+                    cropper = new Cropper(image, {
+                        aspectRatio: 1,
+                        viewMode: 1,
+                        dragMode: 'move',
+                        autoCropArea: 1,
+                        background: false,
+                        responsive: true,
+                        restore: false,
+                    });
+                }, 100);
             }
-            reader.readAsDataURL(input.files[0]);
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function closeCropper() {
+        $('#cropperModal').removeClass('show');
+        setTimeout(() => {
+            $('#cropperModal').hide();
+            if (cropper) {
+                cropper.destroy();
+                cropper = null;
+            }
+            document.getElementById('profile_photo').value = '';
+        }, 300); // Matches transition duration
+    }
+
+    function cropAndSave() {
+        if (cropper) {
+            cropper.getCroppedCanvas({
+                width: 400, height: 400,
+                fillColor: '#fff',
+                imageSmoothingEnabled: true,
+                imageSmoothingQuality: 'high',
+            }).toBlob((blob) => {
+                croppedBlob = blob;
+                const url = URL.createObjectURL(blob);
+                $('#profileAvatarDisplay').html(`<img src="${url}" alt="Avatar"><div class="upload-overlay">Change</div>`);
+                closeCropper();
+            }, 'image/jpeg', 0.9);
         }
     }
 
@@ -397,6 +572,9 @@ require 'includes/sidebar.php';
                 $('#username').val(d.username);
                 $('#email').val(d.email);
                 $('#phone').val(d.phone);
+                $('#gender').val(d.gender);
+                $('#dob').val(d.dob);
+                $('#address').val(d.address);
                 $('#bio').val(d.bio);
 
                 $('#college').val(d.college_name + ' (' + d.college_code + ')');
@@ -474,6 +652,10 @@ require 'includes/sidebar.php';
             e.preventDefault();
             const formData = new FormData(this);
             formData.append('update_my_profile', 1);
+
+            if (croppedBlob) {
+                formData.set('profile_photo', croppedBlob, 'profile.jpg');
+            }
 
             const btn = $(this).find('button[type=submit]');
             const oldHtml = btn.html();

@@ -79,21 +79,43 @@ function requireRole($roles)
 if (isset($_POST['login_user'])) {
     $username = esc($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
-    $q = "SELECT u.*, c.name as college_name FROM users u LEFT JOIN colleges c ON u.college_id=c.id WHERE u.username='$username' AND u.status='active'";
-    $r = mysqli_query($conn, $q);
-    if ($r && mysqli_num_rows($r) > 0) {
-        $u = mysqli_fetch_assoc($r);
-        // Check plaintext password
-        if ($password === $u['password']) {
+    
+    $stmt = $conn->prepare("SELECT u.*, c.name as college_name FROM users u LEFT JOIN colleges c ON u.college_id=c.id WHERE u.username=? AND u.status='active'");
+    $stmt->bind_param("s", $username);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($u = $result->fetch_assoc()) {
+        // Check if password is hashed (starts with $2y$ for bcrypt)
+        $passwordValid = false;
+        if (strpos($u['password'], '$2y$') === 0) {
+            // Password is hashed, use password_verify
+            $passwordValid = password_verify($password, $u['password']);
+        } else {
+            // Legacy plaintext password - verify and rehash
+            if ($password === $u['password']) {
+                $passwordValid = true;
+                // Rehash password for security
+                $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+                $updateStmt = $conn->prepare("UPDATE users SET password=? WHERE id=?");
+                $updateStmt->bind_param("si", $hashedPassword, $u['id']);
+                $updateStmt->execute();
+                $updateStmt->close();
+            }
+        }
+        
+        if ($passwordValid) {
             $_SESSION['user_id'] = $u['id'];
             $_SESSION['user_name'] = $u['name'];
             $_SESSION['user_email'] = $u['email'];
             $_SESSION['role'] = $u['role'];
             $_SESSION['college_id'] = $u['college_id'];
             $_SESSION['college_name'] = $u['college_name'] ?? '';
+            $_SESSION['profile_photo'] = $u['profile_photo'] ?? '';
             respond(200, 'Login successful', ['role' => $u['role'], 'name' => $u['name']]);
         }
     }
+    $stmt->close();
     respond(401, 'Invalid username or password');
 }
 
@@ -107,6 +129,7 @@ if (isset($_POST['register_student'])) {
     $year = esc($_POST['year'] ?? '');
     $roll_number = esc($_POST['roll_number'] ?? '');
     $phone = esc($_POST['phone'] ?? '');
+    
     if (!$name || !$email || !$username || !$raw_password || !$college_id || !$department || !$year || !$roll_number)
         respond(400, 'All required fields must be filled');
     if (strlen($username) < 4 || !preg_match('/^[a-zA-Z0-9_]+$/', $username))
@@ -115,25 +138,70 @@ if (isset($_POST['register_student'])) {
         respond(400, 'Password must be at least 6 characters');
     if (strlen($roll_number) !== 12)
         respond(400, 'Roll number must be exactly 12 characters');
-    $chk = mysqli_query($conn, "SELECT id FROM users WHERE email='$email'");
-    if ($chk && mysqli_num_rows($chk) > 0)
+    
+    // Check existing email
+    $stmt = $conn->prepare("SELECT id FROM users WHERE email=?");
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    if ($stmt->get_result()->num_rows > 0) {
+        $stmt->close();
         respond(409, 'Email already registered');
-    $chku = mysqli_query($conn, "SELECT id FROM users WHERE username='$username'");
-    if ($chku && mysqli_num_rows($chku) > 0)
+    }
+    $stmt->close();
+    
+    // Check existing username
+    $stmt = $conn->prepare("SELECT id FROM users WHERE username=?");
+    $stmt->bind_param("s", $username);
+    $stmt->execute();
+    if ($stmt->get_result()->num_rows > 0) {
+        $stmt->close();
         respond(409, 'Username already taken');
-    $chkr = mysqli_query($conn, "SELECT id FROM users WHERE roll_number='$roll_number'");
-    if ($chkr && mysqli_num_rows($chkr) > 0)
+    }
+    $stmt->close();
+    
+    // Check existing roll number
+    $stmt = $conn->prepare("SELECT id FROM users WHERE roll_number=?");
+    $stmt->bind_param("s", $roll_number);
+    $stmt->execute();
+    if ($stmt->get_result()->num_rows > 0) {
+        $stmt->close();
         respond(409, 'Roll number already registered');
-    $chk2 = mysqli_query($conn, "SELECT id FROM colleges WHERE id=$college_id AND status='active'");
-    if (!$chk2 || mysqli_num_rows($chk2) == 0)
+    }
+    $stmt->close();
+    
+    // Validate college
+    $stmt = $conn->prepare("SELECT id FROM colleges WHERE id=? AND status='active'");
+    $stmt->bind_param("i", $college_id);
+    $stmt->execute();
+    if ($stmt->get_result()->num_rows == 0) {
+        $stmt->close();
         respond(400, 'Invalid college');
-    $hashed = esc($raw_password);
-    $q = "INSERT INTO users (name,email,username,password,role,college_id,department,year,roll_number,phone) VALUES ('$name','$email','$username','$hashed','ziyaaStudents',$college_id,'$department','$year','$roll_number','$phone')";
-    if (mysqli_query($conn, $q)) {
-        $newId = mysqli_insert_id($conn);
+    }
+    $stmt->close();
+    
+    // Hash password securely
+    $hashed = password_hash($raw_password, PASSWORD_DEFAULT);
+    
+    // Insert user
+    $stmt = $conn->prepare("INSERT INTO users (name,email,username,password,role,college_id,department,year,roll_number,phone) VALUES (?,?,?,?,'ziyaaStudents',?,?,?,?,?)");
+    $stmt->bind_param("ssssissss", $name, $email, $username, $hashed, $college_id, $department, $year, $roll_number, $phone);
+    
+    if ($stmt->execute()) {
+        $newId = $stmt->insert_id;
+        $stmt->close();
+        
+        // Get college name
+        $stmt = $conn->prepare("SELECT name FROM colleges WHERE id=?");
+        $stmt->bind_param("i", $college_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $collegeName = '';
+        if ($row = $result->fetch_assoc()) {
+            $collegeName = $row['name'];
+        }
+        $stmt->close();
+        
         // Auto-login after registration
-        $cq = mysqli_query($conn, "SELECT name FROM colleges WHERE id=$college_id");
-        $collegeName = ($cq && $crow = mysqli_fetch_assoc($cq)) ? $crow['name'] : '';
         $_SESSION['user_id'] = $newId;
         $_SESSION['user_name'] = $name;
         $_SESSION['user_email'] = $email;
@@ -142,6 +210,7 @@ if (isset($_POST['register_student'])) {
         $_SESSION['college_name'] = $collegeName;
         respond(200, 'Registration successful!');
     }
+    $stmt->close();
     respond(500, 'Registration failed: ' . mysqli_error($conn));
 }
 
@@ -171,12 +240,17 @@ if (isset($_POST['logout_user'])) {
 if (isset($_POST['get_my_profile'])) {
     requireLogin();
     $uid = uid();
-    $q = "SELECT u.*, c.name as college_name, c.code as college_code 
+    
+    $stmt = $conn->prepare("SELECT u.*, c.name as college_name, c.code as college_code 
           FROM users u 
           LEFT JOIN colleges c ON u.college_id=c.id 
-          WHERE u.id=$uid";
-    $r = mysqli_query($conn, $q);
-    if ($r && $row = mysqli_fetch_assoc($r)) {
+          WHERE u.id=?");
+    $stmt->bind_param("i", $uid);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($row = $result->fetch_assoc()) {
+        $stmt->close();
         unset($row['password']);
         // Calculate completion
         $filled = 0;
@@ -190,9 +264,25 @@ if (isset($_POST['get_my_profile'])) {
                 $filled++;
         }
 
-        // Contact/Bio (2)
-        $contactProps = ['phone', 'bio'];
+        // Contact (2)
+        $contactProps = ['phone', 'address'];
         foreach ($contactProps as $p) {
+            $total++;
+            if (!empty($row[$p]))
+                $filled++;
+        }
+
+        // Bio (1)
+        $bioProps = ['bio'];
+        foreach ($bioProps as $p) {
+            $total++;
+            if (!empty($row[$p]))
+                $filled++;
+        }
+
+        // Personal (2)
+        $personalProps = ['dob', 'gender'];
+        foreach ($personalProps as $p) {
             $total++;
             if (!empty($row[$p]))
                 $filled++;
@@ -230,19 +320,27 @@ if (isset($_POST['get_my_profile'])) {
         if ($pct == 100 && (!isset($row['is_locked']) || $row['is_locked'] == 0)) {
             // Check if column exists physically (we ran migration but safe check)
             if (array_key_exists('is_locked', $row)) {
-                mysqli_query($conn, "UPDATE users SET is_locked=1 WHERE id=$uid");
+                $stmt2 = $conn->prepare("UPDATE users SET is_locked=1 WHERE id=?");
+                $stmt2->bind_param("i", $uid);
+                $stmt2->execute();
+                $stmt2->close();
                 $row['is_locked'] = 1;
             }
         }
 
         // Check for pending unlock request
-        $prq = mysqli_query($conn, "SELECT status, request_reason FROM profile_requests WHERE user_id=$uid AND status='pending' ORDER BY created_at DESC LIMIT 1");
-        if ($prq && $prow = mysqli_fetch_assoc($prq)) {
+        $stmt3 = $conn->prepare("SELECT status, request_reason FROM profile_requests WHERE user_id=? AND status='pending' ORDER BY created_at DESC LIMIT 1");
+        $stmt3->bind_param("i", $uid);
+        $stmt3->execute();
+        $result3 = $stmt3->get_result();
+        if ($prow = $result3->fetch_assoc()) {
             $row['unlock_request'] = $prow;
         }
+        $stmt3->close();
 
         respond(200, 'OK', $row);
     }
+    $stmt->close();
     respond(404, 'User not found');
 }
 
@@ -250,53 +348,101 @@ if (isset($_POST['update_my_profile'])) {
     requireLogin();
     $uid = uid();
 
-    // Check lock status
     // Check lock status - Admins bypass lock
-    $check = mysqli_query($conn, "SELECT is_locked, role FROM users WHERE id=$uid");
-    if ($check && $row = mysqli_fetch_assoc($check)) {
+    $stmt = $conn->prepare("SELECT is_locked, role FROM users WHERE id=?");
+    $stmt->bind_param("i", $uid);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($row = $result->fetch_assoc()) {
         $allowedRoles = ['superAdmin', 'adminZiyaa'];
         if ($row['is_locked'] == 1 && !in_array($row['role'], $allowedRoles)) {
+            $stmt->close();
             respond(403, 'Profile is locked. Request unlock from admin.');
         }
     }
+    $stmt->close();
 
     $name = esc($_POST['name'] ?? '');
     $phone = esc($_POST['phone'] ?? '');
     $bio = esc($_POST['bio'] ?? '');
+    $gender = esc($_POST['gender'] ?? '');
+    $dob = esc($_POST['dob'] ?? '');
+    $address = esc($_POST['address'] ?? '');
     $git = esc($_POST['github_url'] ?? '');
     $li = esc($_POST['linkedin_url'] ?? '');
     $hr = esc($_POST['hackerrank_url'] ?? '');
     $lc = esc($_POST['leetcode_url'] ?? '');
 
     // Optional: Password update
-    $passSql = "";
+    $hashedPassword = null;
     if (!empty($_POST['password'])) {
-        $hashed = esc($_POST['password']);
-        $passSql = ", password='$hashed'";
+        $hashedPassword = password_hash($_POST['password'], PASSWORD_DEFAULT);
     }
 
     // Optional: Profile Photo
-    $photoSql = "";
+    $photoPath = null;
     if (isset($_FILES['profile_photo']) && $_FILES['profile_photo']['error'] === UPLOAD_ERR_OK) {
+        // Check file type by MIME type AND extension
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $mime = finfo_file($finfo, $_FILES['profile_photo']['tmp_name']);
+        finfo_close($finfo);
+        
+        $allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
         $ext = strtolower(pathinfo($_FILES['profile_photo']['name'], PATHINFO_EXTENSION));
-        $allowed = ['jpg', 'jpeg', 'png', 'webp'];
-        if (in_array($ext, $allowed)) {
-            $fname = 'profile_' . $uid . '_' . time() . '.' . $ext;
-            if (!is_dir('uploads/profiles'))
-                mkdir('uploads/profiles', 0777, true);
-            move_uploaded_file($_FILES['profile_photo']['tmp_name'], "uploads/profiles/$fname");
-            $photoSql = ", profile_photo='uploads/profiles/$fname'";
+        $allowedExts = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+
+        if (!in_array($mime, $allowedMimes) || !in_array($ext, $allowedExts)) {
+            respond(400, "Invalid image format. Allowed: JPG, PNG, WEBP, GIF");
         }
+
+        // Check file size (max 5MB)
+        if ($_FILES['profile_photo']['size'] > 5 * 1024 * 1024) {
+            respond(400, "File too large. Maximum size: 5MB");
+        }
+
+        $fname = 'profile_' . $uid . '_' . time() . '.' . $ext;
+        $targetDir = 'uploads/profiles';
+
+        if (!is_dir($targetDir)) {
+            if (!mkdir($targetDir, 0755, true)) {
+                respond(500, "Failed to create upload directory");
+            }
+        }
+
+        $targetFile = "$targetDir/$fname";
+        if (move_uploaded_file($_FILES['profile_photo']['tmp_name'], $targetFile)) {
+            $photoPath = $targetFile;
+        } else {
+            respond(500, "Failed to save uploaded file");
+        }
+    } elseif (isset($_FILES['profile_photo']) && $_FILES['profile_photo']['error'] !== UPLOAD_ERR_NO_FILE) {
+        respond(400, "File upload error code: " . $_FILES['profile_photo']['error']);
     }
 
-    $q = "UPDATE users SET name='$name', phone='$phone', bio='$bio', 
-          github_url='$git', linkedin_url='$li', hackerrank_url='$hr', leetcode_url='$lc'
-          $passSql $photoSql WHERE id=$uid";
+    // Build update query with prepared statement
+    if ($hashedPassword !== null && $photoPath !== null) {
+        $stmt = $conn->prepare("UPDATE users SET name=?, phone=?, bio=?, gender=?, dob=NULLIF(?,''), address=?, github_url=?, linkedin_url=?, hackerrank_url=?, leetcode_url=?, password=?, profile_photo=? WHERE id=?");
+        $stmt->bind_param("ssssssssssssi", $name, $phone, $bio, $gender, $dob, $address, $git, $li, $hr, $lc, $hashedPassword, $photoPath, $uid);
+    } elseif ($hashedPassword !== null) {
+        $stmt = $conn->prepare("UPDATE users SET name=?, phone=?, bio=?, gender=?, dob=NULLIF(?,''), address=?, github_url=?, linkedin_url=?, hackerrank_url=?, leetcode_url=?, password=? WHERE id=?");
+        $stmt->bind_param("sssssssssssi", $name, $phone, $bio, $gender, $dob, $address, $git, $li, $hr, $lc, $hashedPassword, $uid);
+    } elseif ($photoPath !== null) {
+        $stmt = $conn->prepare("UPDATE users SET name=?, phone=?, bio=?, gender=?, dob=NULLIF(?,''), address=?, github_url=?, linkedin_url=?, hackerrank_url=?, leetcode_url=?, profile_photo=? WHERE id=?");
+        $stmt->bind_param("sssssssssssi", $name, $phone, $bio, $gender, $dob, $address, $git, $li, $hr, $lc, $photoPath, $uid);
+    } else {
+        $stmt = $conn->prepare("UPDATE users SET name=?, phone=?, bio=?, gender=?, dob=NULLIF(?,''), address=?, github_url=?, linkedin_url=?, hackerrank_url=?, leetcode_url=? WHERE id=?");
+        $stmt->bind_param("ssssssssssi", $name, $phone, $bio, $gender, $dob, $address, $git, $li, $hr, $lc, $uid);
+    }
 
-    if (mysqli_query($conn, $q)) {
+    if ($stmt->execute()) {
+        $stmt->close();
         $_SESSION['user_name'] = $name; // update session
+        if ($photoPath !== null) {
+            $_SESSION['profile_photo'] = $photoPath;
+        }
         respond(200, 'Profile updated successfully');
     }
+    $stmt->close();
     respond(500, 'Update failed: ' . mysqli_error($conn));
 }
 
@@ -308,12 +454,22 @@ if (isset($_POST['request_profile_unlock'])) {
         respond(400, 'Reason is required');
 
     // Check if already pending
-    $chk = mysqli_query($conn, "SELECT id FROM profile_requests WHERE user_id=$uid AND status='pending'");
-    if ($chk && mysqli_num_rows($chk) > 0)
+    $stmt = $conn->prepare("SELECT id FROM profile_requests WHERE user_id=? AND status='pending'");
+    $stmt->bind_param("i", $uid);
+    $stmt->execute();
+    if ($stmt->get_result()->num_rows > 0) {
+        $stmt->close();
         respond(400, 'Request already pending');
+    }
+    $stmt->close();
 
-    if (mysqli_query($conn, "INSERT INTO profile_requests (user_id, request_reason) VALUES ($uid, '$reason')"))
+    $stmt2 = $conn->prepare("INSERT INTO profile_requests (user_id, request_reason) VALUES (?, ?)");
+    $stmt2->bind_param("is", $uid, $reason);
+    if ($stmt2->execute()) {
+        $stmt2->close();
         respond(200, 'Unlock request sent to admin');
+    }
+    $stmt2->close();
     respond(500, 'Request failed');
 }
 
@@ -348,16 +504,26 @@ if (isset($_POST['resolve_profile_request'])) {
 
     try {
         // Update request
-        mysqli_query($conn, "UPDATE profile_requests SET status='$status', resolved_by=$by, resolved_at=NOW() WHERE id=$req_id");
+        $stmt = $conn->prepare("UPDATE profile_requests SET status=?, resolved_by=?, resolved_at=NOW() WHERE id=?");
+        $stmt->bind_param("sii", $status, $by, $req_id);
+        $stmt->execute();
+        $stmt->close();
 
         // If approved, unlock user
         if ($action === 'approve') {
             // Get user_id from request
-            $uq = mysqli_query($conn, "SELECT user_id FROM profile_requests WHERE id=$req_id");
-            if ($uq && $row = mysqli_fetch_assoc($uq)) {
+            $stmt2 = $conn->prepare("SELECT user_id FROM profile_requests WHERE id=?");
+            $stmt2->bind_param("i", $req_id);
+            $stmt2->execute();
+            $result = $stmt2->get_result();
+            if ($row = $result->fetch_assoc()) {
                 $target_uid = $row['user_id'];
-                mysqli_query($conn, "UPDATE users SET is_locked=0 WHERE id=$target_uid");
+                $stmt3 = $conn->prepare("UPDATE users SET is_locked=0 WHERE id=?");
+                $stmt3->bind_param("i", $target_uid);
+                $stmt3->execute();
+                $stmt3->close();
             }
+            $stmt2->close();
         }
 
         mysqli_commit($conn);
@@ -396,14 +562,27 @@ if (isset($_POST['add_college'])) {
     $code = esc($_POST['code'] ?? '');
     $address = esc($_POST['address'] ?? '');
     $city = esc($_POST['city'] ?? '');
+    
     if (!$name || !$code)
         respond(400, 'Name and code are required');
-    $chk = mysqli_query($conn, "SELECT id FROM colleges WHERE code='$code'");
-    if ($chk && mysqli_num_rows($chk) > 0)
+    
+    // Check if code already exists
+    $stmt = $conn->prepare("SELECT id FROM colleges WHERE code=?");
+    $stmt->bind_param("s", $code);
+    $stmt->execute();
+    if ($stmt->get_result()->num_rows > 0) {
+        $stmt->close();
         respond(409, 'College code already exists');
-    $q = "INSERT INTO colleges (name,code,address,city) VALUES ('$name','$code','$address','$city')";
-    if (mysqli_query($conn, $q))
+    }
+    $stmt->close();
+    
+    $stmt2 = $conn->prepare("INSERT INTO colleges (name,code,address,city) VALUES (?,?,?,?)");
+    $stmt2->bind_param("ssss", $name, $code, $address, $city);
+    if ($stmt2->execute()) {
+        $stmt2->close();
         respond(200, 'College added');
+    }
+    $stmt2->close();
     respond(500, 'Failed to add college');
 }
 
@@ -415,20 +594,38 @@ if (isset($_POST['update_college'])) {
     $address = esc($_POST['address'] ?? '');
     $city = esc($_POST['city'] ?? '');
     $status = esc($_POST['status'] ?? 'active');
-    $chk = mysqli_query($conn, "SELECT id FROM colleges WHERE code='$code' AND id!=$id");
-    if ($chk && mysqli_num_rows($chk) > 0)
+    
+    // Check if code already exists for other colleges
+    $stmt = $conn->prepare("SELECT id FROM colleges WHERE code=? AND id!=?");
+    $stmt->bind_param("si", $code, $id);
+    $stmt->execute();
+    if ($stmt->get_result()->num_rows > 0) {
+        $stmt->close();
         respond(409, 'College code already exists');
-    $q = "UPDATE colleges SET name='$name',code='$code',address='$address',city='$city',status='$status' WHERE id=$id";
-    if (mysqli_query($conn, $q))
+    }
+    $stmt->close();
+    
+    $stmt2 = $conn->prepare("UPDATE colleges SET name=?,code=?,address=?,city=?,status=? WHERE id=?");
+    $stmt2->bind_param("sssssi", $name, $code, $address, $city, $status, $id);
+    if ($stmt2->execute()) {
+        $stmt2->close();
         respond(200, 'College updated');
+    }
+    $stmt2->close();
     respond(500, 'Update failed');
 }
 
 if (isset($_POST['delete_college'])) {
     requireRole('superAdmin');
     $id = intval($_POST['id'] ?? 0);
-    if (mysqli_query($conn, "DELETE FROM colleges WHERE id=$id"))
+    
+    $stmt = $conn->prepare("DELETE FROM colleges WHERE id=?");
+    $stmt->bind_param("i", $id);
+    if ($stmt->execute()) {
+        $stmt->close();
         respond(200, 'College deleted');
+    }
+    $stmt->close();
     respond(500, 'Delete failed');
 }
 
@@ -464,68 +661,128 @@ if (isset($_POST['add_user'])) {
     $urole = esc($_POST['role'] ?? '');
     $college_id = intval($_POST['college_id'] ?? 0);
     $phone = esc($_POST['phone'] ?? '');
+    
     if (!$name || !$email || !$raw_password || !$urole)
         respond(400, 'Required fields missing');
+    
     // adminZiyaa cannot create superAdmin or other adminZiyaa
     if (role() === 'adminZiyaa' && in_array($urole, ['superAdmin', 'adminZiyaa']))
         respond(403, 'Cannot create this role');
-    $chk = mysqli_query($conn, "SELECT id FROM users WHERE email='$email'");
-    if ($chk && mysqli_num_rows($chk) > 0)
+    
+    // Check if email exists
+    $stmt = $conn->prepare("SELECT id FROM users WHERE email=?");
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    if ($stmt->get_result()->num_rows > 0) {
+        $stmt->close();
         respond(409, 'Email already exists');
-    $cid_sql = $college_id ? $college_id : "NULL";
-    $hashed_pw = esc($raw_password);
-    $q = "INSERT INTO users (name,email,password,role,college_id,phone) VALUES ('$name','$email','$hashed_pw','$urole',$cid_sql,'$phone')";
-    if (mysqli_query($conn, $q))
+    }
+    $stmt->close();
+    
+    // Hash password securely
+    $hashed_pw = password_hash($raw_password, PASSWORD_DEFAULT);
+    $cid_sql = $college_id ? $college_id : null;
+    
+    $stmt2 = $conn->prepare("INSERT INTO users (name,email,password,role,college_id,phone) VALUES (?,?,?,?,?,?)");
+    $stmt2->bind_param("ssssis", $name, $email, $hashed_pw, $urole, $cid_sql, $phone);
+    
+    if ($stmt2->execute()) {
+        $stmt2->close();
         respond(200, 'User added');
+    }
+    $stmt2->close();
     respond(500, 'Failed to add user');
 }
 
 if (isset($_POST['update_user'])) {
     requireRole(['superAdmin', 'adminZiyaa']);
     $id = intval($_POST['id'] ?? 0);
+    
     // adminZiyaa cannot edit superAdmin users
     if (role() === 'adminZiyaa') {
-        $targetCheck = mysqli_query($conn, "SELECT role FROM users WHERE id=$id");
-        if ($targetCheck && ($targetRow = mysqli_fetch_assoc($targetCheck)) && $targetRow['role'] === 'superAdmin') {
-            respond(403, 'Cannot edit this user');
+        $stmt = $conn->prepare("SELECT role FROM users WHERE id=?");
+        $stmt->bind_param("i", $id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if ($targetRow = $result->fetch_assoc()) {
+            if ($targetRow['role'] === 'superAdmin') {
+                $stmt->close();
+                respond(403, 'Cannot edit this user');
+            }
         }
+        $stmt->close();
     }
+    
     $name = esc($_POST['name'] ?? '');
     $email = esc($_POST['email'] ?? '');
     $urole = esc($_POST['role'] ?? '');
     $college_id = intval($_POST['college_id'] ?? 0);
     $phone = esc($_POST['phone'] ?? '');
     $status = esc($_POST['status'] ?? 'active');
+    
     // adminZiyaa cannot escalate roles to superAdmin or adminZiyaa
     if (role() === 'adminZiyaa' && in_array($urole, ['superAdmin', 'adminZiyaa']))
         respond(403, 'Cannot assign this role');
-    $cid_sql = $college_id ? $college_id : "NULL";
-    $set = "name='$name',email='$email',role='$urole',college_id=$cid_sql,phone='$phone',status='$status'";
-    if (isset($_POST['password']) && $_POST['password'] !== '') {
-        $set .= ",password='" . esc($_POST['password']) . "'";
-    }
-    $chk = mysqli_query($conn, "SELECT id FROM users WHERE email='$email' AND id!=$id");
-    if ($chk && mysqli_num_rows($chk) > 0)
+    
+    $cid_sql = $college_id ? $college_id : null;
+    
+    // Check if email exists for other users
+    $stmt2 = $conn->prepare("SELECT id FROM users WHERE email=? AND id!=?");
+    $stmt2->bind_param("si", $email, $id);
+    $stmt2->execute();
+    if ($stmt2->get_result()->num_rows > 0) {
+        $stmt2->close();
         respond(409, 'Email already exists');
-    if (mysqli_query($conn, "UPDATE users SET $set WHERE id=$id"))
+    }
+    $stmt2->close();
+    
+    // Update with or without password
+    if (isset($_POST['password']) && $_POST['password'] !== '') {
+        $hashed_pw = password_hash($_POST['password'], PASSWORD_DEFAULT);
+        $stmt3 = $conn->prepare("UPDATE users SET name=?,email=?,role=?,college_id=?,phone=?,status=?,password=? WHERE id=?");
+        $stmt3->bind_param("sssisssi", $name, $email, $urole, $cid_sql, $phone, $status, $hashed_pw, $id);
+    } else {
+        $stmt3 = $conn->prepare("UPDATE users SET name=?,email=?,role=?,college_id=?,phone=?,status=? WHERE id=?");
+        $stmt3->bind_param("sssissi", $name, $email, $urole, $cid_sql, $phone, $status, $id);
+    }
+    
+    if ($stmt3->execute()) {
+        $stmt3->close();
         respond(200, 'User updated');
+    }
+    $stmt3->close();
     respond(500, 'Update failed');
 }
 
 if (isset($_POST['delete_user'])) {
     requireRole(['superAdmin', 'adminZiyaa']);
     $id = intval($_POST['id'] ?? 0);
+    
     if ($id == uid())
         respond(400, 'Cannot delete yourself');
+    
     // adminZiyaa cannot delete superAdmin users
     if (role() === 'adminZiyaa') {
-        $targetCheck = mysqli_query($conn, "SELECT role FROM users WHERE id=$id");
-        if ($targetCheck && ($targetRow = mysqli_fetch_assoc($targetCheck)) && $targetRow['role'] === 'superAdmin') {
-            respond(403, 'Cannot delete this user');
+        $stmt = $conn->prepare("SELECT role FROM users WHERE id=?");
+        $stmt->bind_param("i", $id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if ($targetRow = $result->fetch_assoc()) {
+            if ($targetRow['role'] === 'superAdmin') {
+                $stmt->close();
+                respond(403, 'Cannot delete this user');
+            }
         }
+        $stmt->close();
     }
-    if (mysqli_query($conn, "DELETE FROM users WHERE id=$id"))
+    
+    $stmt2 = $conn->prepare("DELETE FROM users WHERE id=?");
+    $stmt2->bind_param("i", $id);
+    if ($stmt2->execute()) {
+        $stmt2->close();
         respond(200, 'User deleted');
+    }
+    $stmt2->close();
     respond(500, 'Delete failed');
 }
 

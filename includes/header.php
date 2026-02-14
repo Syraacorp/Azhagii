@@ -30,14 +30,27 @@
                 <!-- User Dropdown -->
                 <div class="user-dropdown-wrapper">
                     <button class="user-dropdown-toggle" id="userDropdownToggle">
-                        <div class="avatar-circle"><?= $avatarInitial ?></div>
+                        <div class="avatar-circle">
+                            <?php if (!empty($profilePhoto)): ?>
+                                <img src="<?= htmlspecialchars($profilePhoto) ?>" alt="Avatar"
+                                    style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
+                            <?php else: ?>
+                                <?= $avatarInitial ?>
+                            <?php endif; ?>
+                        </div>
                         <span class="user-dropdown-name"><?= htmlspecialchars($userName) ?></span>
                         <i class="fas fa-chevron-down user-dropdown-arrow"></i>
                     </button>
                     <div class="user-dropdown-menu" id="userDropdownMenu">
                         <div class="user-dropdown-header">
                             <div class="avatar-circle" style="width:42px;height:42px;font-size:1.1rem;">
-                                <?= $avatarInitial ?></div>
+                                <?php if (!empty($profilePhoto)): ?>
+                                    <img src="<?= htmlspecialchars($profilePhoto) ?>" alt="Avatar"
+                                        style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
+                                <?php else: ?>
+                                    <?= $avatarInitial ?>
+                                <?php endif; ?>
+                            </div>
                             <div>
                                 <div class="user-dropdown-fullname"><?= htmlspecialchars($userName) ?></div>
                                 <div class="user-dropdown-email"><?= htmlspecialchars($userEmail) ?></div>

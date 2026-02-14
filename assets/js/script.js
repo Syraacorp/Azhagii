@@ -1,6 +1,38 @@
 $(document).ready(function () {
 
   // ══════════════════════════════════════════
+  //  SMOOTH PAGE TRANSITION
+  // ══════════════════════════════════════════
+  $('body').css('opacity', 1); // Ensure visible on load
+
+  $('body').on('click', 'a', function (e) {
+    const $this = $(this);
+    const href = $this.attr('href');
+    const target = $this.attr('target');
+
+    // Skip special links
+    if (!href || href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('mailto:') || href.startsWith('tel:') || target === '_blank') {
+      return;
+    }
+    
+    // Allow default if control/cmd key is held (open in new tab)
+    if (e.ctrlKey || e.metaKey) return;
+
+    e.preventDefault();
+    $('body').css('opacity', 0);
+    setTimeout(function() {
+      window.location.href = href;
+    }, 400);
+  });
+  
+  // Handle back/forward cache
+  window.addEventListener('pageshow', function (event) {
+    if (event.persisted) {
+      document.body.style.opacity = 1;
+    }
+  });
+
+  // ══════════════════════════════════════════
   //  THEME TOGGLE
   // ══════════════════════════════════════════
   const savedTheme = localStorage.getItem('ziya-theme') || 'dark';
