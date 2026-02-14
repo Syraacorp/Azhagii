@@ -25,7 +25,7 @@
         }
     });
 </script>
-<script src="assets/js/script.js"></script>
+<script src="assets/js/script.js?v=<?= time() ?>"></script>
 </body>
 
 </html>

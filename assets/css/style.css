@@ -1062,6 +1062,7 @@ select.form-input {
 /* Main Content */
 .main-content {
   flex: 1;
+  min-width: 0;
   margin-left: 260px;
   padding: 0;
   transition: margin 0.3s;
@@ -1340,13 +1341,16 @@ select.form-input {
 /* ── Tables ── */
 .table-responsive {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   transition: background 0.3s;
+  max-width: 100%;
 }
 .table {
   width: 100%;
+  min-width: max-content;
   border-collapse: collapse;
   color: var(--text-main);
 }
@@ -1355,6 +1359,12 @@ select.form-input {
   padding: 0.85rem 1.25rem;
   border-bottom: 1px solid var(--border-color);
   text-align: left;
+  white-space: nowrap;
+}
+.table td.cell-wrap {
+  white-space: normal;
+  min-width: 120px;
+  max-width: 220px;
 }
 .table th {
   background: var(--bg-surface-hover);
@@ -2165,14 +2175,76 @@ select.form-input {
     max-width: 100%;
   }
 
-  /* ── Tables ── */
-  .table th,
-  .table td {
-    padding: 0.75rem 0.85rem;
-    font-size: 0.88rem;
+  /* ── Tables to Cards ── */
+  .table thead {
+    display: none;
   }
-  .table th {
-    font-size: 0.75rem;
+  .table,
+  .table tbody,
+  .table tr,
+  .table td {
+    display: block;
+    width: 100%;
+  }
+  .table tr {
+    margin-bottom: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--bg-surface);
+    padding: 1.25rem;
+    position: relative;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+  .table td {
+    padding: 0.5rem 0;
+    border: none;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    text-align: right;
+    font-size: 0.95rem;
+  }
+  .table td:last-child {
+    border-bottom: none;
+    justify-content: flex-start;
+    gap: 0.75rem;
+    padding-top: 1rem;
+    margin-top: 0.5rem;
+    border-top: 1px solid var(--border-color);
+  }
+  .table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    text-align: left;
+    margin-right: auto;
+    padding-right: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  /* Hide empty labels if not needed (e.g. actions) */
+  .table td.actions::before {
+    display: none;
+  }
+  .table td.actions {
+    justify-content: flex-end;
+  }
+  
+  /* Fix empty state in responsive table */
+  .table td.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 2rem 1rem;
+    gap: 1rem;
+  }
+  .table td.empty-state::before {
+    display: none;
   }
 
   /* ── User Dropdown ── */
@@ -2298,7 +2370,7 @@ select.form-input {
     width: 100%;
     justify-content: center;
   }
-  
+
   /* ── Profile Requests Grid ── */
   .requests-grid {
     grid-template-columns: 1fr !important;

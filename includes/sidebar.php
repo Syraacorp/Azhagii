@@ -21,6 +21,9 @@ $currentPage = $currentPage ?? 'dashboard';
             <a href="manageColleges.php" class="nav-item <?= $currentPage === 'manageColleges' ? 'active' : '' ?>">
                 <i class="fas fa-university"></i> Colleges
             </a>
+            <a href="azhagiiStudents.php" class="nav-item <?= $currentPage === 'azhagiiStudents' ? 'active' : '' ?>">
+                <i class="fas fa-user-graduate"></i> Students
+            </a>
         <?php endif; ?>
 
         <?php if (in_array($role, ['superAdmin', 'adminAzhagii'])): ?>

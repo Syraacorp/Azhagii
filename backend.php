@@ -908,12 +908,20 @@ if (isset($_POST['update_user'])) {
     $collegeId = intval($_POST['collegeId'] ?? 0);
     $phone = esc($_POST['phone'] ?? '');
     $status = esc($_POST['status'] ?? 'active');
+    $bio = esc($_POST['bio'] ?? '');
+    $address = esc($_POST['address'] ?? '');
+    $dob = esc($_POST['dob'] ?? '');
+    $gender = esc($_POST['gender'] ?? '');
+    $department = esc($_POST['department'] ?? '');
+    $year = esc($_POST['year'] ?? '');
+    $rollNumber = esc($_POST['rollNumber'] ?? '');
     
     // adminAzhagii cannot escalate roles to superAdmin or adminAzhagii
     if (role() === 'adminAzhagii' && in_array($urole, ['superAdmin', 'adminAzhagii']))
         respond(403, 'Cannot assign this role');
     
     $cid_sql = $collegeId ? $collegeId : null;
+    $dob_sql = $dob ?: null;
     
     // Check if email exists for other users
     $stmt2 = $conn->prepare("SELECT id FROM users WHERE email=? AND id!=?");
@@ -928,11 +936,11 @@ if (isset($_POST['update_user'])) {
     // Update with or without password
     if (isset($_POST['password']) && $_POST['password'] !== '') {
         $plain_pw = $_POST['password'];
-        $stmt3 = $conn->prepare("UPDATE users SET name=?,email=?,role=?,collegeId=?,phone=?,status=?,password=? WHERE id=?");
-        $stmt3->bind_param("sssisssi", $name, $email, $urole, $cid_sql, $phone, $status, $plain_pw, $id);
+        $stmt3 = $conn->prepare("UPDATE users SET name=?,email=?,role=?,collegeId=?,phone=?,status=?,password=?,bio=?,address=?,dob=?,gender=?,department=?,year=?,rollNumber=? WHERE id=?");
+        $stmt3->bind_param("sssissssssssssi", $name, $email, $urole, $cid_sql, $phone, $status, $plain_pw, $bio, $address, $dob_sql, $gender, $department, $year, $rollNumber, $id);
     } else {
-        $stmt3 = $conn->prepare("UPDATE users SET name=?,email=?,role=?,collegeId=?,phone=?,status=? WHERE id=?");
-        $stmt3->bind_param("sssissi", $name, $email, $urole, $cid_sql, $phone, $status, $id);
+        $stmt3 = $conn->prepare("UPDATE users SET name=?,email=?,role=?,collegeId=?,phone=?,status=?,bio=?,address=?,dob=?,gender=?,department=?,year=?,rollNumber=? WHERE id=?");
+        $stmt3->bind_param("sssisssssssssi", $name, $email, $urole, $cid_sql, $phone, $status, $bio, $address, $dob_sql, $gender, $department, $year, $rollNumber, $id);
     }
     
     if ($stmt3->execute()) {

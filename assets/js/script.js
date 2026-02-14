@@ -120,7 +120,13 @@ $(document).ready(function () {
         if (d.recent_users) {
           let tbody = '';
           d.recent_users.forEach(u => {
-            tbody += `<tr><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td><span class="badge badge-role">${roleLabel(u.role)}</span></td><td>${esc(u.college_name || '-')}</td><td>${formatDate(u.createdAt)}</td></tr>`;
+            tbody += `<tr>
+              <td data-label="Name">${esc(u.name)}</td>
+              <td data-label="Email">${esc(u.email)}</td>
+              <td data-label="Role"><span class="badge badge-role">${roleLabel(u.role)}</span></td>
+              <td data-label="College">${esc(u.college_name || '-')}</td>
+              <td data-label="Joined">${formatDate(u.createdAt)}</td>
+            </tr>`;
           });
           $('#recentUsersBody').html(tbody);
         }
@@ -201,11 +207,11 @@ $(document).ready(function () {
       let html = '';
       recent.forEach(e => {
         html += `<tr>
-          <td>${esc(e.student_name)}</td>
-          <td>${esc(e.course_title)}</td>
-          <td><div class="progress-bar-wrap" style="min-width:80px;"><div class="progress-bar-fill" style="width:${e.progress}%;"></div></div><span style="font-size:0.8rem;">${e.progress}%</span></td>
-          <td><span class="badge badge-${e.status === 'completed' ? 'active' : e.status === 'active' ? 'draft' : 'inactive'}">${e.status}</span></td>
-          <td>${formatDate(e.enrolledAt)}</td></tr>`;
+          <td data-label="Student">${esc(e.student_name)}</td>
+          <td data-label="Course">${esc(e.course_title)}</td>
+          <td data-label="Progress"><div class="progress-bar-wrap" style="min-width:80px;"><div class="progress-bar-fill" style="width:${e.progress}%;"></div></div><span style="font-size:0.8rem;">${e.progress}%</span></td>
+          <td data-label="Status"><span class="badge badge-${e.status === 'completed' ? 'active' : e.status === 'active' ? 'draft' : 'inactive'}">${e.status}</span></td>
+          <td data-label="Enrolled">${formatDate(e.enrolledAt)}</td></tr>`;
       });
       $('#coordRecentStudents').html(html);
     });
@@ -313,9 +319,12 @@ $(document).ready(function () {
       }
       res.data.forEach((c, i) => {
         html += `<tr>
-          <td>${i + 1}</td><td>${esc(c.name)}</td><td><code>${esc(c.code)}</code></td><td>${esc(c.city || '-')}</td>
-          <td>${c.user_count}</td>
-          <td><span class="badge badge-${c.status === 'active' ? 'active' : 'inactive'}">${c.status}</span></td>
+          <td data-label="#">${i + 1}</td>
+          <td data-label="Name">${esc(c.name)}</td>
+          <td data-label="Code"><code>${esc(c.code)}</code></td>
+          <td data-label="City">${esc(c.city || '-')}</td>
+          <td data-label="Users">${c.user_count}</td>
+          <td data-label="Status"><span class="badge badge-${c.status === 'active' ? 'active' : 'inactive'}">${c.status}</span></td>
           <td class="actions">
             <button class="btn btn-outline btn-sm" onclick="showCollegeModal(${c.id})"><i class="fas fa-edit"></i></button>
             <button class="btn btn-danger btn-sm" onclick="deleteCollege(${c.id})"><i class="fas fa-trash"></i></button>
@@ -413,10 +422,12 @@ $(document).ready(function () {
       if (res.data.length === 0) html = '<tr><td colspan="7" class="empty-state"><i class="fas fa-users"></i><p>No users found</p></td></tr>';
       res.data.forEach((u, i) => {
         html += `<tr>
-          <td>${i + 1}</td><td>${esc(u.name)}</td><td>${esc(u.email)}</td>
-          <td><span class="badge badge-role">${roleLabel(u.role)}</span></td>
-          <td>${esc(u.college_name || '-')}</td>
-          <td><span class="badge badge-${u.status === 'active' ? 'active' : 'inactive'}">${u.status}</span></td>
+          <td data-label="#">${i + 1}</td>
+          <td data-label="Name">${esc(u.name)}</td>
+          <td data-label="Email">${esc(u.email)}</td>
+          <td data-label="Role"><span class="badge badge-role">${roleLabel(u.role)}</span></td>
+          <td data-label="College">${esc(u.college_name || '-')}</td>
+          <td data-label="Status"><span class="badge badge-${u.status === 'active' ? 'active' : 'inactive'}">${u.status}</span></td>
           <td class="actions">
             <button class="btn btn-outline btn-sm" onclick="showUserModal(${u.id})"><i class="fas fa-edit"></i></button>
             <button class="btn btn-danger btn-sm" onclick="deleteUser(${u.id})"><i class="fas fa-trash"></i></button>
@@ -517,11 +528,15 @@ $(document).ready(function () {
       res.data.forEach((c, i) => {
         const statusBadge = c.status === 'active' ? 'active' : c.status === 'pending' ? 'pending' : c.status === 'rejected' ? 'rejected' : c.status === 'draft' ? 'draft' : 'inactive';
         html += `<tr>
-          <td>${i + 1}</td><td>${esc(c.title)}${c.courseCode ? `<br><small style="color:var(--text-muted)">${esc(c.courseCode)}</small>` : ''}</td><td>${esc(c.category || '-')}</td>
-          <td>${esc(c.semester || '-')}</td>
-          <td>${c.college_count}</td><td>${c.enrollment_count}</td><td>${c.content_count}</td>
-          <td><span class="badge badge-${statusBadge}">${c.status}</span></td>
-          <td>${c.syllabus ? `<a href="${c.syllabus}" target="_blank" class="btn btn-outline btn-sm" title="View Syllabus"><i class="fas fa-file-pdf"></i></a>` : '-'}</td>
+          <td data-label="#">${i + 1}</td>
+          <td data-label="Title">${esc(c.title)}${c.courseCode ? `<br><small style="color:var(--text-muted)">${esc(c.courseCode)}</small>` : ''}</td>
+          <td data-label="Category">${esc(c.category || '-')}</td>
+          <td data-label="Semester">${esc(c.semester || '-')}</td>
+          <td data-label="Colleges">${c.college_count}</td>
+          <td data-label="Enrollments">${c.enrollment_count}</td>
+          <td data-label="Content">${c.content_count}</td>
+          <td data-label="Status"><span class="badge badge-${statusBadge}">${c.status}</span></td>
+          <td data-label="Syllabus">${c.syllabus ? `<a href="${c.syllabus}" target="_blank" class="btn btn-outline btn-sm" title="View Syllabus"><i class="fas fa-file-pdf"></i></a>` : '-'}</td>
           <td class="actions">
             <button class="btn btn-outline btn-sm" onclick="showCourseModal(${c.id})"><i class="fas fa-edit"></i></button>
             <button class="btn btn-danger btn-sm" onclick="deleteCourse(${c.id})"><i class="fas fa-trash"></i></button>
@@ -630,8 +645,11 @@ $(document).ready(function () {
       if (res.data.length === 0) html = '<tr><td colspan="6" class="empty-state"><i class="fas fa-link"></i><p>No colleges assigned</p></td></tr>';
       res.data.forEach((a, i) => {
         html += `<tr>
-          <td>${i + 1}</td><td>${esc(a.college_name)}</td><td><code>${esc(a.college_code)}</code></td>
-          <td>${esc(a.assignedBy_name || '-')}</td><td>${formatDate(a.assignedAt)}</td>
+          <td data-label="#">${i + 1}</td>
+          <td data-label="College">${esc(a.college_name)}</td>
+          <td data-label="Code"><code>${esc(a.college_code)}</code></td>
+          <td data-label="Assigned By">${esc(a.assignedBy_name || '-')}</td>
+          <td data-label="Assigned At">${formatDate(a.assignedAt)}</td>
           <td class="actions"><button class="btn btn-danger btn-sm" onclick="unassignCourse(${cid},${a.collegeId})"><i class="fas fa-unlink"></i></button></td></tr>`;
       });
       $('#assignmentsBody').html(html);
@@ -733,11 +751,11 @@ $(document).ready(function () {
         if (res.data.length === 0) html = '<tr><td colspan="6" class="empty-state"><p>No subjects found for this course</p></td></tr>';
         res.data.forEach((s, i) => {
             html += `<tr>
-                <td>${i+1}</td>
-                <td>${esc(s.title)}</td>
-                <td>${esc(s.code || '-')}</td>
-                <td>${esc(s.description || '-')}</td>
-                <td><span class="badge badge-${s.status === 'active' ? 'active' : 'inactive'}">${s.status}</span></td>
+                <td data-label="#">${i+1}</td>
+                <td data-label="Title">${esc(s.title)}</td>
+                <td data-label="Code">${esc(s.code || '-')}</td>
+                <td data-label="Desc">${esc(s.description || '-')}</td>
+                <td data-label="Status"><span class="badge badge-${s.status === 'active' ? 'active' : 'inactive'}">${s.status}</span></td>
                 <td class="actions">
                     <button class="btn btn-outline btn-sm" onclick="showSubjectModal(${s.id})"><i class="fas fa-edit"></i></button>
                     <button class="btn btn-danger btn-sm" onclick="deleteSubject(${s.id})"><i class="fas fa-trash"></i></button>
@@ -911,10 +929,13 @@ $(document).ready(function () {
       if (res.data.length === 0) html = '<tr><td colspan="7" class="empty-state"><i class="fas fa-user-graduate"></i><p>No students enrolled</p></td></tr>';
       res.data.forEach((s, i) => {
         html += `<tr>
-          <td>${i + 1}</td><td>${esc(s.student_name)}</td><td>${esc(s.student_email)}</td><td>${esc(s.phone || '-')}</td>
-          <td><div class="progress-bar-wrap" style="min-width:80px;"><div class="progress-bar-fill" style="width:${s.progress}%;"></div></div><span style="font-size:0.8rem;">${s.progress}%</span></td>
-          <td><span class="badge badge-${s.status === 'completed' ? 'active' : s.status === 'active' ? 'draft' : 'inactive'}">${s.status}</span></td>
-          <td>${formatDate(s.enrolledAt)}</td></tr>`;
+          <td data-label="#">${i + 1}</td>
+          <td data-label="Student">${esc(s.student_name)}</td>
+          <td data-label="Email">${esc(s.student_email)}</td>
+          <td data-label="Phone">${esc(s.phone || '-')}</td>
+          <td data-label="Progress"><div class="progress-bar-wrap" style="min-width:80px;"><div class="progress-bar-fill" style="width:${s.progress}%;"></div></div><span style="font-size:0.8rem;">${s.progress}%</span></td>
+          <td data-label="Status"><span class="badge badge-${s.status === 'completed' ? 'active' : s.status === 'active' ? 'draft' : 'inactive'}">${s.status}</span></td>
+          <td data-label="Enrolled">${formatDate(s.enrolledAt)}</td></tr>`;
       });
       $('#courseStudentsBody').html(html);
     });
@@ -1144,15 +1165,15 @@ $(document).ready(function () {
       if (res.data.length === 0) html = '<tr><td colspan="10" class="empty-state"><i class="fas fa-check-circle"></i><p>No pending courses to review</p></td></tr>';
       res.data.forEach((c, i) => {
         html += `<tr>
-          <td>${i+1}</td>
-          <td>${esc(c.title)}</td>
-          <td>${esc(c.courseCode || '-')}</td>
-          <td>${esc(c.creator_name || '-')}</td>
-          <td>${esc(c.creator_college || '-')}</td>
-          <td>${esc(c.semester || '-')}</td>
-          <td>${c.subject_count || 0}</td>
-          <td>${c.syllabus ? `<a href="${c.syllabus}" target="_blank" class="btn btn-outline btn-sm"><i class="fas fa-file-pdf"></i></a>` : '-'}</td>
-          <td>${formatDate(c.createdAt)}</td>
+          <td data-label="#">${i+1}</td>
+          <td data-label="Title">${esc(c.title)}</td>
+          <td data-label="Code">${esc(c.courseCode || '-')}</td>
+          <td data-label="Creator">${esc(c.creator_name || '-')}</td>
+          <td data-label="College">${esc(c.creator_college || '-')}</td>
+          <td data-label="Sem">${esc(c.semester || '-')}</td>
+          <td data-label="Units">${c.subject_count || 0}</td>
+          <td data-label="Syllabus">${c.syllabus ? `<a href="${c.syllabus}" target="_blank" class="btn btn-outline btn-sm"><i class="fas fa-file-pdf"></i></a>` : '-'}</td>
+          <td data-label="Date">${formatDate(c.createdAt)}</td>
           <td class="actions" style="white-space:nowrap;">
             <button class="btn btn-outline btn-sm" onclick="viewCourseDetail(${c.id})" title="View Details"><i class="fas fa-eye"></i></button>
             <button class="btn btn-success btn-sm" onclick="approveCourse(${c.id})" title="Approve"><i class="fas fa-check"></i></button>
@@ -1174,16 +1195,17 @@ $(document).ready(function () {
       res.data.forEach((c, i) => {
         const statusBadge = c.status === 'active' ? 'active' : c.status === 'pending' ? 'pending' : c.status === 'rejected' ? 'rejected' : c.status === 'draft' ? 'draft' : 'inactive';
         html += `<tr>
-          <td>${i+1}</td>
-          <td>${esc(c.title)}</td>
-          <td>${esc(c.courseCode || '-')}</td>
-          <td>${esc(c.creator_name || '-')}</td>
-          <td><span class="badge badge-${statusBadge}">${c.status}</span></td>
-          <td>${esc(c.semester || '-')}</td>
-          <td>${c.syllabus ? `<a href="${c.syllabus}" target="_blank" class="btn btn-outline btn-sm"><i class="fas fa-file-pdf"></i></a>` : '-'}</td>
-          <td>${formatDate(c.createdAt)}</td>
+          <td data-label="#">${i+1}</td>
+          <td data-label="Title">${esc(c.title)}</td>
+          <td data-label="Code">${esc(c.courseCode || '-')}</td>
+          <td data-label="Creator">${esc(c.creator_name || '-')}</td>
+          <td data-label="Status"><span class="badge badge-${statusBadge}">${c.status}</span></td>
+          <td data-label="Sem">${esc(c.semester || '-')}</td>
+          <td data-label="Syllabus">${c.syllabus ? `<a href="${c.syllabus}" target="_blank" class="btn btn-outline btn-sm"><i class="fas fa-file-pdf"></i></a>` : '-'}</td>
+          <td data-label="Date">${formatDate(c.createdAt)}</td>
           <td class="actions">
             <button class="btn btn-outline btn-sm" onclick="viewCourseDetail(${c.id})"><i class="fas fa-eye"></i></button>
+            <button class="btn btn-danger btn-sm" onclick="deleteCourse(${c.id})"><i class="fas fa-trash"></i></button>
           </td></tr>`;
       });
       $('#allCoursesApprovalBody').html(html);
@@ -1197,13 +1219,13 @@ $(document).ready(function () {
       if (res.data.length === 0) html = '<tr><td colspan="7" class="empty-state"><i class="fas fa-check-circle"></i><p>No rejected courses</p></td></tr>';
       res.data.forEach((c, i) => {
         html += `<tr>
-          <td>${i+1}</td>
-          <td>${esc(c.title)}</td>
-          <td>${esc(c.courseCode || '-')}</td>
-          <td>${esc(c.creator_name || '-')}</td>
-          <td>${esc(c.rejectionReason || '-')}</td>
-          <td>${esc(c.approver_name || '-')}</td>
-          <td>${formatDate(c.approvedAt || c.createdAt)}</td></tr>`;
+          <td data-label="#">${i+1}</td>
+          <td data-label="Title">${esc(c.title)}</td>
+          <td data-label="Code">${esc(c.courseCode || '-')}</td>
+          <td data-label="Creator">${esc(c.creator_name || '-')}</td>
+          <td data-label="Reason">${esc(c.rejectionReason || '-')}</td>
+          <td data-label="Approver">${esc(c.approver_name || '-')}</td>
+          <td data-label="Date">${formatDate(c.approvedAt || c.createdAt)}</td></tr>`;
       });
       $('#rejectedCoursesBody').html(html);
     });
@@ -1326,11 +1348,11 @@ $(document).ready(function () {
       if (res.data.length === 0) html = '<tr><td colspan="6" class="empty-state"><i class="fas fa-tags"></i><p>No topics yet. Click "Add Topic" to get started.</p></td></tr>';
       res.data.forEach((t, i) => {
         html += `<tr>
-          <td>${i+1}</td>
-          <td>${esc(t.title)}</td>
-          <td>${esc(t.description || '-')}</td>
-          <td>${esc(t.creator_name || '-')}</td>
-          <td><span class="badge badge-${t.status === 'active' ? 'active' : 'inactive'}">${t.status}</span></td>
+          <td data-label="#">${i+1}</td>
+          <td data-label="Title">${esc(t.title)}</td>
+          <td data-label="Desc">${esc(t.description || '-')}</td>
+          <td data-label="Created By">${esc(t.creator_name || '-')}</td>
+          <td data-label="Status"><span class="badge badge-${t.status === 'active' ? 'active' : 'inactive'}">${t.status}</span></td>
           <td class="actions">
             <button class="btn btn-outline btn-sm" onclick="showTopicModal(${t.id})"><i class="fas fa-edit"></i></button>
             <button class="btn btn-danger btn-sm" onclick="deleteTopic(${t.id})"><i class="fas fa-trash"></i></button>
@@ -1396,13 +1418,13 @@ $(document).ready(function () {
       myCourses.forEach((c, i) => {
         const statusBadge = c.status === 'active' ? 'active' : c.status === 'pending' ? 'pending' : c.status === 'rejected' ? 'rejected' : 'draft';
         html += `<tr>
-          <td>${i+1}</td>
-          <td>${esc(c.title)}</td>
-          <td>${esc(c.courseCode || '-')}</td>
-          <td>${esc(c.semester || '-')}</td>
-          <td><span class="badge badge-${statusBadge}">${c.status}</span></td>
-          <td>${c.rejectionReason ? esc(c.rejectionReason) : '-'}</td>
-          <td>${formatDate(c.createdAt)}</td>
+          <td data-label="#">${i+1}</td>
+          <td data-label="Title">${esc(c.title)}</td>
+          <td data-label="Code">${esc(c.courseCode || '-')}</td>
+          <td data-label="Semester">${esc(c.semester || '-')}</td>
+          <td data-label="Status"><span class="badge badge-${statusBadge}">${c.status}</span></td>
+          <td data-label="Rejection Reason">${c.rejectionReason ? esc(c.rejectionReason) : '-'}</td>
+          <td data-label="Date">${formatDate(c.createdAt)}</td>
           <td class="actions">
             ${(c.status === 'pending' || c.status === 'rejected') ? `<button class="btn btn-outline btn-sm" onclick="editMySubmittedCourse(${c.id})"><i class="fas fa-edit"></i></button>
             <button class="btn btn-danger btn-sm" onclick="deleteMySubmittedCourse(${c.id})"><i class="fas fa-trash"></i></button>` : `<button class="btn btn-outline btn-sm" onclick="viewCourseDetail(${c.id})"><i class="fas fa-eye"></i></button>`}
@@ -1527,6 +1549,176 @@ $(document).ready(function () {
   };
 
   // ══════════════════════════════════════════
+  //  AZHAGII STUDENTS (superAdmin)
+  // ══════════════════════════════════════════
+  let azhagiiStudentsData = [];
+
+  function loadAzhagiiStudentsPage() {
+    // Load college dropdown
+    api({ get_colleges: 1 }, function (res) {
+      if (res.status === 200 && res.data) {
+        let opts = '<option value="">All Colleges</option>';
+        res.data.forEach(c => { opts += `<option value="${c.id}">${esc(c.name)}</option>`; });
+        $('#studentCollegeFilter').html(opts);
+      }
+    });
+    loadAzhagiiStudents();
+  }
+
+  window.loadAzhagiiStudents = function () {
+    const data = { get_users: 1, role_filter: 'azhagiiStudents' };
+    const cf = $('#studentCollegeFilter').val();
+    if (cf) data.college_filter = cf;
+    api(data, function (res) {
+      if (res.status !== 200) return;
+      azhagiiStudentsData = res.data || [];
+      renderAzhagiiStudents();
+    });
+  };
+
+  function renderAzhagiiStudents() {
+    const search = ($('#studentSearchInput').val() || '').toLowerCase();
+    let filtered = azhagiiStudentsData;
+    if (search) {
+      filtered = filtered.filter(u =>
+        (u.name || '').toLowerCase().includes(search) ||
+        (u.email || '').toLowerCase().includes(search) ||
+        (u.username || '').toLowerCase().includes(search) ||
+        (u.phone || '').toLowerCase().includes(search) ||
+        (u.rollNumber || '').toLowerCase().includes(search) ||
+        (u.department || '').toLowerCase().includes(search)
+      );
+    }
+    let html = '';
+    if (filtered.length === 0) {
+      html = '<tr><td colspan="19" class="empty-state"><i class="fas fa-user-graduate"></i><p>No students found</p></td></tr>';
+    }
+    filtered.forEach((u, i) => {
+      const photo = u.profilePhoto
+        ? `<img src="${esc(u.profilePhoto)}" alt="Photo" style="width:36px;height:36px;border-radius:50%;object-fit:cover;">`
+        : `<div class="avatar-circle" style="width:36px;height:36px;font-size:0.85rem;">${esc((u.name || '?')[0].toUpperCase())}</div>`;
+      html += `<tr>
+        <td data-label="#">${i + 1}</td>
+        <td data-label="Photo">${photo}</td>
+        <td data-label="Name">${esc(u.name)}</td>
+        <td data-label="Username">${esc(u.username)}</td>
+        <td data-label="Azhagii ID">${esc(u.azhagiiID || '-')}</td>
+        <td data-label="Email">${esc(u.email)}</td>
+        <td data-label="Phone">${esc(u.phone || '-')}</td>
+        <td data-label="Gender">${esc(u.gender || '-')}</td>
+        <td data-label="DOB">${u.dob ? formatDate(u.dob) : '-'}</td>
+        <td data-label="College">${esc(u.college_name || '-')}</td>
+        <td data-label="Department">${esc(u.department || '-')}</td>
+        <td data-label="Year">${esc(u.year || '-')}</td>
+        <td data-label="Roll Number">${esc(u.rollNumber || '-')}</td>
+        <td data-label="Bio" class="cell-wrap">${esc(u.bio || '-')}</td>
+        <td data-label="Address" class="cell-wrap">${esc(u.address || '-')}</td>
+        <td data-label="Status"><span class="badge badge-${u.status === 'active' ? 'active' : 'inactive'}">${esc(u.status)}</span></td>
+        <td data-label="Locked">${u.isLocked == 1 ? '<span class="badge badge-inactive">Locked</span>' : '<span class="badge badge-active">No</span>'}</td>
+        <td data-label="Joined">${formatDate(u.createdAt)}</td>
+        <td class="actions">
+          <button class="btn btn-outline btn-sm" onclick="editAzhagiiStudent(${u.id})"><i class="fas fa-edit"></i></button>
+          <button class="btn btn-danger btn-sm" onclick="deleteAzhagiiStudent(${u.id})"><i class="fas fa-trash"></i></button>
+        </td>
+      </tr>`;
+    });
+    $('#azhagiiStudentsBody').html(html);
+  }
+
+  // Client-side filter for search input (no API re-fetch)
+  window.filterAzhagiiStudents = function () {
+    renderAzhagiiStudents();
+  };
+
+  // Edit student — full edit modal with all fields
+  window.editAzhagiiStudent = function (id) {
+    const loadUser = new Promise(r => {
+      api({ get_users: 1, role_filter: 'azhagiiStudents' }, res => { r((res.data || []).find(x => x.id == id) || {}); });
+    });
+    const loadCollegesP = collegesCache.length ? Promise.resolve(collegesCache) : new Promise(r => {
+      api({ get_colleges: 1 }, res => { collegesCache = res.data || []; r(collegesCache); });
+    });
+
+    Promise.all([loadUser, loadCollegesP]).then(([u, colleges]) => {
+      let collegeOpts = '<option value="">No College</option>';
+      colleges.forEach(c => { collegeOpts += `<option value="${c.id}" ${u.collegeId == c.id ? 'selected' : ''}>${esc(c.name)}</option>`; });
+
+      const genderOpts = ['', 'Male', 'Female', 'Other'].map(g =>
+        `<option value="${g}" ${(u.gender || '') === g ? 'selected' : ''}>${g || '-- Select --'}</option>`
+      ).join('');
+
+      const dobVal = u.dob ? u.dob.substring(0, 10) : '';
+
+      Swal.fire({
+        title: 'Edit Student', width: 750,
+        html: `<div class="swal-form" style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem 1rem;text-align:left;max-height:55vh;overflow-y:auto;padding:0.5rem;">
+          <div class="form-group"><label class="form-label">Name</label><input id="seStudentName" class="form-input" value="${esc(u.name || '')}"></div>
+          <div class="form-group"><label class="form-label">Username</label><input id="seStudentUsername" class="form-input" value="${esc(u.username || '')}" readonly></div>
+          <div class="form-group"><label class="form-label">Email</label><input id="seStudentEmail" class="form-input" type="email" value="${esc(u.email || '')}"></div>
+          <div class="form-group"><label class="form-label">Phone</label><input id="seStudentPhone" class="form-input" value="${esc(u.phone || '')}"></div>
+          <div class="form-group"><label class="form-label">Gender</label><select id="seStudentGender" class="form-input">${genderOpts}</select></div>
+          <div class="form-group"><label class="form-label">Date of Birth</label><input id="seStudentDob" class="form-input" type="date" value="${dobVal}"></div>
+          <div class="form-group"><label class="form-label">College</label><select id="seStudentCollege" class="form-input">${collegeOpts}</select></div>
+          <div class="form-group"><label class="form-label">Department</label><input id="seStudentDept" class="form-input" value="${esc(u.department || '')}"></div>
+          <div class="form-group"><label class="form-label">Year</label><input id="seStudentYear" class="form-input" value="${esc(u.year || '')}"></div>
+          <div class="form-group"><label class="form-label">Roll Number</label><input id="seStudentRoll" class="form-input" value="${esc(u.rollNumber || '')}"></div>
+          <div class="form-group" style="grid-column:1/-1;"><label class="form-label">Bio</label><textarea id="seStudentBio" class="form-input" rows="2" style="resize:vertical;">${esc(u.bio || '')}</textarea></div>
+          <div class="form-group" style="grid-column:1/-1;"><label class="form-label">Address</label><textarea id="seStudentAddress" class="form-input" rows="2" style="resize:vertical;">${esc(u.address || '')}</textarea></div>
+          <div class="form-group"><label class="form-label">Status</label><select id="seStudentStatus" class="form-input"><option value="active" ${u.status === 'active' ? 'selected' : ''}>Active</option><option value="inactive" ${u.status === 'inactive' ? 'selected' : ''}>Inactive</option></select></div>
+          <div class="form-group"><label class="form-label">Password <small>(leave blank to keep)</small></label><input id="seStudentPass" class="form-input" type="password" placeholder="Unchanged"></div>
+        </div>`,
+        showCancelButton: true, confirmButtonText: 'Update', confirmButtonColor: '#4285f4',
+        preConfirm: () => {
+          const data = {
+            update_user: 1, id: id,
+            name: $('#seStudentName').val(),
+            email: $('#seStudentEmail').val(),
+            username: $('#seStudentUsername').val(),
+            role: 'azhagiiStudents',
+            collegeId: $('#seStudentCollege').val(),
+            phone: $('#seStudentPhone').val(),
+            gender: $('#seStudentGender').val(),
+            dob: $('#seStudentDob').val(),
+            department: $('#seStudentDept').val(),
+            year: $('#seStudentYear').val(),
+            rollNumber: $('#seStudentRoll').val(),
+            bio: $('#seStudentBio').val(),
+            address: $('#seStudentAddress').val(),
+            status: $('#seStudentStatus').val()
+          };
+          const pass = $('#seStudentPass').val();
+          if (pass) data.password = pass;
+          if (!data.name || !data.email) { Swal.showValidationMessage('Name and Email are required'); return false; }
+          return new Promise(resolve => {
+            api(data, res => {
+              if (res.status === 200) resolve(res);
+              else { Swal.showValidationMessage(res.message || 'Update failed'); resolve(false); }
+            }, () => { Swal.showValidationMessage('Connection failed'); resolve(false); });
+          });
+        }
+      }).then(result => {
+        if (result.isConfirmed && result.value) {
+          toast('success', result.value.message);
+          loadAzhagiiStudents();
+        }
+      });
+    });
+  };
+
+  // Delete student — reuse existing delete flow, then reload students list
+  window.deleteAzhagiiStudent = function (id) {
+    Swal.fire({
+      title: 'Delete Student?', text: 'This action cannot be undone.', icon: 'warning',
+      showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Delete'
+    }).then(r => {
+      if (r.isConfirmed) api({ delete_user: 1, id }, res => {
+        toast(res.status === 200 ? 'success' : 'error', res.message);
+        if (res.status === 200) loadAzhagiiStudents();
+      });
+    });
+  };
+
+  // ══════════════════════════════════════════
   //  PAGE ROUTER — auto-load data per page
   // ══════════════════════════════════════════
   if (typeof CURRENT_PAGE !== 'undefined') {
@@ -1534,6 +1726,7 @@ $(document).ready(function () {
       case 'dashboard':                loadRoleDashboard(); break;
       case 'manageColleges':           loadColleges(); break;
       case 'manageUsers':              loadCollegeDropdowns(); loadUsers(); break;
+      case 'azhagiiStudents':            loadAzhagiiStudentsPage(); break;
       case 'manageCourses':            loadCourses(); break;
       case 'manageSubjects':           loadSubjectCourses(); break;
       case 'courseAssignments':         loadCourseDropdowns(); break;
