@@ -8,11 +8,14 @@ $uid = $_SESSION['userId'];
 
 // Fetch "My Submitted Courses"
 $myCourses = [];
-$q = "SELECT * FROM courses WHERE createdBy = $uid ORDER BY createdAt DESC";
-$r = mysqli_query($conn, $q);
-while ($r && $row = mysqli_fetch_assoc($r)) {
+$stmt = $conn->prepare("SELECT * FROM courses WHERE createdBy = ? ORDER BY createdAt DESC");
+$stmt->bind_param("i", $uid);
+$stmt->execute();
+$r = $stmt->get_result();
+while ($r && $row = $r->fetch_assoc()) {
     $myCourses[] = $row;
 }
+$stmt->close();
 
 require 'includes/header.php';
 require 'includes/sidebar.php';

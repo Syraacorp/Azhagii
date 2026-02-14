@@ -10,13 +10,17 @@ $uid = $_SESSION['userId'];
 // Fetch Courses for Dropdown (Assigned or Created)
 $q = "SELECT id, title, courseCode 
       FROM courses 
-      WHERE (id IN (SELECT courseId FROM coursecolleges WHERE collegeId=$cid) OR createdBy=$uid) 
+      WHERE (id IN (SELECT courseId FROM coursecolleges WHERE collegeId=?) OR createdBy=?) 
       ORDER BY title ASC";
+$stmt = $conn->prepare($q);
+$stmt->bind_param("ii", $cid, $uid);
+$stmt->execute();
+$r = $stmt->get_result();
 $courses = [];
-$r = mysqli_query($conn, $q);
-while ($r && $row = mysqli_fetch_assoc($r)) {
+while ($r && $row = $r->fetch_assoc()) {
     $courses[] = $row;
 }
+$stmt->close();
 
 require 'includes/header.php';
 require 'includes/sidebar.php';
@@ -86,10 +90,10 @@ require 'includes/sidebar.php';
                         html += `<tr>
                             <td>${i + 1}</td>
                             <td>
-                                <div><strong>${escapeHtml(s.name)}</strong></div>
+                                <div><strong>${escapeHtml(s.student_name)}</strong></div>
                                 <div class="text-muted small">${escapeHtml(s.rollNumber || '')}</div>
                             </td>
-                            <td>${escapeHtml(s.email)}</td>
+                            <td>${escapeHtml(s.student_email)}</td>
                             <td>${escapeHtml(s.phone || '-')}</td>
                             <td>
                                 <div class="d-flex align-items-center">

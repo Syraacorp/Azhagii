@@ -121,6 +121,124 @@ function requireRole($roles)
 }
 
 // ══════════════════════════════════════════════════════════
+//  DOWNLOAD UPLOADS (GET — serves binary ZIP, not JSON)
+// ══════════════════════════════════════════════════════════
+
+if (isset($_GET['action']) && $_GET['action'] === 'download_folder') {
+    if (!isLogged() || role() !== 'superAdmin') {
+        http_response_code(403);
+        ob_end_clean();
+        echo 'Access denied. SuperAdmin only.';
+        exit;
+    }
+
+    $allowedFolders = ['profiles', 'content', 'thumbnails'];
+    $folder = $_GET['folder'] ?? '';
+
+    if (!in_array($folder, $allowedFolders, true)) {
+        http_response_code(400);
+        ob_end_clean();
+        echo 'Invalid folder. Allowed: ' . implode(', ', $allowedFolders);
+        exit;
+    }
+
+    $dirPath = realpath(__DIR__ . '/uploads/' . $folder);
+
+    if (!$dirPath || !is_dir($dirPath)) {
+        http_response_code(404);
+        ob_end_clean();
+        echo 'Folder not found.';
+        exit;
+    }
+
+    // Collect files (recursive)
+    $files = [];
+    $iterator = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($dirPath, RecursiveDirectoryIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::LEAVES_ONLY
+    );
+    foreach ($iterator as $file) {
+        if ($file->isFile()) {
+            $files[] = $file->getRealPath();
+        }
+    }
+
+    if (empty($files)) {
+        http_response_code(404);
+        ob_end_clean();
+        echo 'No files found in the ' . $folder . ' folder.';
+        exit;
+    }
+
+    set_time_limit(600);
+
+    // Create temporary ZIP
+    $zipFileName = $folder . '_' . date('Y-m-d_His') . '.zip';
+    $tmpZipPath  = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $zipFileName;
+
+    // ZIP Logic — try ZipArchive first, fall back to PowerShell on Windows
+    if (class_exists('ZipArchive')) {
+        $zip = new ZipArchive();
+        if ($zip->open($tmpZipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+            http_response_code(500);
+            ob_end_clean();
+            echo 'Failed to create ZIP file.';
+            exit;
+        }
+        foreach ($files as $fp) {
+            $relativePath = substr($fp, strlen($dirPath) + 1);
+            $relativePath = str_replace('\\', '/', $relativePath);
+            $zip->addFile($fp, $relativePath);
+        }
+        $zip->close();
+    } else {
+        // Fallback: PowerShell Compress-Archive on Windows
+        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+            $winSource = $dirPath . DIRECTORY_SEPARATOR . '*';
+            $cmd = 'powershell -NoProfile -Command "Compress-Archive -Path \'' . $winSource . '\' -DestinationPath \'' . $tmpZipPath . '\' -Force"';
+            exec($cmd, $output, $returnVar);
+            if (!file_exists($tmpZipPath)) {
+                http_response_code(500);
+                ob_end_clean();
+                echo 'ZIP extension is not available and PowerShell fallback failed.';
+                exit;
+            }
+        } else {
+            http_response_code(500);
+            ob_end_clean();
+            echo 'ZIP extension is not enabled on this server.';
+            exit;
+        }
+    }
+
+    if (!file_exists($tmpZipPath) || filesize($tmpZipPath) === 0) {
+        http_response_code(500);
+        ob_end_clean();
+        echo 'Failed to generate ZIP file.';
+        exit;
+    }
+
+    // Set download-started cookie for frontend tracking
+    if (isset($_GET['token'])) {
+        setcookie('download_started', $_GET['token'], time() + 300, '/');
+    }
+
+    // Serve ZIP — override JSON headers
+    while (ob_get_level()) { ob_end_clean(); }
+    header_remove('Content-Type');
+    header('Content-Description: File Transfer');
+    header('Content-Type: application/zip');
+    header('Content-Disposition: attachment; filename="' . $zipFileName . '"');
+    header('Content-Length: ' . filesize($tmpZipPath));
+    header('Expires: 0');
+    header('Cache-Control: must-revalidate');
+    header('Pragma: public');
+    readfile($tmpZipPath);
+    @unlink($tmpZipPath);
+    exit;
+}
+
+// ══════════════════════════════════════════════════════════
 //  AUTHENTICATION
 // ══════════════════════════════════════════════════════════
 
@@ -144,7 +262,10 @@ if (isset($_POST['login_user'])) {
             $loginSuccess = true;
             // Auto-hash and update
             $newHash = password_hash($password, PASSWORD_DEFAULT);
-            $conn->query("UPDATE users SET password='$newHash' WHERE id={$u['id']}");
+            $hashStmt = $conn->prepare("UPDATE users SET password=? WHERE id=?");
+            $hashStmt->bind_param("si", $newHash, $u['id']);
+            $hashStmt->execute();
+            $hashStmt->close();
         }
 
         if ($loginSuccess) {
@@ -2096,7 +2217,7 @@ if (isset($_POST['get_course_students'])) {
         $types .= "i";
         $params[] = cid();
     }
-    $q = "SELECT e.*, u.name as student_name, u.email as student_email, u.phone, cl.name as college_name
+    $q = "SELECT e.*, u.name as student_name, u.email as student_email, u.phone, u.rollNumber, cl.name as college_name
           FROM enrollments e
           JOIN users u ON e.studentId=u.id
           LEFT JOIN colleges cl ON u.collegeId=cl.id

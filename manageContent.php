@@ -11,17 +11,22 @@ $uid = $_SESSION['userId'];
 // Super Admin sees ALL courses. Coordinator sees assigned or own.
 if (hasRole('superAdmin')) {
     $q = "SELECT id, title, courseCode FROM courses ORDER BY title ASC";
+    $r = mysqli_query($conn, $q);
 } else {
     $q = "SELECT id, title, courseCode 
           FROM courses 
-          WHERE (id IN (SELECT courseId FROM coursecolleges WHERE collegeId=$cid) OR createdBy=$uid) 
+          WHERE (id IN (SELECT courseId FROM coursecolleges WHERE collegeId=?) OR createdBy=?) 
           ORDER BY title ASC";
+    $stmt = $conn->prepare($q);
+    $stmt->bind_param("ii", $cid, $uid);
+    $stmt->execute();
+    $r = $stmt->get_result();
 }
 $courses = [];
-$r = mysqli_query($conn, $q);
-while ($r && $row = mysqli_fetch_assoc($r)) {
+while ($r && $row = $r->fetch_assoc()) {
     $courses[] = $row;
 }
+if (isset($stmt)) { $stmt->close(); unset($stmt); }
 require 'includes/header.php';
 require 'includes/sidebar.php';
 ?>

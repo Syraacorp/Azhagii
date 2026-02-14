@@ -4,8 +4,8 @@ $currentPage = 'dashboard';
 require 'includes/auth.php';
 requirePageRole('azhagiiCoordinator');
 
-$cid = $_SESSION['collegeId'];
-$uid = $_SESSION['userId'];
+$cid = intval($_SESSION['collegeId']);
+$uid = intval($_SESSION['userId']);
 
 // ── Fetch Coordinator Stats (Server-Side) ──
 $stats = [

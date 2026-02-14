@@ -5,8 +5,8 @@ require 'includes/auth.php';
 requirePageRole('azhagiiStudents');
 
 // ── Fetch Student Data (Server-Side) ──
-$sid = $_SESSION['userId'];
-$cid = $_SESSION['collegeId'];
+$sid = intval($_SESSION['userId']);
+$cid = intval($_SESSION['collegeId']);
 
 // 1. Stats
 $stats = [

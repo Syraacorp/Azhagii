@@ -39,6 +39,41 @@ while ($row = mysqli_fetch_assoc($r)) {
     $recentUsers[] = $row;
 }
 
+// 3. Upload folder stats (recursive to match backend download)
+$uploadFolders = ['profiles', 'content', 'thumbnails'];
+$folderStats = [];
+foreach ($uploadFolders as $folder) {
+    $dir = realpath(__DIR__ . '/uploads/' . $folder);
+    $fileCount = 0;
+    $totalSize = 0;
+    if ($dir && is_dir($dir)) {
+        $iter = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($dir, RecursiveDirectoryIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::LEAVES_ONLY
+        );
+        foreach ($iter as $f) {
+            if ($f->isFile()) {
+                $fileCount++;
+                $totalSize += $f->getSize();
+            }
+        }
+    }
+    if ($totalSize >= 1073741824) {
+        $sizeStr = round($totalSize / 1073741824, 2) . ' GB';
+    } elseif ($totalSize >= 1048576) {
+        $sizeStr = round($totalSize / 1048576, 1) . ' MB';
+    } elseif ($totalSize > 0) {
+        $sizeStr = round($totalSize / 1024, 1) . ' KB';
+    } else {
+        $sizeStr = '0 bytes';
+    }
+    $folderStats[$folder] = [
+        'count' => $fileCount,
+        'size'  => $totalSize,
+        'sizeFormatted' => $sizeStr
+    ];
+}
+
 require 'includes/header.php';
 require 'includes/sidebar.php';
 ?>
@@ -109,6 +144,32 @@ require 'includes/sidebar.php';
     </a>
 </div>
 
+<!-- Download Uploads -->
+<div class="dashboard-section-title"><i class="fas fa-download"></i> Download Uploads</div>
+<div class="quick-actions-grid">
+    <?php foreach ($uploadFolders as $folder):
+        $icon = $folder === 'profiles' ? 'fa-user-circle' : ($folder === 'content' ? 'fa-file-alt' : 'fa-image');
+        $color = $folder === 'profiles' ? '#4285f4' : ($folder === 'content' ? '#9b72cb' : '#34d399');
+        $fs = $folderStats[$folder];
+    ?>
+    <div class="quick-action-card" style="cursor:default;position:relative;">
+        <div class="quick-action-icon" style="background:<?= $color ?>15;color:<?= $color ?>;"><i class="fas <?= $icon ?>"></i></div>
+        <div style="flex:1;">
+            <h4 style="text-transform:capitalize;"><?= $folder ?></h4>
+            <p><?= $fs['count'] ?> file<?= $fs['count'] !== 1 ? 's' : '' ?> &middot; <?= $fs['sizeFormatted'] ?></p>
+        </div>
+        <?php if ($fs['count'] > 0): ?>
+        <button class="btn btn-sm btn-download-folder" data-folder="<?= $folder ?>"
+            style="background:<?= $color ?>;color:#fff;border:none;padding:0.4rem 0.9rem;border-radius:8px;font-size:0.82rem;cursor:pointer;display:inline-flex;align-items:center;gap:0.35rem;">
+            <i class="fas fa-download"></i> ZIP
+        </button>
+        <?php else: ?>
+        <span style="color:var(--text-muted);font-size:0.8rem;">Empty</span>
+        <?php endif; ?>
+    </div>
+    <?php endforeach; ?>
+</div>
+
 <!-- Recent Users -->
 <div class="dashboard-section-title"><i class="fas fa-clock"></i> Recent Users</div>
 <div class="table-responsive">
@@ -136,6 +197,59 @@ require 'includes/sidebar.php';
     $(document).ready(function() {
         $('#recentUsersTable').DataTable({
             paging: false, searching: false, info: false, ordering: false
+        });
+
+        // Download folder as ZIP (cookie-based tracking like Orlia)
+        $('.btn-download-folder').on('click', function() {
+            var btn = $(this);
+            var folder = btn.data('folder');
+            var originalHtml = btn.html();
+            var token = new Date().getTime();
+
+            btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Preparing...');
+
+            Swal.fire({
+                title: 'Processing...',
+                html: 'Compressing <strong>' + folder + '</strong> files for download.<br>This may take a moment.',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: function() {
+                    Swal.showLoading();
+                    window.location.href = 'backend.php?action=download_folder&folder=' + encodeURIComponent(folder) + '&token=' + token;
+                }
+            });
+
+            // Poll for download_started cookie set by backend
+            var downloadTimer = setInterval(function() {
+                var matches = document.cookie.match(new RegExp('(^| )download_started=([^;]+)'));
+                var cookieValue = matches ? matches[2] : null;
+
+                if (cookieValue == token) {
+                    clearInterval(downloadTimer);
+                    Swal.close();
+                    btn.prop('disabled', false).html(originalHtml);
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Download Started',
+                        text: 'Your ' + folder + ' ZIP file is being downloaded.',
+                        timer: 3000,
+                        showConfirmButton: false
+                    });
+                    // Clear cookie
+                    document.cookie = 'download_started=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+                }
+            }, 1000);
+
+            // Timeout fallback — if cookie never arrives (error), re-enable after 30s
+            setTimeout(function() {
+                clearInterval(downloadTimer);
+                if (btn.prop('disabled')) {
+                    btn.prop('disabled', false).html(originalHtml);
+                    Swal.close();
+                    Swal.fire('Download Failed', 'The download did not start. The folder may be empty or a server error occurred.', 'error');
+                }
+            }, 30000);
         });
     });
 </script>

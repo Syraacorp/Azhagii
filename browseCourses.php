@@ -1,4 +1,4 @@
-    <?php
+<?php
 $pageTitle = 'Browse Courses';
 $currentPage = 'browseCourses';
 require 'includes/auth.php';
@@ -9,10 +9,14 @@ $uid = $_SESSION['userId'];
 
 // 1. Get Enrolled Course IDs
 $enrolledIds = [];
-$r = mysqli_query($conn, "SELECT courseId FROM enrollments WHERE studentId=$uid");
-while ($row = mysqli_fetch_assoc($r)) {
+$stmt = $conn->prepare("SELECT courseId FROM enrollments WHERE studentId=?");
+$stmt->bind_param("i", $uid);
+$stmt->execute();
+$r = $stmt->get_result();
+while ($row = $r->fetch_assoc()) {
     $enrolledIds[] = intval($row['courseId']);
 }
+$stmt->close();
 
 // 2. Fetch Available Courses
 // Logic: Status=active AND (Assigned to Student's College OR (Maybe Public? Script just said collegeId check))
@@ -21,13 +25,17 @@ $q = "SELECT c.*,
       (SELECT COUNT(*) FROM coursecontent WHERE courseId=c.id AND status='active') as content_count 
       FROM courses c 
       WHERE c.status='active' 
-      AND c.id IN (SELECT courseId FROM coursecolleges WHERE collegeId=$cid)
+      AND c.id IN (SELECT courseId FROM coursecolleges WHERE collegeId=?)
       ORDER BY c.createdAt DESC";
+$stmt = $conn->prepare($q);
+$stmt->bind_param("i", $cid);
+$stmt->execute();
+$r = $stmt->get_result();
 $courses = [];
-$r = mysqli_query($conn, $q);
-while ($r && $row = mysqli_fetch_assoc($r)) {
+while ($r && $row = $r->fetch_assoc()) {
     $courses[] = $row;
 }
+$stmt->close();
 require 'includes/header.php';
 require 'includes/sidebar.php';
 ?>

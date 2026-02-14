@@ -4,21 +4,24 @@ $currentPage = 'courseViewerSSR';
 require 'includes/auth.php';
 requirePageRole('azhagiiStudents');
 
-if (!isset($_GET['id'])) {
+if (!isset($_GET['courseId'])) {
     header("Location: myLearning.php");
     exit;
 }
-$courseId = intval($_GET['id']);
+$courseId = intval($_GET['courseId']);
 $userId = $_SESSION['userId'];
 
 // 1. Fetch Course & Enrollment Details
-$q = "SELECT c.*, e.progress, e.completed_topics 
+$stmt = $conn->prepare("SELECT c.*, e.progress, e.completed_topics 
       FROM courses c 
       INNER JOIN enrollments e ON c.id = e.courseId 
-      WHERE c.id = $courseId AND e.userId = $userId 
-      LIMIT 1";
-$r = mysqli_query($conn, $q);
-$course = mysqli_fetch_assoc($r);
+      WHERE c.id = ? AND e.studentId = ? 
+      LIMIT 1");
+$stmt->bind_param("ii", $courseId, $userId);
+$stmt->execute();
+$r = $stmt->get_result();
+$course = $r->fetch_assoc();
+$stmt->close();
 
 if (!$course) {
     // Not enrolled or invalid course
@@ -39,20 +42,26 @@ if (!empty($course['completed_topics'])) {
 $subjects = [];
 $firstTopic = null;
 
-$sq = "SELECT * FROM subjects WHERE courseId = $courseId ORDER BY id ASC"; // Assuming ID order or add 'order' column
-$sr = mysqli_query($conn, $sq);
-while ($sr && $sub = mysqli_fetch_assoc($sr)) {
+$sq_stmt = $conn->prepare("SELECT * FROM subjects WHERE courseId = ? ORDER BY id ASC");
+$sq_stmt->bind_param("i", $courseId);
+$sq_stmt->execute();
+$sr = $sq_stmt->get_result();
+while ($sr && $sub = $sr->fetch_assoc()) {
     $sub['topics'] = [];
     $sid = $sub['id'];
-    $tq = "SELECT * FROM topics WHERE subjectId = $sid AND status='active' ORDER BY id ASC";
-    $tr = mysqli_query($conn, $tq);
-    while ($tr && $t = mysqli_fetch_assoc($tr)) {
+    $tq_stmt = $conn->prepare("SELECT * FROM topics WHERE subjectId = ? AND status='active' ORDER BY id ASC");
+    $tq_stmt->bind_param("i", $sid);
+    $tq_stmt->execute();
+    $tr = $tq_stmt->get_result();
+    while ($tr && $t = $tr->fetch_assoc()) {
         $sub['topics'][] = $t;
         if (!$firstTopic)
             $firstTopic = $t;
     }
+    $tq_stmt->close();
     $subjects[] = $sub;
 }
+$sq_stmt->close();
 
 require 'includes/header.php';
 require 'includes/sidebar.php';
@@ -66,9 +75,9 @@ require 'includes/sidebar.php';
             <div>
                 <h4 style="margin:0;font-size:0.95rem;line-height:1.2;"><?= htmlspecialchars($course['title']) ?></h4>
                 <div class="progress-bar-sm" style="margin-top:0.4rem;height:4px;background:rgba(255,255,255,0.1);">
-                    <div class="progress-fill" style="width:<?= $course['progress'] ?>%;background:#4ade80;"></div>
+                    <div class="progress-fill" style="width:<?= intval($course['progress']) ?>%;background:#4ade80;"></div>
                 </div>
-                <small style="color:rgba(255,255,255,0.6);font-size:0.75rem;"><?= $course['progress'] ?>%
+                <small style="color:rgba(255,255,255,0.6);font-size:0.75rem;"><?= intval($course['progress']) ?>%
                     Complete</small>
             </div>
         </div>
@@ -338,7 +347,10 @@ require 'includes/sidebar.php';
 
         $('#mainVideo').attr('src', embedUrl);
         $('#topicTitle').text(title);
-        $('#topicDesc').html(desc ? desc.replace(/\n/g, '<br>') : '');
+        $('#topicDesc').text(desc || '');
+        if (desc) {
+            $('#topicDesc').html($('<span>').text(desc).html().replace(/\n/g, '<br>'));
+        }
 
         // Complete Logic
         if (completedTopics.includes(id)) {

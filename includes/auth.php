@@ -33,13 +33,15 @@ function requirePageRole($allowed)
 }
 
 // ── Role check helper (Boolean) ──
-function hasRole($checkRole)
-{
-    global $role;
-    if (is_array($checkRole)) {
-        return in_array($role, $checkRole);
+if (!function_exists('hasRole')) {
+    function hasRole($checkRole)
+    {
+        global $role;
+        if (is_array($checkRole)) {
+            return in_array($role, $checkRole);
+        }
+        return $role === $checkRole;
     }
-    return $role === $checkRole;
 }
 
 // ── Dashboard URL helper ──

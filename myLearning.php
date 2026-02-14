@@ -11,13 +11,17 @@ $q = "SELECT c.*, e.id as enrollment_id, e.progress, e.status as enroll_status, 
       (SELECT COUNT(*) FROM coursecontent WHERE courseId=c.id AND status='active') as content_count 
       FROM enrollments e 
       JOIN courses c ON e.courseId=c.id 
-      WHERE e.studentId=$uid 
+      WHERE e.studentId=? 
       ORDER BY e.enrolledAt DESC";
+$stmt = $conn->prepare($q);
+$stmt->bind_param("i", $uid);
+$stmt->execute();
+$r = $stmt->get_result();
 $myCourses = [];
-$r = mysqli_query($conn, $q);
-while ($r && $row = mysqli_fetch_assoc($r)) {
+while ($r && $row = $r->fetch_assoc()) {
     $myCourses[] = $row;
 }
+$stmt->close();
 require 'includes/header.php';
 require 'includes/sidebar.php';
 ?>

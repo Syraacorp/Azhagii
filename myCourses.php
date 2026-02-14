@@ -8,29 +8,47 @@ $cid = intval($_SESSION['collegeId'] ?? 0);
 $uid = $_SESSION['userId'];
 
 // Fetch Courses (Assigned to College OR Created by Coordinator)
-$where = "1=0"; // Default to none
-if (hasRole('superAdmin')) {
-    $where = "1=1"; // SuperAdmin sees all
-} elseif (hasRole('azhagiiCoordinator')) {
-    $where = "(c.id IN (SELECT courseId FROM coursecolleges WHERE collegeId=$cid) OR c.createdBy=$uid)";
-} elseif (hasRole('adminAzhagii')) {
-    $where = "1=1"; // Admin also sees all? Assuming similar to SuperAdmin for "My Courses" view if they access it.
-} else {
-    // Fallback for others (students shouldn't be here, they have browseCourses)
-    $where = "c.createdBy=$uid";
-}
-
-$q = "SELECT c.*, u.name as creator_name,
-      (SELECT COUNT(*) FROM coursecontent WHERE courseId=c.id AND status='active') as content_count 
-      FROM courses c 
-      LEFT JOIN users u ON c.createdBy=u.id
-      WHERE $where
-      ORDER BY c.createdAt DESC";
-
 $courses = [];
-$r = mysqli_query($conn, $q);
-while ($r && $row = mysqli_fetch_assoc($r)) {
-    $courses[] = $row;
+if (hasRole('superAdmin') || hasRole('adminAzhagii')) {
+    $q = "SELECT c.*, u.name as creator_name,
+          (SELECT COUNT(*) FROM coursecontent WHERE courseId=c.id AND status='active') as content_count 
+          FROM courses c 
+          LEFT JOIN users u ON c.createdBy=u.id
+          ORDER BY c.createdAt DESC";
+    $r = mysqli_query($conn, $q);
+    while ($r && $row = mysqli_fetch_assoc($r)) {
+        $courses[] = $row;
+    }
+} elseif (hasRole('azhagiiCoordinator')) {
+    $q = "SELECT c.*, u.name as creator_name,
+          (SELECT COUNT(*) FROM coursecontent WHERE courseId=c.id AND status='active') as content_count 
+          FROM courses c 
+          LEFT JOIN users u ON c.createdBy=u.id
+          WHERE (c.id IN (SELECT courseId FROM coursecolleges WHERE collegeId=?) OR c.createdBy=?)
+          ORDER BY c.createdAt DESC";
+    $stmt = $conn->prepare($q);
+    $stmt->bind_param("ii", $cid, $uid);
+    $stmt->execute();
+    $r = $stmt->get_result();
+    while ($r && $row = $r->fetch_assoc()) {
+        $courses[] = $row;
+    }
+    $stmt->close();
+} else {
+    $q = "SELECT c.*, u.name as creator_name,
+          (SELECT COUNT(*) FROM coursecontent WHERE courseId=c.id AND status='active') as content_count 
+          FROM courses c 
+          LEFT JOIN users u ON c.createdBy=u.id
+          WHERE c.createdBy=?
+          ORDER BY c.createdAt DESC";
+    $stmt = $conn->prepare($q);
+    $stmt->bind_param("i", $uid);
+    $stmt->execute();
+    $r = $stmt->get_result();
+    while ($r && $row = $r->fetch_assoc()) {
+        $courses[] = $row;
+    }
+    $stmt->close();
 }
 
 require 'includes/header.php';

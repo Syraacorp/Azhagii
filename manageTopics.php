@@ -10,17 +10,22 @@ $uid = $_SESSION['userId'];
 // Fetch Courses for Dropdown (Assigned or Created)
 if (hasRole('superAdmin')) {
     $q = "SELECT id, title, courseCode FROM courses ORDER BY title ASC";
+    $r = mysqli_query($conn, $q);
 } else {
     $q = "SELECT id, title, courseCode 
           FROM courses 
-          WHERE (id IN (SELECT courseId FROM coursecolleges WHERE collegeId=$cid) OR createdBy=$uid) 
+          WHERE (id IN (SELECT courseId FROM coursecolleges WHERE collegeId=?) OR createdBy=?) 
           ORDER BY title ASC";
+    $stmt = $conn->prepare($q);
+    $stmt->bind_param("ii", $cid, $uid);
+    $stmt->execute();
+    $r = $stmt->get_result();
 }
 $courses = [];
-$r = mysqli_query($conn, $q);
-while ($r && $row = mysqli_fetch_assoc($r)) {
+while ($r && $row = $r->fetch_assoc()) {
     $courses[] = $row;
 }
+if (isset($stmt)) { $stmt->close(); unset($stmt); }
 
 require 'includes/header.php';
 require 'includes/sidebar.php';
@@ -122,10 +127,10 @@ require 'includes/sidebar.php';
                             <td>${i + 1}</td>
                             <td>${escapeHtml(t.title)}</td>
                             <td>${escapeHtml(t.description || '-')}</td>
-                            <td>${escapeHtml(t.added_by_name || 'System')}</td>
+                            <td>${escapeHtml(t.creator_name || 'System')}</td>
                             <td><span class="badge badge-${t.status === 'active' ? 'active' : 'inactive'}">${t.status}</span></td>
                             <td>
-                                <button class="btn btn-sm btn-outline" onclick="editTopic(${t.id}, '${escapeHtml(t.title)}', '${escapeHtml(t.description || '')}', '${t.status}')"><i class="fas fa-edit"></i></button>
+                                <button class="btn btn-sm btn-outline" data-id="${t.id}" data-title="${escapeHtml(t.title)}" data-desc="${escapeHtml(t.description || '')}" data-status="${t.status}" onclick="editTopic(this)"><i class="fas fa-edit"></i></button>
                                 <button class="btn btn-sm btn-danger" onclick="deleteTopic(${t.id})"><i class="fas fa-trash"></i></button>
                             </td>
                         </tr>`;
@@ -191,13 +196,18 @@ require 'includes/sidebar.php';
         });
     }
 
-    function editTopic(id, title, desc, status) {
+    function editTopic(el) {
+        const $el = $(el);
+        const id = $el.data('id');
+        const title = $el.data('title');
+        const desc = $el.data('desc');
+        const status = $el.data('status');
         Swal.fire({
             title: 'Edit Topic',
             html: `
                 <div class="swal-form text-left">
-                    <div class="form-group"><label>Title</label><input id="swal-topicTitle" class="form-input" value="${title}"></div>
-                    <div class="form-group"><label>Description</label><textarea id="swal-topicDesc" class="form-input">${desc}</textarea></div>
+                    <div class="form-group"><label>Title</label><input id="swal-topicTitle" class="form-input"></div>
+                    <div class="form-group"><label>Description</label><textarea id="swal-topicDesc" class="form-input"></textarea></div>
                     <div class="form-group"><label>Status</label>
                         <select id="swal-topicStatus" class="form-input">
                             <option value="active" ${status === 'active' ? 'selected' : ''}>Active</option>
@@ -206,6 +216,10 @@ require 'includes/sidebar.php';
                     </div>
                 </div>
             `,
+            didOpen: () => {
+                document.getElementById('swal-topicTitle').value = title;
+                document.getElementById('swal-topicDesc').value = desc;
+            },
             showCancelButton: true,
             confirmButtonText: 'Update',
             preConfirm: () => {

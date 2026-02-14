@@ -6,12 +6,15 @@ require 'includes/header.php';
 require 'includes/sidebar.php';
 
 $uid = $_SESSION['userId'];
-$q = "SELECT u.*, c.name as college_name, c.code as college_code 
+$stmt = $conn->prepare("SELECT u.*, c.name as college_name, c.code as college_code 
       FROM users u 
       LEFT JOIN colleges c ON u.collegeId=c.id 
-      WHERE u.id=$uid";
-$r = mysqli_query($conn, $q);
-$u = mysqli_fetch_assoc($r);
+      WHERE u.id=?");
+$stmt->bind_param("i", $uid);
+$stmt->execute();
+$r = $stmt->get_result();
+$u = $r->fetch_assoc();
+$stmt->close();
 
 // Profile Completion Calculation
 $filled = 0;
