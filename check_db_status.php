@@ -70,7 +70,7 @@ if (file_exists('migration_completed.txt')) {
 
 // Table statistics
 echo "=== DATABASE STATISTICS ===\n";
-$tables = ['users', 'colleges', 'courses', 'subjects', 'topics', 'course_content', 'enrollments'];
+$tables = ['users', 'colleges', 'courses', 'subjects', 'topics', 'coursecontent', 'enrollments'];
 foreach ($tables as $table) {
     $result = $conn->query("SELECT COUNT(*) as count FROM $table");
     if ($result) {

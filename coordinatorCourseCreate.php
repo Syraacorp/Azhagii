@@ -19,7 +19,7 @@ require 'includes/sidebar.php';
             </div>
             <div class="form-group">
                 <label class="form-label">Course Code</label>
-                <input type="text" name="course_code" class="form-input" placeholder="e.g. CS201">
+                <input type="text" name="courseCode" class="form-input" placeholder="e.g. CS201">
             </div>
         </div>
 
@@ -35,7 +35,7 @@ require 'includes/sidebar.php';
             </div>
             <div class="form-group">
                 <label class="form-label">Course Type</label>
-                <select name="course_type" class="form-input">
+                <select name="courseType" class="form-input">
                     <option value="theory">Theory</option>
                     <option value="lab">Lab / Practical</option>
                     <option value="elective">Elective</option>
@@ -64,7 +64,7 @@ require 'includes/sidebar.php';
             </div>
             <div class="form-group">
                 <label class="form-label">Academic Year</label>
-                <input type="text" name="academic_year" class="form-input" placeholder="e.g. 2024-2025">
+                <input type="text" name="academicYear" class="form-input" placeholder="e.g. 2024-2025">
             </div>
         </div>
 

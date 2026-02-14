@@ -1,6 +1,6 @@
 <?php
 session_start();
-if (!isset($_SESSION['user_id'])) {
+if (!isset($_SESSION['userId'])) {
     header('Location: login.php');
     exit;
 }
@@ -9,11 +9,11 @@ include_once __DIR__ . '/../db.php';
 include_once __DIR__ . '/csrf.php';
 
 // ── Session helpers ──
-$userId = $_SESSION['user_id'];
+$userId = $_SESSION['userId'];
 $userName = $_SESSION['user_name'] ?? '';
 $userEmail = $_SESSION['user_email'] ?? '';
 $role = $_SESSION['role'] ?? '';
-$collegeId = $_SESSION['college_id'] ?? 0;
+$collegeId = $_SESSION['collegeId'] ?? 0;
 $collegeName = $_SESSION['college_name'] ?? '';
 
 // ── Role guard helper ──
@@ -45,26 +45,26 @@ $dashboardLink = dashboardUrl();
 
 // ── Avatar initial ──
 $avatarInitial = strtoupper(substr($userName, 0, 1));
-if (!isset($_SESSION['profile_photo'])) {
-    $uid = $_SESSION['user_id'];
-    $stmt = $conn->prepare("SELECT profile_photo FROM users WHERE id=?");
+if (!isset($_SESSION['profilePhoto'])) {
+    $uid = $_SESSION['userId'];
+    $stmt = $conn->prepare("SELECT profilePhoto FROM users WHERE id=?");
     $stmt->bind_param("i", $uid);
     $stmt->execute();
     $result = $stmt->get_result();
     if ($prow = $result->fetch_assoc()) {
-        $_SESSION['profile_photo'] = $prow['profile_photo'];
+        $_SESSION['profilePhoto'] = $prow['profilePhoto'];
     }
     $stmt->close();
 }
-$profilePhoto = $_SESSION['profile_photo'] ?? '';
+$profilePhoto = $_SESSION['profilePhoto'] ?? '';
 
 // ── Profile Completion Check ──
 $currentScript = basename($_SERVER['PHP_SELF']);
 $exemptScripts = ['profile.php', 'backend.php', 'logout.php', 'login.php', 'register.php', 'index.php'];
 
-if (!in_array($currentScript, $exemptScripts) && isset($_SESSION['user_id'])) {
-    $uid = $_SESSION['user_id'];
-    $stmt = $conn->prepare("SELECT name, email, username, role, phone, bio, college_id, department, year, roll_number, profile_photo, github_url, linkedin_url, hackerrank_url, leetcode_url FROM users WHERE id=?");
+if (!in_array($currentScript, $exemptScripts) && isset($_SESSION['userId'])) {
+    $uid = $_SESSION['userId'];
+    $stmt = $conn->prepare("SELECT name, email, username, role, phone, bio, collegeId, department, year, rollNumber, profilePhoto, githubUrl, linkedinUrl, hackerrankUrl, leetcodeUrl FROM users WHERE id=?");
     $stmt->bind_param("i", $uid);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -91,21 +91,21 @@ if (!in_array($currentScript, $exemptScripts) && isset($_SESSION['user_id'])) {
 
         // Academic (Depends on role)
         if ($crow['role'] == 'azhagiiStudents') {
-            $acadProps = ['college_id', 'department', 'year', 'roll_number'];
+            $acadProps = ['collegeId', 'department', 'year', 'rollNumber'];
             foreach ($acadProps as $p) {
                 $total++;
                 if (!empty($crow[$p]))
                     $filled++;
             }
         } else {
-            if (!empty($crow['college_id'])) {
+            if (!empty($crow['collegeId'])) {
                 $total++;
                 $filled++;
             }
         }
 
         // Assets (5)
-        $assetProps = ['profile_photo', 'github_url', 'linkedin_url', 'hackerrank_url', 'leetcode_url'];
+        $assetProps = ['profilePhoto', 'githubUrl', 'linkedinUrl', 'hackerrankUrl', 'leetcodeUrl'];
         foreach ($assetProps as $p) {
             $total++;
             if (!empty($crow[$p]))

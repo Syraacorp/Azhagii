@@ -28,7 +28,7 @@ session_start();
                 <li><a href="#how">How It Works</a></li>
                 <li><a href="#contact">Contact</a></li>
             </ul>
-            <?php if (isset($_SESSION['user_id'])): ?>
+            <?php if (isset($_SESSION['userId'])): ?>
                 <div style="display:flex;gap:1rem;align-items:center;">
                     <span style="color:var(--text-muted);font-size:0.9rem;">Hi, <?= htmlspecialchars($_SESSION['user_name']) ?></span>
                     <a href="dashboard.php" class="btn btn-primary" style="padding:0.5rem 1rem;font-size:0.9rem;">Dashboard</a>

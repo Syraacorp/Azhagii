@@ -120,7 +120,7 @@ $(document).ready(function () {
         if (d.recent_users) {
           let tbody = '';
           d.recent_users.forEach(u => {
-            tbody += `<tr><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td><span class="badge badge-role">${roleLabel(u.role)}</span></td><td>${esc(u.college_name || '-')}</td><td>${formatDate(u.created_at)}</td></tr>`;
+            tbody += `<tr><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td><span class="badge badge-role">${roleLabel(u.role)}</span></td><td>${esc(u.collegeName || '-')}</td><td>${formatDate(u.createdAt)}</td></tr>`;
           });
           $('#recentUsersBody').html(tbody);
         }
@@ -205,7 +205,7 @@ $(document).ready(function () {
           <td>${esc(e.course_title)}</td>
           <td><div class="progress-bar-wrap" style="min-width:80px;"><div class="progress-bar-fill" style="width:${e.progress}%;"></div></div><span style="font-size:0.8rem;">${e.progress}%</span></td>
           <td><span class="badge badge-${e.status === 'completed' ? 'active' : e.status === 'active' ? 'draft' : 'inactive'}">${e.status}</span></td>
-          <td>${formatDate(e.enrolled_at)}</td></tr>`;
+          <td>${formatDate(e.enrolledAt)}</td></tr>`;
       });
       $('#coordRecentStudents').html(html);
     });
@@ -272,7 +272,7 @@ $(document).ready(function () {
       }
       let html = '';
       inProgress.forEach(c => {
-        html += `<div class="course-card" style="cursor:pointer;" onclick="window.location.href='courseViewer.php?course_id=${c.id}&enrollment_id=${c.enrollment_id}'">
+        html += `<div class="course-card" style="cursor:pointer;" onclick="window.location.href='courseViewer.php?courseId=${c.id}&enrollmentId=${c.enrollmentId}'">
           <div class="course-card-thumb">${c.thumbnail ? `<img src="${c.thumbnail}">` : '<i class="fas fa-book"></i>'}</div>
           <div class="course-card-body">
             <h3>${esc(c.title)}</h3>
@@ -286,7 +286,7 @@ $(document).ready(function () {
           </div>
           <div class="course-card-footer">
             <span class="badge badge-draft">${c.enroll_status}</span>
-            <span style="font-size:0.8rem;color:var(--text-muted);">Enrolled ${formatDate(c.enrolled_at)}</span>
+            <span style="font-size:0.8rem;color:var(--text-muted);">Enrolled ${formatDate(c.enrolledAt)}</span>
           </div>
         </div>`;
       });
@@ -415,7 +415,7 @@ $(document).ready(function () {
         html += `<tr>
           <td>${i + 1}</td><td>${esc(u.name)}</td><td>${esc(u.email)}</td>
           <td><span class="badge badge-role">${roleLabel(u.role)}</span></td>
-          <td>${esc(u.college_name || '-')}</td>
+          <td>${esc(u.collegeName || '-')}</td>
           <td><span class="badge badge-${u.status === 'active' ? 'active' : 'inactive'}">${u.status}</span></td>
           <td class="actions">
             <button class="btn btn-outline btn-sm" onclick="showUserModal(${u.id})"><i class="fas fa-edit"></i></button>
@@ -438,7 +438,7 @@ $(document).ready(function () {
 
     Promise.all([loadUser, loadCollegesP]).then(([u, colleges]) => {
       let collegeOpts = '<option value="">No College (for admins)</option>';
-      colleges.forEach(c => { collegeOpts += `<option value="${c.id}" ${u.college_id == c.id ? 'selected' : ''}>${esc(c.name)}</option>`; });
+      colleges.forEach(c => { collegeOpts += `<option value="${c.id}" ${u.collegeId == c.id ? 'selected' : ''}>${esc(c.name)}</option>`; });
 
       let roleOpts = '';
       if (USER_ROLE === 'superAdmin') {
@@ -463,7 +463,7 @@ $(document).ready(function () {
         preConfirm: () => {
           const data = {
             name: $('#sUserName').val(), email: $('#sUserEmail').val(),
-            role: $('#sUserRole').val(), college_id: $('#sUserCollege').val(),
+            role: $('#sUserRole').val(), collegeId: $('#sUserCollege').val(),
             phone: $('#sUserPhone').val()
           };
           const pass = $('#sUserPass').val();
@@ -514,7 +514,7 @@ $(document).ready(function () {
       res.data.forEach((c, i) => {
         const statusBadge = c.status === 'active' ? 'active' : c.status === 'pending' ? 'pending' : c.status === 'rejected' ? 'rejected' : c.status === 'draft' ? 'draft' : 'inactive';
         html += `<tr>
-          <td>${i + 1}</td><td>${esc(c.title)}${c.course_code ? `<br><small style="color:var(--text-muted)">${esc(c.course_code)}</small>` : ''}</td><td>${esc(c.category || '-')}</td>
+          <td>${i + 1}</td><td>${esc(c.title)}${c.courseCode ? `<br><small style="color:var(--text-muted)">${esc(c.courseCode)}</small>` : ''}</td><td>${esc(c.category || '-')}</td>
           <td>${esc(c.semester || '-')}</td>
           <td>${c.college_count}</td><td>${c.enrollment_count}</td><td>${c.content_count}</td>
           <td><span class="badge badge-${statusBadge}">${c.status}</span></td>
@@ -541,15 +541,15 @@ $(document).ready(function () {
         html: `<div class="swal-form">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
             <div class="form-group"><label class="form-label">Title</label><input id="sCourseTitle" class="form-input" value="${esc(c.title || '')}"></div>
-            <div class="form-group"><label class="form-label">Course Code</label><input id="sCourseCode" class="form-input" value="${esc(c.course_code || '')}" placeholder="e.g. CS201"></div>
+            <div class="form-group"><label class="form-label">Course Code</label><input id="sCourseCode" class="form-input" value="${esc(c.courseCode || '')}" placeholder="e.g. CS201"></div>
           </div>
           <div class="form-group"><label class="form-label">Description</label><textarea id="sCourseDesc" class="form-input" rows="2">${esc(c.description || '')}</textarea></div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;">
             <div class="form-group"><label class="form-label">Category</label><input id="sCourseCat" class="form-input" value="${esc(c.category || '')}" placeholder="e.g. CSE"></div>
             <div class="form-group"><label class="form-label">Type</label><select id="sCourseType" class="form-input">
-              <option value="theory" ${c.course_type === 'theory' ? 'selected' : ''}>Theory</option>
-              <option value="lab" ${c.course_type === 'lab' ? 'selected' : ''}>Lab</option>
-              <option value="elective" ${c.course_type === 'elective' ? 'selected' : ''}>Elective</option>
+              <option value="theory" ${c.courseType === 'theory' ? 'selected' : ''}>Theory</option>
+              <option value="lab" ${c.courseType === 'lab' ? 'selected' : ''}>Lab</option>
+              <option value="elective" ${c.courseType === 'elective' ? 'selected' : ''}>Elective</option>
             </select></div>
             <div class="form-group"><label class="form-label">Semester</label><select id="sCourseSem" class="form-input">
               <option value="">-</option>
@@ -558,7 +558,7 @@ $(document).ready(function () {
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
             <div class="form-group"><label class="form-label">Regulation</label><input id="sCourseReg" class="form-input" value="${esc(c.regulation || '')}" placeholder="e.g. R2021"></div>
-            <div class="form-group"><label class="form-label">Academic Year</label><input id="sCourseYear" class="form-input" value="${esc(c.academic_year || '')}" placeholder="e.g. 2024-2025"></div>
+            <div class="form-group"><label class="form-label">Academic Year</label><input id="sCourseYear" class="form-input" value="${esc(c.academicYear || '')}" placeholder="e.g. 2024-2025"></div>
           </div>
           <div class="form-group"><label class="form-label">Status</label><select id="sCourseStatus" class="form-input">
             <option value="draft" ${c.status === 'draft' ? 'selected' : ''}>Draft</option>
@@ -571,10 +571,10 @@ $(document).ready(function () {
         showCancelButton: true, confirmButtonText: isEdit ? 'Update' : 'Create', confirmButtonColor: '#4285f4',
         preConfirm: () => {
           const data = {
-            title: $('#sCourseTitle').val(), course_code: $('#sCourseCode').val(),
+            title: $('#sCourseTitle').val(), courseCode: $('#sCourseCode').val(),
             description: $('#sCourseDesc').val(), category: $('#sCourseCat').val(),
-            course_type: $('#sCourseType').val(), semester: $('#sCourseSem').val(),
-            regulation: $('#sCourseReg').val(), academic_year: $('#sCourseYear').val(),
+            courseType: $('#sCourseType').val(), semester: $('#sCourseSem').val(),
+            regulation: $('#sCourseReg').val(), academicYear: $('#sCourseYear').val(),
             status: $('#sCourseStatus').val()
           };
           if (!data.title) { Swal.showValidationMessage('Title is required'); return false; }
@@ -621,15 +621,15 @@ $(document).ready(function () {
   window.loadAssignments = function () {
     const cid = $('#assignCourseSelect').val();
     if (!cid) { $('#assignmentsBody').html('<tr><td colspan="6" class="empty-state"><i class="fas fa-link"></i><p>Select a course above</p></td></tr>'); return; }
-    api({ get_course_assignments: 1, course_id: cid }, function (res) {
+    api({ get_course_assignments: 1, courseId: cid }, function (res) {
       if (res.status !== 200) return;
       let html = '';
       if (res.data.length === 0) html = '<tr><td colspan="6" class="empty-state"><i class="fas fa-link"></i><p>No colleges assigned</p></td></tr>';
       res.data.forEach((a, i) => {
         html += `<tr>
-          <td>${i + 1}</td><td>${esc(a.college_name)}</td><td><code>${esc(a.college_code)}</code></td>
-          <td>${esc(a.assigned_by_name || '-')}</td><td>${formatDate(a.assigned_at)}</td>
-          <td class="actions"><button class="btn btn-danger btn-sm" onclick="unassignCourse(${cid},${a.college_id})"><i class="fas fa-unlink"></i></button></td></tr>`;
+          <td>${i + 1}</td><td>${esc(a.collegeName)}</td><td><code>${esc(a.college_code)}</code></td>
+          <td>${esc(a.assignedBy_name || '-')}</td><td>${formatDate(a.assignedAt)}</td>
+          <td class="actions"><button class="btn btn-danger btn-sm" onclick="unassignCourse(${cid},${a.collegeId})"><i class="fas fa-unlink"></i></button></td></tr>`;
       });
       $('#assignmentsBody').html(html);
     });
@@ -649,9 +649,9 @@ $(document).ready(function () {
         html: `<div class="swal-form"><div class="form-group"><label class="form-label">College</label><select id="sAssignCollege" class="form-input">${opts}</select></div></div>`,
         showCancelButton: true, confirmButtonText: 'Assign', confirmButtonColor: '#4285f4',
         preConfirm: () => {
-          const college_id = $('#sAssignCollege').val();
+          const collegeId = $('#sAssignCollege').val();
           return new Promise(resolve => {
-            api({ assign_course: 1, course_id: cid, college_id }, res => {
+            api({ assign_course: 1, courseId: cid, collegeId }, res => {
               if (res.status === 200) resolve(res);
               else { Swal.showValidationMessage(res.message || 'Operation failed'); resolve(false); }
             }, () => {
@@ -671,7 +671,7 @@ $(document).ready(function () {
       title: 'Remove Assignment?', text: 'Students from this college will lose access.', icon: 'warning',
       showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Remove'
     }).then(r => {
-      if (r.isConfirmed) api({ unassign_course: 1, course_id: courseId, college_id: collegeId }, res => {
+      if (r.isConfirmed) api({ unassign_course: 1, courseId: courseId, collegeId: collegeId }, res => {
         toast(res.status === 200 ? 'success' : 'error', res.message); if (res.status === 200) loadAssignments();
       });
     });
@@ -724,7 +724,7 @@ $(document).ready(function () {
     const cid = $('#subjectCourseSelect').val();
     if (!cid) { $('#subjectsBody').html('<tr><td colspan="6" class="empty-state"><p>Select a course above</p></td></tr>'); return; }
     
-    api({ get_subjects: 1, course_id: cid }, function (res) {
+    api({ get_subjects: 1, courseId: cid }, function (res) {
         if (res.status !== 200) return;
         let html = '';
         if (res.data.length === 0) html = '<tr><td colspan="6" class="empty-state"><p>No subjects found for this course</p></td></tr>';
@@ -751,7 +751,7 @@ $(document).ready(function () {
       
       const isEdit = !!id;
       const load = isEdit ? new Promise(r => {
-          api({ get_subjects: 1, course_id: cid }, res => {
+          api({ get_subjects: 1, courseId: cid }, res => {
                r(res.data.find(x => x.id == id) || {});
           });
       }) : Promise.resolve({});
@@ -768,7 +768,7 @@ $(document).ready(function () {
               showCancelButton: true, confirmButtonText: isEdit ? 'Update' : 'Add', confirmButtonColor: '#4285f4',
               preConfirm: () => {
                   const data = {
-                      course_id: cid,
+                      courseId: cid,
                       title: $('#sSubjTitle').val(),
                       code: $('#sSubjCode').val(),
                       description: $('#sSubjDesc').val()
@@ -807,19 +807,19 @@ $(document).ready(function () {
   window.loadContent = function () {
     const cid = $('#contentCourseSelect').val();
     if (!cid) { $('#contentList').html('<div class="empty-state"><i class="fas fa-file-alt"></i><p>Select a course above</p></div>'); return; }
-    api({ get_content: 1, course_id: cid }, function (res) {
+    api({ get_content: 1, courseId: cid }, function (res) {
       if (res.status !== 200) return;
       let html = '';
       if (res.data.length === 0) html = '<div class="empty-state"><i class="fas fa-file-alt"></i><p>No content yet. Click "Add Content" to get started.</p></div>';
       res.data.forEach((c, i) => {
-        const iconClass = c.content_type === 'video' ? 'video' : c.content_type === 'pdf' ? 'pdf' : c.content_type === 'link' ? 'link' : 'text';
-        const iconName = c.content_type === 'video' ? 'fa-play-circle' : c.content_type === 'pdf' ? 'fa-file-pdf' : c.content_type === 'link' ? 'fa-external-link-alt' : 'fa-align-left';
+        const iconClass = c.contentType === 'video' ? 'video' : c.contentType === 'pdf' ? 'pdf' : c.contentType === 'link' ? 'link' : 'text';
+        const iconName = c.contentType === 'video' ? 'fa-play-circle' : c.contentType === 'pdf' ? 'fa-file-pdf' : c.contentType === 'link' ? 'fa-external-link-alt' : 'fa-align-left';
         html += `<div class="content-item">
           <div class="content-icon ${iconClass}"><i class="fas ${iconName}"></i></div>
           <div class="content-body">
             <h4>${esc(c.title)}</h4>
             <p>${esc((c.description || '').substring(0, 120))}</p>
-            <div style="margin-top:0.3rem;font-size:0.75rem;color:var(--text-muted);">Order: ${c.sort_order} &middot; <span class="badge badge-${c.status === 'active' ? 'active' : 'inactive'}">${c.status}</span></div>
+            <div style="margin-top:0.3rem;font-size:0.75rem;color:var(--text-muted);">Order: ${c.sortOrder} &middot; <span class="badge badge-${c.status === 'active' ? 'active' : 'inactive'}">${c.status}</span></div>
           </div>
           <div class="content-actions">
             <button class="btn btn-outline btn-sm" onclick="showContentModal(${c.id}, ${cid})"><i class="fas fa-edit"></i></button>
@@ -837,16 +837,16 @@ $(document).ready(function () {
     if (!courseId) { toast('warning', 'Select a course first'); return; }
 
     const loadContent = isEdit ? new Promise(r => {
-      api({ get_content: 1, course_id: courseId }, res => { r(res.data.find(x => x.id == id) || {}); });
+      api({ get_content: 1, courseId: courseId }, res => { r(res.data.find(x => x.id == id) || {}); });
     }) : Promise.resolve({});
 
     const loadSubjects = new Promise(r => {
-        api({ get_subjects: 1, course_id: courseId }, res => { r(res.data || []); });
+        api({ get_subjects: 1, courseId: courseId }, res => { r(res.data || []); });
     });
 
     Promise.all([loadContent, loadSubjects]).then(([c, subjects]) => {
       let subjOpts = '<option value="">No Subject (General)</option>';
-      subjects.forEach(s => { subjOpts += `<option value="${s.id}" ${c.subject_id == s.id ? 'selected' : ''}>${esc(s.title)}</option>`; });
+      subjects.forEach(s => { subjOpts += `<option value="${s.id}" ${c.subjectId == s.id ? 'selected' : ''}>${esc(s.title)}</option>`; });
 
       Swal.fire({
         title: isEdit ? 'Edit Content' : 'Add Content', width: 520,
@@ -855,21 +855,21 @@ $(document).ready(function () {
           <div class="form-group"><label class="form-label">Title</label><input id="sContentTitle" class="form-input" value="${esc(c.title || '')}"></div>
           <div class="form-group"><label class="form-label">Description</label><textarea id="sContentDesc" class="form-input" rows="2">${esc(c.description || '')}</textarea></div>
           <div class="form-group"><label class="form-label">Type</label><select id="sContentType" class="form-input">
-            <option value="video" ${c.content_type === 'video' ? 'selected' : ''}>Video (YouTube URL)</option>
-            <option value="pdf" ${c.content_type === 'pdf' ? 'selected' : ''}>PDF (URL)</option>
-            <option value="text" ${c.content_type === 'text' ? 'selected' : ''}>Text</option>
-            <option value="link" ${c.content_type === 'link' ? 'selected' : ''}>Link</option>
+            <option value="video" ${c.contentType === 'video' ? 'selected' : ''}>Video (YouTube URL)</option>
+            <option value="pdf" ${c.contentType === 'pdf' ? 'selected' : ''}>PDF (URL)</option>
+            <option value="text" ${c.contentType === 'text' ? 'selected' : ''}>Text</option>
+            <option value="link" ${c.contentType === 'link' ? 'selected' : ''}>Link</option>
           </select></div>
-          <div class="form-group"><label class="form-label">Content Data (URL or Text)</label><textarea id="sContentData" class="form-input" rows="3" placeholder="Enter URL or text content">${esc(c.content_data || '')}</textarea></div>
-          <div class="form-group"><label class="form-label">Sort Order</label><input id="sContentSort" class="form-input" type="number" value="${c.sort_order || 0}"></div>
+          <div class="form-group"><label class="form-label">Content Data (URL or Text)</label><textarea id="sContentData" class="form-input" rows="3" placeholder="Enter URL or text content">${esc(c.contentData || '')}</textarea></div>
+          <div class="form-group"><label class="form-label">Sort Order</label><input id="sContentSort" class="form-input" type="number" value="${c.sortOrder || 0}"></div>
           ${isEdit ? `<div class="form-group"><label class="form-label">Status</label><select id="sContentStatus" class="form-input"><option value="active" ${c.status === 'active' ? 'selected' : ''}>Active</option><option value="inactive" ${c.status === 'inactive' ? 'selected' : ''}>Inactive</option></select></div>` : ''}
         </div>`,
         showCancelButton: true, confirmButtonText: isEdit ? 'Update' : 'Add', confirmButtonColor: '#4285f4',
         preConfirm: () => {
           const data = {
-            course_id: courseId, subject_id: $('#sContentSubject').val(),
+            courseId: courseId, subjectId: $('#sContentSubject').val(),
             title: $('#sContentTitle').val(), description: $('#sContentDesc').val(),
-            content_type: $('#sContentType').val(), content_data: $('#sContentData').val(), sort_order: $('#sContentSort').val()
+            contentType: $('#sContentType').val(), contentData: $('#sContentData').val(), sortOrder: $('#sContentSort').val()
           };
           if (!data.title) { Swal.showValidationMessage('Title is required'); return false; }
           if (isEdit) { data.id = id; data.status = $('#sContentStatus').val(); data.update_content = 1; }
@@ -902,7 +902,7 @@ $(document).ready(function () {
   window.loadCourseStudents = function () {
     const cid = $('#studentCourseSelect').val();
     if (!cid) { $('#courseStudentsBody').html('<tr><td colspan="7" class="empty-state"><i class="fas fa-user-graduate"></i><p>Select a course above</p></td></tr>'); return; }
-    api({ get_course_students: 1, course_id: cid }, function (res) {
+    api({ get_course_students: 1, courseId: cid }, function (res) {
       if (res.status !== 200) return;
       let html = '';
       if (res.data.length === 0) html = '<tr><td colspan="7" class="empty-state"><i class="fas fa-user-graduate"></i><p>No students enrolled</p></td></tr>';
@@ -911,7 +911,7 @@ $(document).ready(function () {
           <td>${i + 1}</td><td>${esc(s.student_name)}</td><td>${esc(s.student_email)}</td><td>${esc(s.phone || '-')}</td>
           <td><div class="progress-bar-wrap" style="min-width:80px;"><div class="progress-bar-fill" style="width:${s.progress}%;"></div></div><span style="font-size:0.8rem;">${s.progress}%</span></td>
           <td><span class="badge badge-${s.status === 'completed' ? 'active' : s.status === 'active' ? 'draft' : 'inactive'}">${s.status}</span></td>
-          <td>${formatDate(s.enrolled_at)}</td></tr>`;
+          <td>${formatDate(s.enrolledAt)}</td></tr>`;
       });
       $('#courseStudentsBody').html(html);
     });
@@ -952,7 +952,7 @@ $(document).ready(function () {
       title: 'Enroll in Course?', text: 'You will get access to all course content.', icon: 'question',
       showCancelButton: true, confirmButtonColor: '#4285f4', confirmButtonText: 'Enroll'
     }).then(r => {
-      if (r.isConfirmed) api({ enroll_student: 1, course_id: courseId }, res => {
+      if (r.isConfirmed) api({ enroll_student: 1, courseId: courseId }, res => {
         toast(res.status === 200 ? 'success' : 'error', res.message);
         if (res.status === 200) loadBrowseCourses();
       });
@@ -965,7 +965,7 @@ $(document).ready(function () {
       let html = '';
       if (res.data.length === 0) html = '<div class="empty-state"><i class="fas fa-graduation-cap"></i><p>You haven\'t enrolled in any courses yet.<br><a href="browseCourses.php">Browse courses</a></p></div>';
       res.data.forEach(c => {
-        html += `<div class="course-card" style="cursor:pointer;" onclick="viewCourse(${c.id}, ${c.enrollment_id})">
+        html += `<div class="course-card" style="cursor:pointer;" onclick="viewCourse(${c.id}, ${c.enrollmentId})">
           <div class="course-card-thumb">${c.thumbnail ? `<img src="${c.thumbnail}">` : '<i class="fas fa-book"></i>'}</div>
           <div class="course-card-body">
             <h3>${esc(c.title)}</h3>
@@ -979,7 +979,7 @@ $(document).ready(function () {
           </div>
           <div class="course-card-footer">
             <span class="badge badge-${c.enroll_status === 'completed' ? 'active' : 'draft'}">${c.enroll_status}</span>
-            <span style="font-size:0.8rem;color:var(--text-muted);">Enrolled ${formatDate(c.enrolled_at)}</span>
+            <span style="font-size:0.8rem;color:var(--text-muted);">Enrolled ${formatDate(c.enrolledAt)}</span>
           </div>
         </div>`;
       });
@@ -989,14 +989,14 @@ $(document).ready(function () {
 
   // Navigate to course viewer page with query params
   window.viewCourse = function (courseId, enrollmentId) {
-    window.location.href = `courseViewer.php?course_id=${courseId}&enrollment_id=${enrollmentId}`;
+    window.location.href = `courseViewer.php?courseId=${courseId}&enrollmentId=${enrollmentId}`;
   };
 
   // Load course content from URL params (courseViewer page)
   function loadCourseFromUrl() {
     const params = new URLSearchParams(window.location.search);
-    const courseId = params.get('course_id');
-    const enrollmentId = params.get('enrollment_id');
+    const courseId = params.get('courseId');
+    const enrollmentId = params.get('enrollmentId');
     if (!courseId) {
       $('#courseViewContainer').html('<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>No course selected. <a href="myLearning.php">Go to My Learning</a></p></div>');
       return;
@@ -1004,7 +1004,7 @@ $(document).ready(function () {
     // Get course info + content
     api({ get_courses: 1 }, function (cRes) {
       const course = (cRes.data || []).find(c => c.id == courseId) || {};
-      api({ get_content: 1, course_id: courseId }, function (res) {
+      api({ get_content: 1, courseId: courseId }, function (res) {
         if (res.status !== 200) return;
         let html = `<div class="course-viewer-header">
           <h2>${esc(course.title || 'Course')}</h2>
@@ -1016,19 +1016,19 @@ $(document).ready(function () {
         } else {
           html += '<div class="viewer-content-list">';
           res.data.forEach((c, i) => {
-            const iconClass = c.content_type === 'video' ? 'video' : c.content_type === 'pdf' ? 'pdf' : c.content_type === 'link' ? 'link' : 'text';
-            const iconName = c.content_type === 'video' ? 'fa-play-circle' : c.content_type === 'pdf' ? 'fa-file-pdf' : c.content_type === 'link' ? 'fa-external-link-alt' : 'fa-align-left';
+            const iconClass = c.contentType === 'video' ? 'video' : c.contentType === 'pdf' ? 'pdf' : c.contentType === 'link' ? 'link' : 'text';
+            const iconName = c.contentType === 'video' ? 'fa-play-circle' : c.contentType === 'pdf' ? 'fa-file-pdf' : c.contentType === 'link' ? 'fa-external-link-alt' : 'fa-align-left';
 
             let contentHtml = '';
-            if (c.content_type === 'video') {
-              const embedUrl = getYouTubeEmbed(c.content_data);
-              contentHtml = embedUrl ? `<iframe class="video-embed" src="${embedUrl}" allowfullscreen></iframe>` : `<a href="${esc(c.content_data)}" target="_blank" class="btn btn-outline btn-sm"><i class="fas fa-external-link-alt"></i> Watch Video</a>`;
-            } else if (c.content_type === 'pdf') {
-              contentHtml = `<a href="${esc(c.content_data)}" target="_blank" class="btn btn-outline btn-sm"><i class="fas fa-file-pdf"></i> Open PDF</a>`;
-            } else if (c.content_type === 'link') {
-              contentHtml = `<a href="${esc(c.content_data)}" target="_blank" class="btn btn-outline btn-sm"><i class="fas fa-external-link-alt"></i> Open Link</a>`;
+            if (c.contentType === 'video') {
+              const embedUrl = getYouTubeEmbed(c.contentData);
+              contentHtml = embedUrl ? `<iframe class="video-embed" src="${embedUrl}" allowfullscreen></iframe>` : `<a href="${esc(c.contentData)}" target="_blank" class="btn btn-outline btn-sm"><i class="fas fa-external-link-alt"></i> Watch Video</a>`;
+            } else if (c.contentType === 'pdf') {
+              contentHtml = `<a href="${esc(c.contentData)}" target="_blank" class="btn btn-outline btn-sm"><i class="fas fa-file-pdf"></i> Open PDF</a>`;
+            } else if (c.contentType === 'link') {
+              contentHtml = `<a href="${esc(c.contentData)}" target="_blank" class="btn btn-outline btn-sm"><i class="fas fa-external-link-alt"></i> Open Link</a>`;
             } else {
-              contentHtml = `<div style="white-space:pre-wrap;font-size:0.95rem;line-height:1.7;">${esc(c.content_data)}</div>`;
+              contentHtml = `<div style="white-space:pre-wrap;font-size:0.95rem;line-height:1.7;">${esc(c.contentData)}</div>`;
             }
 
             html += `<div class="viewer-item" onclick="toggleViewerItem(this)">
@@ -1079,7 +1079,7 @@ $(document).ready(function () {
       $('#profileName').val(u.name);
       $('#profileEmail').val(u.email);
       $('#profilePhone').val(u.phone || '');
-      $('#profileCollege').val(u.college_name || 'N/A');
+      $('#profileCollege').val(u.collegeName || 'N/A');
       $('#profilePassword').val('');
     });
   }
@@ -1157,13 +1157,13 @@ $(document).ready(function () {
         html += `<tr>
           <td>${i+1}</td>
           <td>${esc(c.title)}</td>
-          <td>${esc(c.course_code || '-')}</td>
+          <td>${esc(c.courseCode || '-')}</td>
           <td>${esc(c.creator_name || '-')}</td>
           <td>${esc(c.creator_college || '-')}</td>
           <td>${esc(c.semester || '-')}</td>
           <td>${c.subject_count || 0}</td>
           <td>${c.syllabus ? `<a href="${c.syllabus}" target="_blank" class="btn btn-outline btn-sm"><i class="fas fa-file-pdf"></i></a>` : '-'}</td>
-          <td>${formatDate(c.created_at)}</td>
+          <td>${formatDate(c.createdAt)}</td>
           <td class="actions" style="white-space:nowrap;">
             <button class="btn btn-outline btn-sm" onclick="viewCourseDetail(${c.id})" title="View Details"><i class="fas fa-eye"></i></button>
             <button class="btn btn-success btn-sm" onclick="approveCourse(${c.id})" title="Approve"><i class="fas fa-check"></i></button>
@@ -1187,12 +1187,12 @@ $(document).ready(function () {
         html += `<tr>
           <td>${i+1}</td>
           <td>${esc(c.title)}</td>
-          <td>${esc(c.course_code || '-')}</td>
+          <td>${esc(c.courseCode || '-')}</td>
           <td>${esc(c.creator_name || '-')}</td>
           <td><span class="badge badge-${statusBadge}">${c.status}</span></td>
           <td>${esc(c.semester || '-')}</td>
           <td>${c.syllabus ? `<a href="${c.syllabus}" target="_blank" class="btn btn-outline btn-sm"><i class="fas fa-file-pdf"></i></a>` : '-'}</td>
-          <td>${formatDate(c.created_at)}</td>
+          <td>${formatDate(c.createdAt)}</td>
           <td class="actions">
             <button class="btn btn-outline btn-sm" onclick="viewCourseDetail(${c.id})"><i class="fas fa-eye"></i></button>
           </td></tr>`;
@@ -1210,18 +1210,18 @@ $(document).ready(function () {
         html += `<tr>
           <td>${i+1}</td>
           <td>${esc(c.title)}</td>
-          <td>${esc(c.course_code || '-')}</td>
+          <td>${esc(c.courseCode || '-')}</td>
           <td>${esc(c.creator_name || '-')}</td>
-          <td>${esc(c.rejection_reason || '-')}</td>
+          <td>${esc(c.rejectionReason || '-')}</td>
           <td>${esc(c.approver_name || '-')}</td>
-          <td>${formatDate(c.approved_at || c.created_at)}</td></tr>`;
+          <td>${formatDate(c.approvedAt || c.createdAt)}</td></tr>`;
       });
       $('#rejectedCoursesBody').html(html);
     });
   }
 
   window.viewCourseDetail = function(courseId) {
-    api({ get_course_detail: 1, course_id: courseId }, function(res) {
+    api({ get_course_detail: 1, courseId: courseId }, function(res) {
       if (res.status !== 200) return;
       const c = res.data;
       let subjectsHtml = '';
@@ -1246,18 +1246,18 @@ $(document).ready(function () {
         title: esc(c.title), width: 650,
         html: `<div style="text-align:left;">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1rem;">
-            <div><small style="color:var(--text-muted);">Code:</small><br><strong>${esc(c.course_code || '-')}</strong></div>
+            <div><small style="color:var(--text-muted);">Code:</small><br><strong>${esc(c.courseCode || '-')}</strong></div>
             <div><small style="color:var(--text-muted);">Category:</small><br><strong>${esc(c.category || '-')}</strong></div>
             <div><small style="color:var(--text-muted);">Semester:</small><br><strong>${esc(c.semester || '-')}</strong></div>
-            <div><small style="color:var(--text-muted);">Type:</small><br><strong>${esc(c.course_type || '-')}</strong></div>
+            <div><small style="color:var(--text-muted);">Type:</small><br><strong>${esc(c.courseType || '-')}</strong></div>
             <div><small style="color:var(--text-muted);">Regulation:</small><br><strong>${esc(c.regulation || '-')}</strong></div>
-            <div><small style="color:var(--text-muted);">Academic Year:</small><br><strong>${esc(c.academic_year || '-')}</strong></div>
+            <div><small style="color:var(--text-muted);">Academic Year:</small><br><strong>${esc(c.academicYear || '-')}</strong></div>
             <div><small style="color:var(--text-muted);">Created By:</small><br><strong>${esc(c.creator_name || '-')}</strong></div>
             <div><small style="color:var(--text-muted);">Status:</small><br><span class="badge badge-${c.status === 'active' ? 'active' : c.status === 'pending' ? 'pending' : c.status === 'rejected' ? 'rejected' : 'draft'}">${c.status}</span></div>
           </div>
           ${c.description ? `<div style="margin-bottom:1rem;"><small style="color:var(--text-muted);">Description:</small><br>${esc(c.description)}</div>` : ''}
           ${c.syllabus ? `<div style="margin-bottom:1rem;"><a href="${c.syllabus}" target="_blank" class="btn btn-outline btn-sm"><i class="fas fa-file-pdf"></i> View Syllabus PDF</a></div>` : ''}
-          ${c.rejection_reason ? `<div style="margin-bottom:1rem;padding:0.75rem;background:rgba(239,68,68,0.1);border-radius:8px;border:1px solid rgba(239,68,68,0.2);"><small style="color:#f87171;font-weight:600;">Rejection Reason:</small><br>${esc(c.rejection_reason)}</div>` : ''}
+          ${c.rejectionReason ? `<div style="margin-bottom:1rem;padding:0.75rem;background:rgba(239,68,68,0.1);border-radius:8px;border:1px solid rgba(239,68,68,0.2);"><small style="color:#f87171;font-weight:600;">Rejection Reason:</small><br>${esc(c.rejectionReason)}</div>` : ''}
           <h4 style="margin-bottom:0.75rem;">Subjects / Units</h4>
           <div class="breakdown-list">${subjectsHtml}</div>
         </div>`,
@@ -1320,7 +1320,7 @@ $(document).ready(function () {
     $('#topicSubjectSelect').html('<option value="">Select a subject/unit</option>');
     $('#topicsBody').html('<tr><td colspan="6" class="empty-state"><i class="fas fa-tags"></i><p>Select a course and subject above</p></td></tr>');
     if (!cid) return;
-    api({ get_subjects: 1, course_id: cid }, function(res) {
+    api({ get_subjects: 1, courseId: cid }, function(res) {
       if (res.status !== 200) return;
       let opts = '<option value="">Select a subject/unit</option>';
       res.data.forEach(s => { opts += `<option value="${s.id}">${esc(s.title)} ${s.code ? '(' + esc(s.code) + ')' : ''}</option>`; });
@@ -1331,7 +1331,7 @@ $(document).ready(function () {
   window.loadTopics = function() {
     const sid = $('#topicSubjectSelect').val();
     if (!sid) { $('#topicsBody').html('<tr><td colspan="6" class="empty-state"><i class="fas fa-tags"></i><p>Select a subject above</p></td></tr>'); return; }
-    api({ get_topics: 1, subject_id: sid }, function(res) {
+    api({ get_topics: 1, subjectId: sid }, function(res) {
       if (res.status !== 200) return;
       let html = '';
       if (res.data.length === 0) html = '<tr><td colspan="6" class="empty-state"><i class="fas fa-tags"></i><p>No topics yet. Click "Add Topic" to get started.</p></td></tr>';
@@ -1356,7 +1356,7 @@ $(document).ready(function () {
     if (!sid) { toast('warning', 'Please select a subject first'); return; }
     const isEdit = !!id;
     const load = isEdit ? new Promise(r => {
-      api({ get_topics: 1, subject_id: sid }, res => { r(res.data.find(x => x.id == id) || {}); });
+      api({ get_topics: 1, subjectId: sid }, res => { r(res.data.find(x => x.id == id) || {}); });
     }) : Promise.resolve({});
 
     load.then(t => {
@@ -1369,7 +1369,7 @@ $(document).ready(function () {
         </div>`,
         showCancelButton: true, confirmButtonText: isEdit ? 'Update' : 'Add', confirmButtonColor: '#4285f4',
         preConfirm: () => {
-          const data = { subject_id: sid, title: $('#sTopicTitle').val(), description: $('#sTopicDesc').val() };
+          const data = { subjectId: sid, title: $('#sTopicTitle').val(), description: $('#sTopicDesc').val() };
           if (!data.title) { Swal.showValidationMessage('Title is required'); return false; }
           if (isEdit) { data.id = id; data.status = $('#sTopicStatus').val(); data.update_topic = 1; }
           else { data.add_topic = 1; }
@@ -1401,7 +1401,7 @@ $(document).ready(function () {
     api({ get_courses: 1 }, function(res) {
       if (res.status !== 200) return;
       // Filter to show only courses created by this coordinator
-      const myCourses = res.data.filter(c => c.created_by == USER_ID);
+      const myCourses = res.data.filter(c => c.createdBy == USER_ID);
       let html = '';
       if (myCourses.length === 0) html = '<tr><td colspan="8" class="empty-state"><i class="fas fa-book"></i><p>No courses submitted yet</p></td></tr>';
       myCourses.forEach((c, i) => {
@@ -1409,11 +1409,11 @@ $(document).ready(function () {
         html += `<tr>
           <td>${i+1}</td>
           <td>${esc(c.title)}</td>
-          <td>${esc(c.course_code || '-')}</td>
+          <td>${esc(c.courseCode || '-')}</td>
           <td>${esc(c.semester || '-')}</td>
           <td><span class="badge badge-${statusBadge}">${c.status}</span></td>
-          <td>${c.rejection_reason ? esc(c.rejection_reason) : '-'}</td>
-          <td>${formatDate(c.created_at)}</td>
+          <td>${c.rejectionReason ? esc(c.rejectionReason) : '-'}</td>
+          <td>${formatDate(c.createdAt)}</td>
           <td class="actions">
             ${(c.status === 'pending' || c.status === 'rejected') ? `<button class="btn btn-outline btn-sm" onclick="editMySubmittedCourse(${c.id})"><i class="fas fa-edit"></i></button>
             <button class="btn btn-danger btn-sm" onclick="deleteMySubmittedCourse(${c.id})"><i class="fas fa-trash"></i></button>` : `<button class="btn btn-outline btn-sm" onclick="viewCourseDetail(${c.id})"><i class="fas fa-eye"></i></button>`}
@@ -1452,7 +1452,7 @@ $(document).ready(function () {
           units.forEach((u, idx) => {
             unitPromise = unitPromise.then(() => {
               return new Promise(resolve => {
-                api({ add_subject: 1, course_id: courseId, title: u.title, code: `Unit ${u.num}` }, () => resolve());
+                api({ add_subject: 1, courseId: courseId, title: u.title, code: `Unit ${u.num}` }, () => resolve());
               });
             });
           });
@@ -1476,7 +1476,7 @@ $(document).ready(function () {
 
   window.editMySubmittedCourse = function(id) {
     // Reuse admin course modal for editing
-    api({ get_course_detail: 1, course_id: id }, function(res) {
+    api({ get_course_detail: 1, courseId: id }, function(res) {
       if (res.status !== 200) return;
       const c = res.data;
       Swal.fire({
@@ -1484,15 +1484,15 @@ $(document).ready(function () {
         html: `<div class="swal-form">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
             <div class="form-group"><label class="form-label">Title</label><input id="sCourseTitle" class="form-input" value="${esc(c.title || '')}"></div>
-            <div class="form-group"><label class="form-label">Course Code</label><input id="sCourseCode" class="form-input" value="${esc(c.course_code || '')}"></div>
+            <div class="form-group"><label class="form-label">Course Code</label><input id="sCourseCode" class="form-input" value="${esc(c.courseCode || '')}"></div>
           </div>
           <div class="form-group"><label class="form-label">Description</label><textarea id="sCourseDesc" class="form-input" rows="2">${esc(c.description || '')}</textarea></div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;">
             <div class="form-group"><label class="form-label">Category</label><input id="sCourseCat" class="form-input" value="${esc(c.category || '')}"></div>
             <div class="form-group"><label class="form-label">Type</label><select id="sCourseType" class="form-input">
-              <option value="theory" ${c.course_type==='theory'?'selected':''}>Theory</option>
-              <option value="lab" ${c.course_type==='lab'?'selected':''}>Lab</option>
-              <option value="elective" ${c.course_type==='elective'?'selected':''}>Elective</option>
+              <option value="theory" ${c.courseType==='theory'?'selected':''}>Theory</option>
+              <option value="lab" ${c.courseType==='lab'?'selected':''}>Lab</option>
+              <option value="elective" ${c.courseType==='elective'?'selected':''}>Elective</option>
             </select></div>
             <div class="form-group"><label class="form-label">Semester</label><select id="sCourseSem" class="form-input">
               <option value="">-</option>
@@ -1501,18 +1501,18 @@ $(document).ready(function () {
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
             <div class="form-group"><label class="form-label">Regulation</label><input id="sCourseReg" class="form-input" value="${esc(c.regulation || '')}"></div>
-            <div class="form-group"><label class="form-label">Academic Year</label><input id="sCourseYear" class="form-input" value="${esc(c.academic_year || '')}"></div>
+            <div class="form-group"><label class="form-label">Academic Year</label><input id="sCourseYear" class="form-input" value="${esc(c.academicYear || '')}"></div>
           </div>
-          ${c.rejection_reason ? `<div style="padding:0.75rem;background:rgba(239,68,68,0.1);border-radius:8px;border:1px solid rgba(239,68,68,0.2);margin-bottom:1rem;"><small style="color:#f87171;font-weight:600;">Rejection Reason:</small> ${esc(c.rejection_reason)}</div>` : ''}
+          ${c.rejectionReason ? `<div style="padding:0.75rem;background:rgba(239,68,68,0.1);border-radius:8px;border:1px solid rgba(239,68,68,0.2);margin-bottom:1rem;"><small style="color:#f87171;font-weight:600;">Rejection Reason:</small> ${esc(c.rejectionReason)}</div>` : ''}
         </div>`,
         showCancelButton: true, confirmButtonText: 'Resubmit', confirmButtonColor: '#4285f4',
         preConfirm: () => {
           const data = {
             id: id, update_course: 1,
-            title: $('#sCourseTitle').val(), course_code: $('#sCourseCode').val(),
+            title: $('#sCourseTitle').val(), courseCode: $('#sCourseCode').val(),
             description: $('#sCourseDesc').val(), category: $('#sCourseCat').val(),
-            course_type: $('#sCourseType').val(), semester: $('#sCourseSem').val(),
-            regulation: $('#sCourseReg').val(), academic_year: $('#sCourseYear').val()
+            courseType: $('#sCourseType').val(), semester: $('#sCourseSem').val(),
+            regulation: $('#sCourseReg').val(), academicYear: $('#sCourseYear').val()
           };
           if (!data.title) { Swal.showValidationMessage('Title is required'); return false; }
           return new Promise(resolve => {

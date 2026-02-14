@@ -89,7 +89,7 @@ function uploadFile($fileKey, $allowedMimes, $allowedExts, $maxSizeMB, $uploadDi
 
 function isLogged()
 {
-    return isset($_SESSION['user_id']);
+    return isset($_SESSION['userId']);
 }
 function role()
 {
@@ -97,11 +97,11 @@ function role()
 }
 function uid()
 {
-    return $_SESSION['user_id'] ?? 0;
+    return $_SESSION['userId'] ?? 0;
 }
 function cid()
 {
-    return $_SESSION['college_id'] ?? 0;
+    return $_SESSION['collegeId'] ?? 0;
 }
 function hasRole($roles)
 {
@@ -127,7 +127,7 @@ if (isset($_POST['login_user'])) {
     $username = esc($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
     
-    $stmt = $conn->prepare("SELECT u.*, c.name as college_name FROM users u LEFT JOIN colleges c ON u.college_id=c.id WHERE u.username=? AND u.status='active'");
+    $stmt = $conn->prepare("SELECT u.*, c.name as college_name FROM users u LEFT JOIN colleges c ON u.collegeId=c.id WHERE u.username=? AND u.status='active'");
     $stmt->bind_param("s", $username);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -135,13 +135,13 @@ if (isset($_POST['login_user'])) {
     if ($u = $result->fetch_assoc()) {
         // Check plain text password
         if ($password === $u['password']) {
-            $_SESSION['user_id'] = $u['id'];
+            $_SESSION['userId'] = $u['id'];
             $_SESSION['user_name'] = $u['name'];
             $_SESSION['user_email'] = $u['email'];
             $_SESSION['role'] = $u['role'];
-            $_SESSION['college_id'] = $u['college_id'];
+            $_SESSION['collegeId'] = $u['collegeId'];
             $_SESSION['college_name'] = $u['college_name'] ?? '';
-            $_SESSION['profile_photo'] = $u['profile_photo'] ?? '';
+            $_SESSION['profilePhoto'] = $u['profilePhoto'] ?? '';
             respond(200, 'Login successful', ['role' => $u['role'], 'name' => $u['name']]);
         }
     }
@@ -154,19 +154,19 @@ if (isset($_POST['register_student'])) {
     $email = esc($_POST['email'] ?? '');
     $username = esc($_POST['username'] ?? '');
     $raw_password = $_POST['password'] ?? '';
-    $college_id = intval($_POST['college_id'] ?? 0);
+    $collegeId = intval($_POST['collegeId'] ?? 0);
     $department = esc($_POST['department'] ?? '');
     $year = esc($_POST['year'] ?? '');
-    $roll_number = esc($_POST['roll_number'] ?? '');
+    $rollNumber = esc($_POST['rollNumber'] ?? '');
     $phone = esc($_POST['phone'] ?? '');
     
-    if (!$name || !$email || !$username || !$raw_password || !$college_id || !$department || !$year || !$roll_number)
+    if (!$name || !$email || !$username || !$raw_password || !$collegeId || !$department || !$year || !$rollNumber)
         respond(400, 'All required fields must be filled');
     if (strlen($username) < 4 || !preg_match('/^[a-zA-Z0-9_]+$/', $username))
         respond(400, 'Username must be at least 4 characters (letters, numbers, underscores only)');
     if (strlen($raw_password) < 6)
         respond(400, 'Password must be at least 6 characters');
-    if (strlen($roll_number) !== 12)
+    if (strlen($rollNumber) !== 12)
         respond(400, 'Roll number must be exactly 12 characters');
     
     // Check existing email
@@ -190,8 +190,8 @@ if (isset($_POST['register_student'])) {
     $stmt->close();
     
     // Check existing roll number
-    $stmt = $conn->prepare("SELECT id FROM users WHERE roll_number=?");
-    $stmt->bind_param("s", $roll_number);
+    $stmt = $conn->prepare("SELECT id FROM users WHERE rollNumber=?");
+    $stmt->bind_param("s", $rollNumber);
     $stmt->execute();
     if ($stmt->get_result()->num_rows > 0) {
         $stmt->close();
@@ -201,7 +201,7 @@ if (isset($_POST['register_student'])) {
     
     // Validate college
     $stmt = $conn->prepare("SELECT id FROM colleges WHERE id=? AND status='active'");
-    $stmt->bind_param("i", $college_id);
+    $stmt->bind_param("i", $collegeId);
     $stmt->execute();
     if ($stmt->get_result()->num_rows == 0) {
         $stmt->close();
@@ -212,8 +212,8 @@ if (isset($_POST['register_student'])) {
     // Store password in plain text
     
     // Insert user
-    $stmt = $conn->prepare("INSERT INTO users (name,email,username,password,role,college_id,department,year,roll_number,phone) VALUES (?,?,?,?,'azhagiiStudents',?,?,?,?,?)");
-    $stmt->bind_param("ssssissss", $name, $email, $username, $raw_password, $college_id, $department, $year, $roll_number, $phone);
+    $stmt = $conn->prepare("INSERT INTO users (name,email,username,password,role,collegeId,department,year,rollNumber,phone) VALUES (?,?,?,?,'azhagiiStudents',?,?,?,?,?)");
+    $stmt->bind_param("ssssissss", $name, $email, $username, $raw_password, $collegeId, $department, $year, $rollNumber, $phone);
     
     if ($stmt->execute()) {
         $newId = $stmt->insert_id;
@@ -221,7 +221,7 @@ if (isset($_POST['register_student'])) {
         
         // Get college name
         $stmt = $conn->prepare("SELECT name FROM colleges WHERE id=?");
-        $stmt->bind_param("i", $college_id);
+        $stmt->bind_param("i", $collegeId);
         $stmt->execute();
         $result = $stmt->get_result();
         $collegeName = '';
@@ -231,11 +231,11 @@ if (isset($_POST['register_student'])) {
         $stmt->close();
         
         // Auto-login after registration
-        $_SESSION['user_id'] = $newId;
+        $_SESSION['userId'] = $newId;
         $_SESSION['user_name'] = $name;
         $_SESSION['user_email'] = $email;
         $_SESSION['role'] = 'azhagiiStudents';
-        $_SESSION['college_id'] = $college_id;
+        $_SESSION['collegeId'] = $collegeId;
         $_SESSION['college_name'] = $collegeName;
         respond(200, 'Registration successful!');
     } else {
@@ -248,11 +248,11 @@ if (isset($_POST['register_student'])) {
 if (isset($_POST['check_session'])) {
     if (isLogged()) {
         respond(200, 'Active', [
-            'user_id' => uid(),
+            'userId' => uid(),
             'user_name' => $_SESSION['user_name'],
             'user_email' => $_SESSION['user_email'] ?? '',
             'role' => role(),
-            'college_id' => cid(),
+            'collegeId' => cid(),
             'college_name' => $_SESSION['college_name'] ?? ''
         ]);
     }
@@ -274,7 +274,7 @@ if (isset($_POST['get_my_profile'])) {
     
     $stmt = $conn->prepare("SELECT u.*, c.name as college_name, c.code as college_code 
           FROM users u 
-          LEFT JOIN colleges c ON u.college_id=c.id 
+          LEFT JOIN colleges c ON u.collegeId=c.id 
           WHERE u.id=?");
     $stmt->bind_param("i", $uid);
     $stmt->execute();
@@ -321,23 +321,23 @@ if (isset($_POST['get_my_profile'])) {
 
         // Academic (4) - only for students/coordinators mainly, but let's count for all for now or check role
         if ($row['role'] == 'azhagiiStudents') {
-            $acadProps = ['college_id', 'department', 'year', 'roll_number'];
+            $acadProps = ['collegeId', 'department', 'year', 'rollNumber'];
             foreach ($acadProps as $p) {
                 $total++;
                 if (!empty($row[$p]))
                     $filled++;
             }
         } else {
-            // For others, college_id might be relevant, others not so much. 
+            // For others, collegeId might be relevant, others not so much. 
             // Let's keep it simple: if fields exist in DB and relevant to role.
-            if (!empty($row['college_id'])) {
+            if (!empty($row['collegeId'])) {
                 $total++;
                 $filled++;
             } // college is usually required for logic
         }
 
         // Assets (5)
-        $assetProps = ['profile_photo', 'github_url', 'linkedin_url', 'hackerrank_url', 'leetcode_url'];
+        $assetProps = ['profilePhoto', 'githubUrl', 'linkedinUrl', 'hackerrankUrl', 'leetcodeUrl'];
         foreach ($assetProps as $p) {
             $total++;
             if (!empty($row[$p]))
@@ -348,19 +348,19 @@ if (isset($_POST['get_my_profile'])) {
         $row['profile_completion'] = $pct;
 
         // Auto-lock if 100% complete and not already locked
-        if ($pct == 100 && (!isset($row['is_locked']) || $row['is_locked'] == 0)) {
+        if ($pct == 100 && (!isset($row['isLocked']) || $row['isLocked'] == 0)) {
             // Check if column exists physically (we ran migration but safe check)
-            if (array_key_exists('is_locked', $row)) {
-                $stmt2 = $conn->prepare("UPDATE users SET is_locked=1 WHERE id=?");
+            if (array_key_exists('isLocked', $row)) {
+                $stmt2 = $conn->prepare("UPDATE users SET isLocked=1 WHERE id=?");
                 $stmt2->bind_param("i", $uid);
                 $stmt2->execute();
                 $stmt2->close();
-                $row['is_locked'] = 1;
+                $row['isLocked'] = 1;
             }
         }
 
         // Check for pending unlock request
-        $stmt3 = $conn->prepare("SELECT status, request_reason FROM profile_requests WHERE user_id=? AND status='pending' ORDER BY created_at DESC LIMIT 1");
+        $stmt3 = $conn->prepare("SELECT status, requestReason FROM profilerequests WHERE userId=? AND status='pending' ORDER BY createdAt DESC LIMIT 1");
         $stmt3->bind_param("i", $uid);
         $stmt3->execute();
         $result3 = $stmt3->get_result();
@@ -380,13 +380,13 @@ if (isset($_POST['update_my_profile'])) {
     $uid = uid();
 
     // Check lock status - Admins bypass lock
-    $stmt = $conn->prepare("SELECT is_locked, role FROM users WHERE id=?");
+    $stmt = $conn->prepare("SELECT isLocked, role FROM users WHERE id=?");
     $stmt->bind_param("i", $uid);
     $stmt->execute();
     $result = $stmt->get_result();
     if ($row = $result->fetch_assoc()) {
         $allowedRoles = ['superAdmin', 'adminAzhagii'];
-        if ($row['is_locked'] == 1 && !in_array($row['role'], $allowedRoles)) {
+        if ($row['isLocked'] == 1 && !in_array($row['role'], $allowedRoles)) {
             $stmt->close();
             respond(403, 'Profile is locked. Request unlock from admin.');
         }
@@ -399,10 +399,10 @@ if (isset($_POST['update_my_profile'])) {
     $gender = esc($_POST['gender'] ?? '');
     $dob = esc($_POST['dob'] ?? '');
     $address = esc($_POST['address'] ?? '');
-    $git = esc($_POST['github_url'] ?? '');
-    $li = esc($_POST['linkedin_url'] ?? '');
-    $hr = esc($_POST['hackerrank_url'] ?? '');
-    $lc = esc($_POST['leetcode_url'] ?? '');
+    $git = esc($_POST['githubUrl'] ?? '');
+    $li = esc($_POST['linkedinUrl'] ?? '');
+    $hr = esc($_POST['hackerrankUrl'] ?? '');
+    $lc = esc($_POST['leetcodeUrl'] ?? '');
 
     // Optional: Password update
     $plainPassword = null;
@@ -412,14 +412,14 @@ if (isset($_POST['update_my_profile'])) {
 
     // Optional: Profile Photo
     $photoPath = null;
-    if (isset($_FILES['profile_photo']) && $_FILES['profile_photo']['error'] === UPLOAD_ERR_OK) {
+    if (isset($_FILES['profilePhoto']) && $_FILES['profilePhoto']['error'] === UPLOAD_ERR_OK) {
         // Check file type by MIME type AND extension
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
-        $mime = finfo_file($finfo, $_FILES['profile_photo']['tmp_name']);
+        $mime = finfo_file($finfo, $_FILES['profilePhoto']['tmp_name']);
         finfo_close($finfo);
         
         $allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-        $ext = strtolower(pathinfo($_FILES['profile_photo']['name'], PATHINFO_EXTENSION));
+        $ext = strtolower(pathinfo($_FILES['profilePhoto']['name'], PATHINFO_EXTENSION));
         $allowedExts = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
 
         if (!in_array($mime, $allowedMimes) || !in_array($ext, $allowedExts)) {
@@ -427,7 +427,7 @@ if (isset($_POST['update_my_profile'])) {
         }
 
         // Check file size (max 5MB)
-        if ($_FILES['profile_photo']['size'] > 5 * 1024 * 1024) {
+        if ($_FILES['profilePhoto']['size'] > 5 * 1024 * 1024) {
             respond(400, "File too large. Maximum size: 5MB");
         }
 
@@ -441,27 +441,27 @@ if (isset($_POST['update_my_profile'])) {
         }
 
         $targetFile = "$targetDir/$fname";
-        if (move_uploaded_file($_FILES['profile_photo']['tmp_name'], $targetFile)) {
+        if (move_uploaded_file($_FILES['profilePhoto']['tmp_name'], $targetFile)) {
             $photoPath = $targetFile;
         } else {
             respond(500, "Failed to save uploaded file");
         }
-    } elseif (isset($_FILES['profile_photo']) && $_FILES['profile_photo']['error'] !== UPLOAD_ERR_NO_FILE) {
-        respond(400, "File upload error code: " . $_FILES['profile_photo']['error']);
+    } elseif (isset($_FILES['profilePhoto']) && $_FILES['profilePhoto']['error'] !== UPLOAD_ERR_NO_FILE) {
+        respond(400, "File upload error code: " . $_FILES['profilePhoto']['error']);
     }
 
     // Build update query with prepared statement
     if ($plainPassword !== null && $photoPath !== null) {
-        $stmt = $conn->prepare("UPDATE users SET name=?, phone=?, bio=?, gender=?, dob=NULLIF(?,''), address=?, github_url=?, linkedin_url=?, hackerrank_url=?, leetcode_url=?, password=?, profile_photo=? WHERE id=?");
+        $stmt = $conn->prepare("UPDATE users SET name=?, phone=?, bio=?, gender=?, dob=NULLIF(?,''), address=?, githubUrl=?, linkedinUrl=?, hackerrankUrl=?, leetcodeUrl=?, password=?, profilePhoto=? WHERE id=?");
         $stmt->bind_param("ssssssssssssi", $name, $phone, $bio, $gender, $dob, $address, $git, $li, $hr, $lc, $plainPassword, $photoPath, $uid);
     } elseif ($plainPassword !== null) {
-        $stmt = $conn->prepare("UPDATE users SET name=?, phone=?, bio=?, gender=?, dob=NULLIF(?,''), address=?, github_url=?, linkedin_url=?, hackerrank_url=?, leetcode_url=?, password=? WHERE id=?");
+        $stmt = $conn->prepare("UPDATE users SET name=?, phone=?, bio=?, gender=?, dob=NULLIF(?,''), address=?, githubUrl=?, linkedinUrl=?, hackerrankUrl=?, leetcodeUrl=?, password=? WHERE id=?");
         $stmt->bind_param("sssssssssssi", $name, $phone, $bio, $gender, $dob, $address, $git, $li, $hr, $lc, $plainPassword, $uid);
     } elseif ($photoPath !== null) {
-        $stmt = $conn->prepare("UPDATE users SET name=?, phone=?, bio=?, gender=?, dob=NULLIF(?,''), address=?, github_url=?, linkedin_url=?, hackerrank_url=?, leetcode_url=?, profile_photo=? WHERE id=?");
+        $stmt = $conn->prepare("UPDATE users SET name=?, phone=?, bio=?, gender=?, dob=NULLIF(?,''), address=?, githubUrl=?, linkedinUrl=?, hackerrankUrl=?, leetcodeUrl=?, profilePhoto=? WHERE id=?");
         $stmt->bind_param("sssssssssssi", $name, $phone, $bio, $gender, $dob, $address, $git, $li, $hr, $lc, $photoPath, $uid);
     } else {
-        $stmt = $conn->prepare("UPDATE users SET name=?, phone=?, bio=?, gender=?, dob=NULLIF(?,''), address=?, github_url=?, linkedin_url=?, hackerrank_url=?, leetcode_url=? WHERE id=?");
+        $stmt = $conn->prepare("UPDATE users SET name=?, phone=?, bio=?, gender=?, dob=NULLIF(?,''), address=?, githubUrl=?, linkedinUrl=?, hackerrankUrl=?, leetcodeUrl=? WHERE id=?");
         $stmt->bind_param("ssssssssssi", $name, $phone, $bio, $gender, $dob, $address, $git, $li, $hr, $lc, $uid);
     }
 
@@ -469,7 +469,7 @@ if (isset($_POST['update_my_profile'])) {
         $stmt->close();
         $_SESSION['user_name'] = $name; // update session
         if ($photoPath !== null) {
-            $_SESSION['profile_photo'] = $photoPath;
+            $_SESSION['profilePhoto'] = $photoPath;
         }
         respond(200, 'Profile updated successfully');
     } else {
@@ -487,7 +487,7 @@ if (isset($_POST['request_profile_unlock'])) {
         respond(400, 'Reason is required');
 
     // Check if already pending
-    $stmt = $conn->prepare("SELECT id FROM profile_requests WHERE user_id=? AND status='pending'");
+    $stmt = $conn->prepare("SELECT id FROM profilerequests WHERE userId=? AND status='pending'");
     $stmt->bind_param("i", $uid);
     $stmt->execute();
     if ($stmt->get_result()->num_rows > 0) {
@@ -496,7 +496,7 @@ if (isset($_POST['request_profile_unlock'])) {
     }
     $stmt->close();
 
-    $stmt2 = $conn->prepare("INSERT INTO profile_requests (user_id, request_reason) VALUES (?, ?)");
+    $stmt2 = $conn->prepare("INSERT INTO profilerequests (userId, requestReason) VALUES (?, ?)");
     $stmt2->bind_param("is", $uid, $reason);
     if ($stmt2->execute()) {
         $stmt2->close();
@@ -509,13 +509,13 @@ if (isset($_POST['request_profile_unlock'])) {
 }
 
 // ── Admin: Review Profile Requests ──────────────────────
-if (isset($_POST['get_profile_requests'])) {
+if (isset($_POST['get_profilerequests'])) {
     requireRole(['superAdmin', 'adminAzhagii']);
     $q = "SELECT pr.*, u.name as user_name, u.email as user_email, col.name as college_name 
-          FROM profile_requests pr 
-          JOIN users u ON pr.user_id=u.id 
-          LEFT JOIN colleges col ON u.college_id=col.id
-          WHERE pr.status='pending' ORDER BY pr.created_at DESC";
+          FROM profilerequests pr 
+          JOIN users u ON pr.userId=u.id 
+          LEFT JOIN colleges col ON u.collegeId=col.id
+          WHERE pr.status='pending' ORDER BY pr.createdAt DESC";
     $r = mysqli_query($conn, $q);
     $data = [];
     while ($r && $row = mysqli_fetch_assoc($r))
@@ -539,21 +539,21 @@ if (isset($_POST['resolve_profile_request'])) {
 
     try {
         // Update request
-        $stmt = $conn->prepare("UPDATE profile_requests SET status=?, resolved_by=?, resolved_at=NOW() WHERE id=?");
+        $stmt = $conn->prepare("UPDATE profilerequests SET status=?, resolvedBy=?, resolvedAt=NOW() WHERE id=?");
         $stmt->bind_param("sii", $status, $by, $req_id);
         $stmt->execute();
         $stmt->close();
 
         // If approved, unlock user
         if ($action === 'approve') {
-            // Get user_id from request
-            $stmt2 = $conn->prepare("SELECT user_id FROM profile_requests WHERE id=?");
+            // Get userId from request
+            $stmt2 = $conn->prepare("SELECT userId FROM profilerequests WHERE id=?");
             $stmt2->bind_param("i", $req_id);
             $stmt2->execute();
             $result = $stmt2->get_result();
             if ($row = $result->fetch_assoc()) {
-                $target_uid = $row['user_id'];
-                $stmt3 = $conn->prepare("UPDATE users SET is_locked=0 WHERE id=?");
+                $target_uid = $row['userId'];
+                $stmt3 = $conn->prepare("UPDATE users SET isLocked=0 WHERE id=?");
                 $stmt3->bind_param("i", $target_uid);
                 $stmt3->execute();
                 $stmt3->close();
@@ -575,7 +575,7 @@ if (isset($_POST['resolve_profile_request'])) {
 
 if (isset($_POST['get_colleges'])) {
     requireLogin();
-    $q = "SELECT c.*, (SELECT COUNT(*) FROM users WHERE college_id=c.id) as user_count FROM colleges c ORDER BY c.name";
+    $q = "SELECT c.*, (SELECT COUNT(*) FROM users WHERE collegeId=c.id) as user_count FROM colleges c ORDER BY c.name";
     $r = mysqli_query($conn, $q);
     $data = [];
     while ($r && $row = mysqli_fetch_assoc($r))
@@ -680,11 +680,11 @@ if (isset($_POST['get_users'])) {
     if (isset($_POST['role_filter']) && $_POST['role_filter'])
         $where .= " AND u.role='" . esc($_POST['role_filter']) . "'";
     if (isset($_POST['college_filter']) && $_POST['college_filter'])
-        $where .= " AND u.college_id=" . intval($_POST['college_filter']);
+        $where .= " AND u.collegeId=" . intval($_POST['college_filter']);
     // adminAzhagii cannot see superAdmin users
     if (role() === 'adminAzhagii')
         $where .= " AND u.role != 'superAdmin'";
-    $q = "SELECT u.*, c.name as college_name FROM users u LEFT JOIN colleges c ON u.college_id=c.id WHERE $where ORDER BY u.created_at DESC";
+    $q = "SELECT u.*, c.name as college_name FROM users u LEFT JOIN colleges c ON u.collegeId=c.id WHERE $where ORDER BY u.createdAt DESC";
     $r = mysqli_query($conn, $q);
     $data = [];
     while ($r && $row = mysqli_fetch_assoc($r)) {
@@ -700,7 +700,7 @@ if (isset($_POST['add_user'])) {
     $email = esc($_POST['email'] ?? '');
     $raw_password = $_POST['password'] ?? '';
     $urole = esc($_POST['role'] ?? '');
-    $college_id = intval($_POST['college_id'] ?? 0);
+    $collegeId = intval($_POST['collegeId'] ?? 0);
     $phone = esc($_POST['phone'] ?? '');
     
     if (!$name || !$email || !$raw_password || !$urole)
@@ -721,9 +721,9 @@ if (isset($_POST['add_user'])) {
     $stmt->close();
     
     // Store password in plain text
-    $cid_sql = $college_id ? $college_id : null;
+    $cid_sql = $collegeId ? $collegeId : null;
     
-    $stmt2 = $conn->prepare("INSERT INTO users (name,email,password,role,college_id,phone) VALUES (?,?,?,?,?,?)");
+    $stmt2 = $conn->prepare("INSERT INTO users (name,email,password,role,collegeId,phone) VALUES (?,?,?,?,?,?)");
     $stmt2->bind_param("ssssis", $name, $email, $raw_password, $urole, $cid_sql, $phone);
     
     if ($stmt2->execute()) {
@@ -758,7 +758,7 @@ if (isset($_POST['update_user'])) {
     $name = esc($_POST['name'] ?? '');
     $email = esc($_POST['email'] ?? '');
     $urole = esc($_POST['role'] ?? '');
-    $college_id = intval($_POST['college_id'] ?? 0);
+    $collegeId = intval($_POST['collegeId'] ?? 0);
     $phone = esc($_POST['phone'] ?? '');
     $status = esc($_POST['status'] ?? 'active');
     
@@ -766,7 +766,7 @@ if (isset($_POST['update_user'])) {
     if (role() === 'adminAzhagii' && in_array($urole, ['superAdmin', 'adminAzhagii']))
         respond(403, 'Cannot assign this role');
     
-    $cid_sql = $college_id ? $college_id : null;
+    $cid_sql = $collegeId ? $collegeId : null;
     
     // Check if email exists for other users
     $stmt2 = $conn->prepare("SELECT id FROM users WHERE email=? AND id!=?");
@@ -781,10 +781,10 @@ if (isset($_POST['update_user'])) {
     // Update with or without password
     if (isset($_POST['password']) && $_POST['password'] !== '') {
         $plain_pw = $_POST['password'];
-        $stmt3 = $conn->prepare("UPDATE users SET name=?,email=?,role=?,college_id=?,phone=?,status=?,password=? WHERE id=?");
+        $stmt3 = $conn->prepare("UPDATE users SET name=?,email=?,role=?,collegeId=?,phone=?,status=?,password=? WHERE id=?");
         $stmt3->bind_param("sssisssi", $name, $email, $urole, $cid_sql, $phone, $status, $plain_pw, $id);
     } else {
-        $stmt3 = $conn->prepare("UPDATE users SET name=?,email=?,role=?,college_id=?,phone=?,status=? WHERE id=?");
+        $stmt3 = $conn->prepare("UPDATE users SET name=?,email=?,role=?,collegeId=?,phone=?,status=? WHERE id=?");
         $stmt3->bind_param("sssissi", $name, $email, $urole, $cid_sql, $phone, $status, $id);
     }
     
@@ -843,22 +843,22 @@ if (isset($_POST['get_courses'])) {
         // Coordinator sees courses assigned to their college + courses they created
         $cid = cid();
         $uid = uid();
-        $where = "(c.id IN (SELECT course_id FROM course_colleges WHERE college_id=$cid) OR c.created_by=$uid)";
+        $where = "(c.id IN (SELECT courseId FROM coursecolleges WHERE collegeId=$cid) OR c.createdBy=$uid)";
     } else if (hasRole(['azhagiiStudents'])) {
         $cid = cid();
-        $where = "c.status='active' AND c.id IN (SELECT course_id FROM course_colleges WHERE college_id=$cid)";
+        $where = "c.status='active' AND c.id IN (SELECT courseId FROM coursecolleges WHERE collegeId=$cid)";
     }
     // Status filter
     if (isset($_POST['status_filter']) && $_POST['status_filter'])
         $where .= " AND c.status='" . esc($_POST['status_filter']) . "'";
     $q = "SELECT c.*, u.name as creator_name, ap.name as approver_name,
-          (SELECT COUNT(*) FROM course_colleges WHERE course_id=c.id) as college_count,
-          (SELECT COUNT(*) FROM enrollments WHERE course_id=c.id) as enrollment_count,
-          (SELECT COUNT(*) FROM course_content WHERE course_id=c.id) as content_count,
-          (SELECT COUNT(*) FROM subjects WHERE course_id=c.id) as subject_count
-          FROM courses c LEFT JOIN users u ON c.created_by=u.id
-          LEFT JOIN users ap ON c.approved_by=ap.id
-          WHERE $where ORDER BY c.created_at DESC";
+          (SELECT COUNT(*) FROM coursecolleges WHERE courseId=c.id) as college_count,
+          (SELECT COUNT(*) FROM enrollments WHERE courseId=c.id) as enrollment_count,
+          (SELECT COUNT(*) FROM coursecontent WHERE courseId=c.id) as content_count,
+          (SELECT COUNT(*) FROM subjects WHERE courseId=c.id) as subject_count
+          FROM courses c LEFT JOIN users u ON c.createdBy=u.id
+          LEFT JOIN users ap ON c.approvedBy=ap.id
+          WHERE $where ORDER BY c.createdAt DESC";
     $r = mysqli_query($conn, $q);
     $data = [];
     while ($r && $row = mysqli_fetch_assoc($r))
@@ -870,11 +870,11 @@ if (isset($_POST['get_courses'])) {
 if (isset($_POST['get_pending_courses'])) {
     requireRole(['superAdmin', 'adminAzhagii']);
     $q = "SELECT c.*, u.name as creator_name, col.name as creator_college,
-          (SELECT COUNT(*) FROM subjects WHERE course_id=c.id) as subject_count
+          (SELECT COUNT(*) FROM subjects WHERE courseId=c.id) as subject_count
           FROM courses c
-          LEFT JOIN users u ON c.created_by=u.id
-          LEFT JOIN colleges col ON u.college_id=col.id
-          WHERE c.status='pending' ORDER BY c.created_at DESC";
+          LEFT JOIN users u ON c.createdBy=u.id
+          LEFT JOIN colleges col ON u.collegeId=col.id
+          WHERE c.status='pending' ORDER BY c.createdAt DESC";
     $r = mysqli_query($conn, $q);
     $data = [];
     while ($r && $row = mysqli_fetch_assoc($r))
@@ -885,21 +885,21 @@ if (isset($_POST['get_pending_courses'])) {
 // ── Get Course Detail (with subjects & topics) ───────────
 if (isset($_POST['get_course_detail'])) {
     requireLogin();
-    $course_id = intval($_POST['course_id'] ?? 0);
+    $courseId = intval($_POST['courseId'] ?? 0);
     $q = "SELECT c.*, u.name as creator_name, ap.name as approver_name
-          FROM courses c LEFT JOIN users u ON c.created_by=u.id
-          LEFT JOIN users ap ON c.approved_by=ap.id
-          WHERE c.id=$course_id";
+          FROM courses c LEFT JOIN users u ON c.createdBy=u.id
+          LEFT JOIN users ap ON c.approvedBy=ap.id
+          WHERE c.id=$courseId";
     $r = mysqli_query($conn, $q);
     if (!$r || mysqli_num_rows($r) == 0)
         respond(404, 'Course not found');
     $course = mysqli_fetch_assoc($r);
     // Get subjects with topics
-    $sq = "SELECT s.*, (SELECT COUNT(*) FROM topics WHERE subject_id=s.id) as topic_count FROM subjects s WHERE s.course_id=$course_id ORDER BY s.created_at ASC";
+    $sq = "SELECT s.*, (SELECT COUNT(*) FROM topics WHERE subjectId=s.id) as topic_count FROM subjects s WHERE s.courseId=$courseId ORDER BY s.createdAt ASC";
     $sr = mysqli_query($conn, $sq);
     $subjects = [];
     while ($sr && $srow = mysqli_fetch_assoc($sr)) {
-        $tq = "SELECT t.* FROM topics t WHERE t.subject_id={$srow['id']} ORDER BY t.created_at ASC";
+        $tq = "SELECT t.* FROM topics t WHERE t.subjectId={$srow['id']} ORDER BY t.createdAt ASC";
         $tr = mysqli_query($conn, $tq);
         $srow['topics'] = [];
         while ($tr && $trow = mysqli_fetch_assoc($tr))
@@ -913,13 +913,13 @@ if (isset($_POST['get_course_detail'])) {
 if (isset($_POST['add_course'])) {
     requireRole(['superAdmin', 'adminAzhagii', 'azhagiiCoordinator']);
     $title = esc($_POST['title'] ?? '');
-    $code = esc($_POST['course_code'] ?? '');
+    $code = esc($_POST['courseCode'] ?? '');
     $desc = esc($_POST['description'] ?? '');
     $cat = esc($_POST['category'] ?? '');
-    $course_type = esc($_POST['course_type'] ?? 'theory');
+    $courseType = esc($_POST['courseType'] ?? 'theory');
     $semester = esc($_POST['semester'] ?? '');
     $regulation = esc($_POST['regulation'] ?? '');
-    $academic_year = esc($_POST['academic_year'] ?? '');
+    $academicYear = esc($_POST['academicYear'] ?? '');
     // Coordinators always submit as pending; admins choose status
     if (hasRole('azhagiiCoordinator')) {
         $status = 'pending';
@@ -947,8 +947,8 @@ if (isset($_POST['add_course'])) {
         respond(400, 'Title is required');
     $by = uid();
     
-    $stmt = $conn->prepare("INSERT INTO courses (title,course_code,description,category,course_type,thumbnail,syllabus,semester,regulation,academic_year,created_by,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)");
-    $stmt->bind_param("ssssssssssss", $title, $code, $desc, $cat, $course_type, $thumb, $syllabus, $semester, $regulation, $academic_year, $by, $status);
+    $stmt = $conn->prepare("INSERT INTO courses (title,courseCode,description,category,courseType,thumbnail,syllabus,semester,regulation,academicYear,createdBy,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)");
+    $stmt->bind_param("ssssssssssss", $title, $code, $desc, $cat, $courseType, $thumb, $syllabus, $semester, $regulation, $academicYear, $by, $status);
     
     if ($stmt->execute()) {
         $newCourseId = $stmt->insert_id;
@@ -956,9 +956,9 @@ if (isset($_POST['add_course'])) {
         
         // If coordinator created, auto-assign to their college
         if (hasRole('azhagiiCoordinator') && cid()) {
-            $college_id = cid();
-            $stmt2 = $conn->prepare("INSERT IGNORE INTO course_colleges (course_id,college_id,assigned_by) VALUES (?,?,?)");
-            $stmt2->bind_param("iii", $newCourseId, $college_id, $by);
+            $collegeId = cid();
+            $stmt2 = $conn->prepare("INSERT IGNORE INTO coursecolleges (courseId,collegeId,assignedBy) VALUES (?,?,?)");
+            $stmt2->bind_param("iii", $newCourseId, $collegeId, $by);
             $stmt2->execute();
             $stmt2->close();
         }
@@ -975,12 +975,12 @@ if (isset($_POST['update_course'])) {
     $id = intval($_POST['id'] ?? 0);
     // Coordinators can only edit their own pending/rejected courses
     if (hasRole('azhagiiCoordinator')) {
-        $stmt_check = $conn->prepare("SELECT status, created_by FROM courses WHERE id=?");
+        $stmt_check = $conn->prepare("SELECT status, createdBy FROM courses WHERE id=?");
         $stmt_check->bind_param("i", $id);
         $stmt_check->execute();
         $result_check = $stmt_check->get_result();
         if ($row = $result_check->fetch_assoc()) {
-            if ($row['created_by'] != uid()) {
+            if ($row['createdBy'] != uid()) {
                 $stmt_check->close();
                 respond(403, 'Cannot edit this course');
             }
@@ -992,20 +992,20 @@ if (isset($_POST['update_course'])) {
         $stmt_check->close();
     }
     $title = esc($_POST['title'] ?? '');
-    $code = esc($_POST['course_code'] ?? '');
+    $code = esc($_POST['courseCode'] ?? '');
     $desc = esc($_POST['description'] ?? '');
     $cat = esc($_POST['category'] ?? '');
-    $course_type = esc($_POST['course_type'] ?? 'theory');
+    $courseType = esc($_POST['courseType'] ?? 'theory');
     $semester = esc($_POST['semester'] ?? '');
     $regulation = esc($_POST['regulation'] ?? '');
-    $academic_year = esc($_POST['academic_year'] ?? '');
+    $academicYear = esc($_POST['academicYear'] ?? '');
     // Coordinators resubmit as pending; admins set status
     if (hasRole('azhagiiCoordinator')) {
         $status = 'pending';
     } else {
         $status = esc($_POST['status'] ?? 'draft');
     }
-    $set = "title='$title',course_code='$code',description='$desc',category='$cat',course_type='$course_type',semester='$semester',regulation='$regulation',academic_year='$academic_year',status='$status'";
+    $set = "title='$title',courseCode='$code',description='$desc',category='$cat',courseType='$courseType',semester='$semester',regulation='$regulation',academicYear='$academicYear',status='$status'";
     
     // Handle thumbnail upload with security checks
     if (isset($_FILES['thumbnail']) && $_FILES['thumbnail']['error'] === UPLOAD_ERR_OK) {
@@ -1032,12 +1032,12 @@ if (isset($_POST['delete_course'])) {
     $id = intval($_POST['id'] ?? 0);
     // Coordinators can only delete their own pending/rejected courses
     if (hasRole('azhagiiCoordinator')) {
-        $stmt_check = $conn->prepare("SELECT status, created_by FROM courses WHERE id=?");
+        $stmt_check = $conn->prepare("SELECT status, createdBy FROM courses WHERE id=?");
         $stmt_check->bind_param("i", $id);
         $stmt_check->execute();
         $result_check = $stmt_check->get_result();
         if ($row = $result_check->fetch_assoc()) {
-            if ($row['created_by'] != uid()) {
+            if ($row['createdBy'] != uid()) {
                 $stmt_check->close();
                 respond(403, 'Cannot delete this course');
             }
@@ -1068,7 +1068,7 @@ if (isset($_POST['approve_course'])) {
     $id = intval($_POST['id'] ?? 0);
     $by = uid();
     
-    $stmt = $conn->prepare("UPDATE courses SET status='active', approved_by=?, approved_at=NOW(), rejection_reason=NULL WHERE id=? AND status='pending'");
+    $stmt = $conn->prepare("UPDATE courses SET status='active', approvedBy=?, approvedAt=NOW(), rejectionReason=NULL WHERE id=? AND status='pending'");
     $stmt->bind_param("ii", $by, $id);
     
     if ($stmt->execute() && $stmt->affected_rows > 0) {
@@ -1086,7 +1086,7 @@ if (isset($_POST['reject_course'])) {
     $reason = esc($_POST['reason'] ?? '');
     $by = uid();
     
-    $stmt = $conn->prepare("UPDATE courses SET status='rejected', approved_by=?, approved_at=NOW(), rejection_reason=? WHERE id=? AND status='pending'");
+    $stmt = $conn->prepare("UPDATE courses SET status='rejected', approvedBy=?, approvedAt=NOW(), rejectionReason=? WHERE id=? AND status='pending'");
     $stmt->bind_param("isi", $by, $reason, $id);
     
     if ($stmt->execute() && $stmt->affected_rows > 0) {
@@ -1102,12 +1102,12 @@ if (isset($_POST['reject_course'])) {
 
 if (isset($_POST['get_course_assignments'])) {
     requireRole(['superAdmin', 'adminAzhagii']);
-    $cid = intval($_POST['course_id'] ?? 0);
-    $q = "SELECT cc.*, c.name as college_name, c.code as college_code, u.name as assigned_by_name
-          FROM course_colleges cc
-          JOIN colleges c ON cc.college_id=c.id
-          LEFT JOIN users u ON cc.assigned_by=u.id
-          WHERE cc.course_id=$cid ORDER BY cc.assigned_at DESC";
+    $cid = intval($_POST['courseId'] ?? 0);
+    $q = "SELECT cc.*, c.name as college_name, c.code as college_code, u.name as assignedBy_name
+          FROM coursecolleges cc
+          JOIN colleges c ON cc.collegeId=c.id
+          LEFT JOIN users u ON cc.assignedBy=u.id
+          WHERE cc.courseId=$cid ORDER BY cc.assignedAt DESC";
     $r = mysqli_query($conn, $q);
     $data = [];
     while ($r && $row = mysqli_fetch_assoc($r))
@@ -1117,14 +1117,14 @@ if (isset($_POST['get_course_assignments'])) {
 
 if (isset($_POST['assign_course'])) {
     requireRole(['superAdmin', 'adminAzhagii']);
-    $course_id = intval($_POST['course_id'] ?? 0);
-    $college_id = intval($_POST['college_id'] ?? 0);
-    if (!$course_id || !$college_id)
+    $courseId = intval($_POST['courseId'] ?? 0);
+    $collegeId = intval($_POST['collegeId'] ?? 0);
+    if (!$courseId || !$collegeId)
         respond(400, 'Course and college required');
     
     // Check if already assigned
-    $stmt_check = $conn->prepare("SELECT id FROM course_colleges WHERE course_id=? AND college_id=?");
-    $stmt_check->bind_param("ii", $course_id, $college_id);
+    $stmt_check = $conn->prepare("SELECT id FROM coursecolleges WHERE courseId=? AND collegeId=?");
+    $stmt_check->bind_param("ii", $courseId, $collegeId);
     $stmt_check->execute();
     if ($stmt_check->get_result()->num_rows > 0) {
         $stmt_check->close();
@@ -1133,8 +1133,8 @@ if (isset($_POST['assign_course'])) {
     $stmt_check->close();
     
     $by = uid();
-    $stmt = $conn->prepare("INSERT INTO course_colleges (course_id,college_id,assigned_by) VALUES (?,?,?)");
-    $stmt->bind_param("iii", $course_id, $college_id, $by);
+    $stmt = $conn->prepare("INSERT INTO coursecolleges (courseId,collegeId,assignedBy) VALUES (?,?,?)");
+    $stmt->bind_param("iii", $courseId, $collegeId, $by);
     
     if ($stmt->execute()) {
         $stmt->close();
@@ -1148,11 +1148,11 @@ if (isset($_POST['assign_course'])) {
 
 if (isset($_POST['unassign_course'])) {
     requireRole(['superAdmin', 'adminAzhagii']);
-    $course_id = intval($_POST['course_id'] ?? 0);
-    $college_id = intval($_POST['college_id'] ?? 0);
+    $courseId = intval($_POST['courseId'] ?? 0);
+    $collegeId = intval($_POST['collegeId'] ?? 0);
     
-    $stmt = $conn->prepare("DELETE FROM course_colleges WHERE course_id=? AND college_id=?");
-    $stmt->bind_param("ii", $course_id, $college_id);
+    $stmt = $conn->prepare("DELETE FROM coursecolleges WHERE courseId=? AND collegeId=?");
+    $stmt->bind_param("ii", $courseId, $collegeId);
     
     if ($stmt->execute()) {
         $stmt->close();
@@ -1170,11 +1170,11 @@ if (isset($_POST['unassign_course'])) {
 
 if (isset($_POST['get_subjects'])) {
     requireLogin();
-    $course_id = intval($_POST['course_id'] ?? 0);
+    $courseId = intval($_POST['courseId'] ?? 0);
     $where = "1=1";
-    if ($course_id)
-        $where .= " AND course_id=$course_id";
-    $q = "SELECT * FROM subjects WHERE $where ORDER BY created_at DESC";
+    if ($courseId)
+        $where .= " AND courseId=$courseId";
+    $q = "SELECT * FROM subjects WHERE $where ORDER BY createdAt DESC";
     $r = mysqli_query($conn, $q);
     $data = [];
     while ($r && $row = mysqli_fetch_assoc($r))
@@ -1184,20 +1184,20 @@ if (isset($_POST['get_subjects'])) {
 
 if (isset($_POST['add_subject'])) {
     requireRole(['superAdmin', 'adminAzhagii', 'azhagiiCoordinator']);
-    $course_id = intval($_POST['course_id'] ?? 0);
+    $courseId = intval($_POST['courseId'] ?? 0);
     $title = esc($_POST['title'] ?? '');
     $code = esc($_POST['code'] ?? '');
     $desc = esc($_POST['description'] ?? '');
-    if (!$course_id || !$title)
+    if (!$courseId || !$title)
         respond(400, 'Course and Title are required');
     // Coordinators can only add subjects to their own courses
     if (hasRole('azhagiiCoordinator')) {
-        $stmt_check = $conn->prepare("SELECT created_by FROM courses WHERE id=?");
-        $stmt_check->bind_param("i", $course_id);
+        $stmt_check = $conn->prepare("SELECT createdBy FROM courses WHERE id=?");
+        $stmt_check->bind_param("i", $courseId);
         $stmt_check->execute();
         $result_check = $stmt_check->get_result();
         if ($row = $result_check->fetch_assoc()) {
-            if ($row['created_by'] != uid()) {
+            if ($row['createdBy'] != uid()) {
                 $stmt_check->close();
                 respond(403, 'Can only add subjects to your own courses');
             }
@@ -1205,8 +1205,8 @@ if (isset($_POST['add_subject'])) {
         $stmt_check->close();
     }
     
-    $stmt = $conn->prepare("INSERT INTO subjects (course_id, title, code, description) VALUES (?, ?, ?, ?)");
-    $stmt->bind_param("isss", $course_id, $title, $code, $desc);
+    $stmt = $conn->prepare("INSERT INTO subjects (courseId, title, code, description) VALUES (?, ?, ?, ?)");
+    $stmt->bind_param("isss", $courseId, $title, $code, $desc);
     
     if ($stmt->execute()) {
         $stmt->close();
@@ -1262,10 +1262,10 @@ if (isset($_POST['delete_subject'])) {
 
 if (isset($_POST['get_topics'])) {
     requireLogin();
-    $subject_id = intval($_POST['subject_id'] ?? 0);
-    if (!$subject_id)
+    $subjectId = intval($_POST['subjectId'] ?? 0);
+    if (!$subjectId)
         respond(400, 'Subject ID required');
-    $q = "SELECT t.*, u.name as creator_name FROM topics t LEFT JOIN users u ON t.created_by=u.id WHERE t.subject_id=$subject_id ORDER BY t.created_at ASC";
+    $q = "SELECT t.*, u.name as creator_name FROM topics t LEFT JOIN users u ON t.createdBy=u.id WHERE t.subjectId=$subjectId ORDER BY t.createdAt ASC";
     $r = mysqli_query($conn, $q);
     $data = [];
     while ($r && $row = mysqli_fetch_assoc($r))
@@ -1275,15 +1275,15 @@ if (isset($_POST['get_topics'])) {
 
 if (isset($_POST['add_topic'])) {
     requireRole(['superAdmin', 'adminAzhagii', 'azhagiiCoordinator']);
-    $subject_id = intval($_POST['subject_id'] ?? 0);
+    $subjectId = intval($_POST['subjectId'] ?? 0);
     $title = esc($_POST['title'] ?? '');
     $desc = esc($_POST['description'] ?? '');
-    if (!$subject_id || !$title)
+    if (!$subjectId || !$title)
         respond(400, 'Subject and title are required');
     $by = uid();
     
-    $stmt = $conn->prepare("INSERT INTO topics (subject_id, title, description, created_by) VALUES (?, ?, ?, ?)");
-    $stmt->bind_param("issi", $subject_id, $title, $desc, $by);
+    $stmt = $conn->prepare("INSERT INTO topics (subjectId, title, description, createdBy) VALUES (?, ?, ?, ?)");
+    $stmt->bind_param("issi", $subjectId, $title, $desc, $by);
     
     if ($stmt->execute()) {
         $stmt->close();
@@ -1338,20 +1338,20 @@ if (isset($_POST['delete_topic'])) {
 
 if (isset($_POST['get_content'])) {
     requireLogin();
-    $course_id = intval($_POST['course_id'] ?? 0);
-    $where = "cc.course_id=$course_id";
+    $courseId = intval($_POST['courseId'] ?? 0);
+    $where = "cc.courseId=$courseId";
     // Coordinators see only their college content
     if (hasRole('azhagiiCoordinator'))
-        $where .= " AND cc.college_id=" . cid();
+        $where .= " AND cc.collegeId=" . cid();
     // Students see content from their college
     if (hasRole('azhagiiStudents'))
-        $where .= " AND cc.college_id=" . cid() . " AND cc.status='active'";
+        $where .= " AND cc.collegeId=" . cid() . " AND cc.status='active'";
     $q = "SELECT cc.*, u.name as uploader_name, cl.name as college_name, s.title as subject_title
-          FROM course_content cc
-          LEFT JOIN users u ON cc.uploaded_by=u.id
-          LEFT JOIN colleges cl ON cc.college_id=cl.id
-          LEFT JOIN subjects s ON cc.subject_id=s.id
-          WHERE $where ORDER BY cc.sort_order ASC, cc.created_at ASC";
+          FROM coursecontent cc
+          LEFT JOIN users u ON cc.uploadedBy=u.id
+          LEFT JOIN colleges cl ON cc.collegeId=cl.id
+          LEFT JOIN subjects s ON cc.subjectId=s.id
+          WHERE $where ORDER BY cc.sortOrder ASC, cc.createdAt ASC";
     $r = mysqli_query($conn, $q);
     $data = [];
     while ($r && $row = mysqli_fetch_assoc($r))
@@ -1361,13 +1361,13 @@ if (isset($_POST['get_content'])) {
 
 if (isset($_POST['add_content'])) {
     requireRole(['superAdmin', 'adminAzhagii', 'azhagiiCoordinator']);
-    $course_id = intval($_POST['course_id'] ?? 0);
+    $courseId = intval($_POST['courseId'] ?? 0);
     $title = esc($_POST['title'] ?? '');
     $desc = esc($_POST['description'] ?? '');
-    $type = esc($_POST['content_type'] ?? 'text');
-    $data_val = esc($_POST['content_data'] ?? '');
-    $sort = intval($_POST['sort_order'] ?? 0);
-    if (!$course_id || !$title)
+    $type = esc($_POST['contentType'] ?? 'text');
+    $data_val = esc($_POST['contentData'] ?? '');
+    $sort = intval($_POST['sortOrder'] ?? 0);
+    if (!$courseId || !$title)
         respond(400, 'Course and title required');
 
     // Handle file uploads for PDF type with security checks
@@ -1382,15 +1382,15 @@ if (isset($_POST['add_content'])) {
         $data_val = uploadFile('content_file', $allowedMimes, $allowedExts, 10, 'uploads/content', 'content');
     }
 
-    $college_id = hasRole('azhagiiCoordinator') ? cid() : intval($_POST['college_id'] ?? 0);
-    $subject_id = intval($_POST['subject_id'] ?? 0);
+    $collegeId = hasRole('azhagiiCoordinator') ? cid() : intval($_POST['collegeId'] ?? 0);
+    $subjectId = intval($_POST['subjectId'] ?? 0);
     $by = uid();
     
-    $subject_id_val = $subject_id ?: null;
-    $college_id_val = $college_id ?: null;
+    $subjectId_val = $subjectId ?: null;
+    $collegeId_val = $collegeId ?: null;
     
-    $stmt = $conn->prepare("INSERT INTO course_content (course_id,subject_id,title,description,content_type,content_data,uploaded_by,college_id,sort_order) VALUES (?,?,?,?,?,?,?,?,?)");
-    $stmt->bind_param("iisssssii", $course_id, $subject_id_val, $title, $desc, $type, $data_val, $by, $college_id_val, $sort);
+    $stmt = $conn->prepare("INSERT INTO coursecontent (courseId,subjectId,title,description,contentType,contentData,uploadedBy,collegeId,sortOrder) VALUES (?,?,?,?,?,?,?,?,?)");
+    $stmt->bind_param("iisssssii", $courseId, $subjectId_val, $title, $desc, $type, $data_val, $by, $collegeId_val, $sort);
     
     if ($stmt->execute()) {
         $stmt->close();
@@ -1407,9 +1407,9 @@ if (isset($_POST['update_content'])) {
     $id = intval($_POST['id'] ?? 0);
     $title = esc($_POST['title'] ?? '');
     $desc = esc($_POST['description'] ?? '');
-    $type = esc($_POST['content_type'] ?? 'text');
-    $data_val = esc($_POST['content_data'] ?? '');
-    $sort = intval($_POST['sort_order'] ?? 0);
+    $type = esc($_POST['contentType'] ?? 'text');
+    $data_val = esc($_POST['contentData'] ?? '');
+    $sort = intval($_POST['sortOrder'] ?? 0);
     $status = esc($_POST['status'] ?? 'active');
 
     // Handle file uploads for PDF type with security checks
@@ -1425,16 +1425,16 @@ if (isset($_POST['update_content'])) {
     }
 
     // Coordinators can only edit their own content
-    $subject_id = intval($_POST['subject_id'] ?? 0);
-    $subject_id_val = $subject_id ?: null;
+    $subjectId = intval($_POST['subjectId'] ?? 0);
+    $subjectId_val = $subjectId ?: null;
     
     if (hasRole('azhagiiCoordinator')) {
         $uploader = uid();
-        $stmt = $conn->prepare("UPDATE course_content SET title=?,description=?,content_type=?,content_data=?,sort_order=?,status=?,subject_id=? WHERE id=? AND uploaded_by=?");
-        $stmt->bind_param("ssssisiii", $title, $desc, $type, $data_val, $sort, $status, $subject_id_val, $id, $uploader);
+        $stmt = $conn->prepare("UPDATE coursecontent SET title=?,description=?,contentType=?,contentData=?,sortOrder=?,status=?,subjectId=? WHERE id=? AND uploadedBy=?");
+        $stmt->bind_param("ssssisiii", $title, $desc, $type, $data_val, $sort, $status, $subjectId_val, $id, $uploader);
     } else {
-        $stmt = $conn->prepare("UPDATE course_content SET title=?,description=?,content_type=?,content_data=?,sort_order=?,status=?,subject_id=? WHERE id=?");
-        $stmt->bind_param("ssssisii", $title, $desc, $type, $data_val, $sort, $status, $subject_id_val, $id);
+        $stmt = $conn->prepare("UPDATE coursecontent SET title=?,description=?,contentType=?,contentData=?,sortOrder=?,status=?,subjectId=? WHERE id=?");
+        $stmt->bind_param("ssssisii", $title, $desc, $type, $data_val, $sort, $status, $subjectId_val, $id);
     }
     
     if ($stmt->execute()) {
@@ -1453,10 +1453,10 @@ if (isset($_POST['delete_content'])) {
     
     if (hasRole('azhagiiCoordinator')) {
         $uploader = uid();
-        $stmt = $conn->prepare("DELETE FROM course_content WHERE id=? AND uploaded_by=?");
+        $stmt = $conn->prepare("DELETE FROM coursecontent WHERE id=? AND uploadedBy=?");
         $stmt->bind_param("ii", $id, $uploader);
     } else {
-        $stmt = $conn->prepare("DELETE FROM course_content WHERE id=?");
+        $stmt = $conn->prepare("DELETE FROM coursecontent WHERE id=?");
         $stmt->bind_param("i", $id);
     }
     
@@ -1476,12 +1476,12 @@ if (isset($_POST['delete_content'])) {
 
 if (isset($_POST['enroll_student'])) {
     requireRole('azhagiiStudents');
-    $course_id = intval($_POST['course_id'] ?? 0);
+    $courseId = intval($_POST['courseId'] ?? 0);
     // Check course is assigned to student's college
-    $student_college_id = cid();
+    $student_collegeId = cid();
     
-    $stmt_check = $conn->prepare("SELECT id FROM course_colleges WHERE course_id=? AND college_id=?");
-    $stmt_check->bind_param("ii", $course_id, $student_college_id);
+    $stmt_check = $conn->prepare("SELECT id FROM coursecolleges WHERE courseId=? AND collegeId=?");
+    $stmt_check->bind_param("ii", $courseId, $student_collegeId);
     $stmt_check->execute();
     if ($stmt_check->get_result()->num_rows == 0) {
         $stmt_check->close();
@@ -1490,8 +1490,8 @@ if (isset($_POST['enroll_student'])) {
     $stmt_check->close();
     
     $sid = uid();
-    $stmt_check2 = $conn->prepare("SELECT id FROM enrollments WHERE student_id=? AND course_id=?");
-    $stmt_check2->bind_param("ii", $sid, $course_id);
+    $stmt_check2 = $conn->prepare("SELECT id FROM enrollments WHERE studentId=? AND courseId=?");
+    $stmt_check2->bind_param("ii", $sid, $courseId);
     $stmt_check2->execute();
     if ($stmt_check2->get_result()->num_rows > 0) {
         $stmt_check2->close();
@@ -1499,8 +1499,8 @@ if (isset($_POST['enroll_student'])) {
     }
     $stmt_check2->close();
     
-    $stmt = $conn->prepare("INSERT INTO enrollments (student_id,course_id) VALUES (?,?)");
-    $stmt->bind_param("ii", $sid, $course_id);
+    $stmt = $conn->prepare("INSERT INTO enrollments (studentId,courseId) VALUES (?,?)");
+    $stmt->bind_param("ii", $sid, $courseId);
     
     if ($stmt->execute()) {
         $stmt->close();
@@ -1518,7 +1518,7 @@ if (isset($_POST['unenroll_student'])) {
     
     if (hasRole('azhagiiStudents')) {
         $sid = uid();
-        $stmt = $conn->prepare("DELETE FROM enrollments WHERE id=? AND student_id=?");
+        $stmt = $conn->prepare("DELETE FROM enrollments WHERE id=? AND studentId=?");
         $stmt->bind_param("ii", $id, $sid);
     } else {
         $stmt = $conn->prepare("DELETE FROM enrollments WHERE id=?");
@@ -1538,21 +1538,21 @@ if (isset($_POST['unenroll_student'])) {
 if (isset($_POST['get_enrollments'])) {
     requireLogin();
     $where = "1=1";
-    if (isset($_POST['course_id']) && $_POST['course_id'])
-        $where .= " AND e.course_id=" . intval($_POST['course_id']);
+    if (isset($_POST['courseId']) && $_POST['courseId'])
+        $where .= " AND e.courseId=" . intval($_POST['courseId']);
     if (hasRole('azhagiiStudents'))
-        $where .= " AND e.student_id=" . uid();
+        $where .= " AND e.studentId=" . uid();
     if (hasRole('azhagiiCoordinator')) {
         $cid = cid();
-        $where .= " AND e.course_id IN (SELECT course_id FROM course_colleges WHERE college_id=$cid)";
-        $where .= " AND u.college_id=$cid";
+        $where .= " AND e.courseId IN (SELECT courseId FROM coursecolleges WHERE collegeId=$cid)";
+        $where .= " AND u.collegeId=$cid";
     }
     $q = "SELECT e.*, u.name as student_name, u.email as student_email, c.title as course_title, cl.name as college_name
           FROM enrollments e
-          JOIN users u ON e.student_id=u.id
-          JOIN courses c ON e.course_id=c.id
-          LEFT JOIN colleges cl ON u.college_id=cl.id
-          WHERE $where ORDER BY e.enrolled_at DESC";
+          JOIN users u ON e.studentId=u.id
+          JOIN courses c ON e.courseId=c.id
+          LEFT JOIN colleges cl ON u.collegeId=cl.id
+          WHERE $where ORDER BY e.enrolledAt DESC";
     $r = mysqli_query($conn, $q);
     $data = [];
     while ($r && $row = mysqli_fetch_assoc($r))
@@ -1567,8 +1567,8 @@ if (isset($_POST['update_progress'])) {
     $sid = uid();
     $set = "progress=$progress";
     if ($progress >= 100)
-        $set .= ", status='completed', completed_at=NOW()";
-    if (mysqli_query($conn, "UPDATE enrollments SET $set WHERE id=$id AND student_id=$sid"))
+        $set .= ", status='completed', completedAt=NOW()";
+    if (mysqli_query($conn, "UPDATE enrollments SET $set WHERE id=$id AND studentId=$sid"))
         respond(200, 'Progress updated');
     respond(500, 'Update failed');
 }
@@ -1576,11 +1576,11 @@ if (isset($_POST['update_progress'])) {
 if (isset($_POST['get_my_courses'])) {
     requireRole('azhagiiStudents');
     $sid = uid();
-    $q = "SELECT c.*, e.id as enrollment_id, e.progress, e.status as enroll_status, e.enrolled_at,
-          (SELECT COUNT(*) FROM course_content WHERE course_id=c.id AND college_id=" . cid() . " AND status='active') as content_count
+    $q = "SELECT c.*, e.id as enrollment_id, e.progress, e.status as enroll_status, e.enrolledAt,
+          (SELECT COUNT(*) FROM coursecontent WHERE courseId=c.id AND collegeId=" . cid() . " AND status='active') as content_count
           FROM enrollments e
-          JOIN courses c ON e.course_id=c.id
-          WHERE e.student_id=$sid ORDER BY e.enrolled_at DESC";
+          JOIN courses c ON e.courseId=c.id
+          WHERE e.studentId=$sid ORDER BY e.enrolledAt DESC";
     $r = mysqli_query($conn, $q);
     $data = [];
     while ($r && $row = mysqli_fetch_assoc($r))
@@ -1615,7 +1615,7 @@ if (isset($_POST['get_dashboard_stats'])) {
         $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM courses WHERE status='rejected'");
         $stats['rejected_courses'] = mysqli_fetch_assoc($r)['c'];
         // Recent users
-        $r = mysqli_query($conn, "SELECT u.name,u.email,u.role,u.created_at,c.name as college_name FROM users u LEFT JOIN colleges c ON u.college_id=c.id ORDER BY u.created_at DESC LIMIT 5");
+        $r = mysqli_query($conn, "SELECT u.name,u.email,u.role,u.createdAt,c.name as college_name FROM users u LEFT JOIN colleges c ON u.collegeId=c.id ORDER BY u.createdAt DESC LIMIT 5");
         $stats['recent_users'] = [];
         while ($r && $row = mysqli_fetch_assoc($r))
             $stats['recent_users'][] = $row;
@@ -1636,44 +1636,44 @@ if (isset($_POST['get_dashboard_stats'])) {
     } else if (hasRole('azhagiiCoordinator')) {
         $cid = cid();
         $uid_val = uid();
-        $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM course_colleges WHERE college_id=$cid");
+        $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM coursecolleges WHERE collegeId=$cid");
         $stats['courses'] = mysqli_fetch_assoc($r)['c'];
-        $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM users WHERE college_id=$cid AND role='azhagiiStudents'");
+        $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM users WHERE collegeId=$cid AND role='azhagiiStudents'");
         $stats['students'] = mysqli_fetch_assoc($r)['c'];
-        $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM course_content WHERE college_id=$cid");
+        $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM coursecontent WHERE collegeId=$cid");
         $stats['content'] = mysqli_fetch_assoc($r)['c'];
-        $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM enrollments e JOIN users u ON e.student_id=u.id WHERE u.college_id=$cid");
+        $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM enrollments e JOIN users u ON e.studentId=u.id WHERE u.collegeId=$cid");
         $stats['enrollments'] = mysqli_fetch_assoc($r)['c'];
         // Coordinator's own course stats
-        $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM courses WHERE created_by=$uid_val");
+        $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM courses WHERE createdBy=$uid_val");
         $stats['my_courses'] = mysqli_fetch_assoc($r)['c'];
-        $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM courses WHERE created_by=$uid_val AND status='pending'");
+        $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM courses WHERE createdBy=$uid_val AND status='pending'");
         $stats['my_pending'] = mysqli_fetch_assoc($r)['c'];
-        $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM courses WHERE created_by=$uid_val AND status='active'");
+        $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM courses WHERE createdBy=$uid_val AND status='active'");
         $stats['my_approved'] = mysqli_fetch_assoc($r)['c'];
-        $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM courses WHERE created_by=$uid_val AND status='rejected'");
+        $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM courses WHERE createdBy=$uid_val AND status='rejected'");
         $stats['my_rejected'] = mysqli_fetch_assoc($r)['c'];
     } else if (hasRole('azhagiiStudents')) {
         $sid = uid();
         $cid = cid();
 
-        $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM enrollments WHERE student_id=$sid");
+        $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM enrollments WHERE studentId=$sid");
         $stats['enrolled'] = ($r && $row = mysqli_fetch_assoc($r)) ? intval($row['c']) : 0;
 
-        $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM enrollments WHERE student_id=$sid AND status='completed'");
+        $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM enrollments WHERE studentId=$sid AND status='completed'");
         $stats['completed'] = ($r && $row = mysqli_fetch_assoc($r)) ? intval($row['c']) : 0;
 
-        $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM course_colleges WHERE college_id=$cid");
+        $r = mysqli_query($conn, "SELECT COUNT(*) as c FROM coursecolleges WHERE collegeId=$cid");
         $stats['available'] = ($r && $row = mysqli_fetch_assoc($r)) ? intval($row['c']) : 0;
 
-        $r = mysqli_query($conn, "SELECT AVG(progress) as p FROM enrollments WHERE student_id=$sid");
+        $r = mysqli_query($conn, "SELECT AVG(progress) as p FROM enrollments WHERE studentId=$sid");
         $avgRow = ($r) ? mysqli_fetch_assoc($r) : null;
         $stats['avg_progress'] = ($avgRow && $avgRow['p'] !== null) ? round(floatval($avgRow['p'])) : 0;
 
         // Profile completion
         $r = mysqli_query($conn, "SELECT * FROM users WHERE id=$sid");
         $u = ($r) ? mysqli_fetch_assoc($r) : [];
-        $profileFields = ['name', 'email', 'username', 'phone', 'college_id', 'department', 'year', 'roll_number'];
+        $profileFields = ['name', 'email', 'username', 'phone', 'collegeId', 'department', 'year', 'rollNumber'];
         $filled = 0;
         if ($u) {
             foreach ($profileFields as $f) {
@@ -1686,7 +1686,7 @@ if (isset($_POST['get_dashboard_stats'])) {
         $stats['profile_total'] = count($profileFields);
 
         // Per-course progress
-        $r = mysqli_query($conn, "SELECT c.title, e.progress, e.status as enroll_status FROM enrollments e JOIN courses c ON e.course_id=c.id WHERE e.student_id=$sid ORDER BY e.enrolled_at DESC");
+        $r = mysqli_query($conn, "SELECT c.title, e.progress, e.status as enroll_status FROM enrollments e JOIN courses c ON e.courseId=c.id WHERE e.studentId=$sid ORDER BY e.enrolledAt DESC");
         $stats['course_progress'] = [];
         while ($r && $row = mysqli_fetch_assoc($r))
             $stats['course_progress'][] = $row;
@@ -1716,7 +1716,7 @@ if (isset($_POST['update_profile'])) {
 
 if (isset($_POST['get_profile'])) {
     requireLogin();
-    $r = mysqli_query($conn, "SELECT u.*, c.name as college_name FROM users u LEFT JOIN colleges c ON u.college_id=c.id WHERE u.id=" . uid());
+    $r = mysqli_query($conn, "SELECT u.*, c.name as college_name FROM users u LEFT JOIN colleges c ON u.collegeId=c.id WHERE u.id=" . uid());
     if ($r && $row = mysqli_fetch_assoc($r)) {
         unset($row['password']);
         respond(200, 'OK', $row);
@@ -1730,14 +1730,14 @@ if (isset($_POST['get_profile'])) {
 
 if (isset($_POST['get_course_students'])) {
     requireRole(['superAdmin', 'adminAzhagii', 'azhagiiCoordinator']);
-    $course_id = intval($_POST['course_id'] ?? 0);
-    $where = "e.course_id=$course_id";
+    $courseId = intval($_POST['courseId'] ?? 0);
+    $where = "e.courseId=$courseId";
     if (hasRole('azhagiiCoordinator'))
-        $where .= " AND u.college_id=" . cid();
+        $where .= " AND u.collegeId=" . cid();
     $q = "SELECT e.*, u.name as student_name, u.email as student_email, u.phone, cl.name as college_name
           FROM enrollments e
-          JOIN users u ON e.student_id=u.id
-          LEFT JOIN colleges cl ON u.college_id=cl.id
+          JOIN users u ON e.studentId=u.id
+          LEFT JOIN colleges cl ON u.collegeId=cl.id
           WHERE $where ORDER BY u.name";
     $r = mysqli_query($conn, $q);
     $data = [];

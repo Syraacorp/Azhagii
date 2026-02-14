@@ -140,7 +140,7 @@ require 'includes/sidebar.php';
     function loadRequests() {
         $('#requestsContainer').html('<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading...</p></div>');
 
-        $.post('backend.php', { get_profile_requests: 1 }, function (res) {
+        $.post('backend.php', { get_profilerequests: 1 }, function (res) {
             if (res.status === 200) {
                 const data = res.data;
                 if (data.length === 0) {
@@ -159,8 +159,8 @@ require 'includes/sidebar.php';
                     const initial = name.charAt(0).toUpperCase();
                     const college = escapeHtml(req.college_name || 'Unknown College');
                     const email = escapeHtml(req.user_email || '');
-                    const reason = escapeHtml(req.request_reason || '');
-                    const date = new Date(req.created_at).toLocaleDateString() + ' ' + new Date(req.created_at).toLocaleTimeString();
+                    const reason = escapeHtml(req.requestReason || '');
+                    const date = new Date(req.createdAt).toLocaleDateString() + ' ' + new Date(req.createdAt).toLocaleTimeString();
 
                     html += `
                 <div class="request-card" id="req-${req.id}">

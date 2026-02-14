@@ -1,6 +1,6 @@
 <?php
 session_start();
-if (isset($_SESSION['user_id'])) { header('Location: dashboard.php'); exit; }
+if (isset($_SESSION['userId'])) { header('Location: dashboard.php'); exit; }
 include 'db.php';
 $colleges = [];
 $stmt = $conn->prepare("SELECT id, name, code, city FROM colleges WHERE status='active' ORDER BY name");
@@ -66,7 +66,7 @@ $stmt->close();
 
                         <div class="form-group">
                             <label class="form-label">College <span class="req">*</span></label>
-                            <select name="college_id" id="college" class="form-input" required>
+                            <select name="collegeId" id="college" class="form-input" required>
                                 <option value="">Select your college</option>
                                 <?php foreach ($colleges as $c): ?>
                                     <option value="<?= $c['id'] ?>"><?= htmlspecialchars($c['name']) ?> (<?= htmlspecialchars($c['code']) ?>)</option>
@@ -106,7 +106,7 @@ $stmt->close();
 
                         <div class="form-group">
                             <label class="form-label">Roll Number <span class="req">*</span></label>
-                            <input type="text" name="roll_number" id="rollNumber" class="form-input" placeholder="Select dept & year first" required maxlength="12">
+                            <input type="text" name="rollNumber" id="rollNumber" class="form-input" placeholder="Select dept & year first" required maxlength="12">
                             <small class="roll-feedback" id="rollFeedback"></small>
                         </div>
 
@@ -505,10 +505,10 @@ $stmt->close();
                 email: $('#email').val(),
                 username: $('#username').val(),
                 password: pw,
-                college_id: $('#college').val(),
+                collegeId: $('#college').val(),
                 department: $('#department').val(),
                 year: $('#year').val(),
-                roll_number: $('#rollNumber').val(),
+                rollNumber: $('#rollNumber').val(),
                 phone: $('#phone').val()
             }, function(res) {
                 if (res.status === 200) {

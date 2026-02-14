@@ -293,11 +293,11 @@ require 'includes/sidebar.php';
     <div class="profile-col">
         <div class="profile-card identity-wrapper">
             <div class="profile-avatar-lg" id="profileAvatarDisplay"
-                onclick="document.getElementById('profile_photo').click()">
+                onclick="document.getElementById('profilePhoto').click()">
                 <?= $avatarInitial ?>
                 <div class="upload-overlay">Change</div>
             </div>
-            <input type="file" name="profile_photo" id="profile_photo" accept="image/*" style="display:none;"
+            <input type="file" name="profilePhoto" id="profilePhoto" accept="image/*" style="display:none;"
                 onchange="previewImage(this)">
 
             <div class="user-name-lg" id="displayNameHeader">Loading...</div>
@@ -409,7 +409,7 @@ require 'includes/sidebar.php';
                     </div>
                     <div class="form-group-profile">
                         <label class="form-label-profile">Roll No</label>
-                        <input type="text" id="roll_number" class="form-input-profile" disabled>
+                        <input type="text" id="rollNumber" class="form-input-profile" disabled>
                     </div>
                 </div>
             </div>
@@ -422,7 +422,7 @@ require 'includes/sidebar.php';
                     <label class="form-label-profile">GitHub</label>
                     <div class="social-input-group">
                         <i class="fab fa-github"></i>
-                        <input type="url" name="github_url" id="github_url" class="form-input-profile"
+                        <input type="url" name="githubUrl" id="githubUrl" class="form-input-profile"
                             placeholder="https://github.com/...">
                     </div>
                 </div>
@@ -430,7 +430,7 @@ require 'includes/sidebar.php';
                     <label class="form-label-profile">LinkedIn</label>
                     <div class="social-input-group">
                         <i class="fab fa-linkedin" style="color:#0077b5;"></i>
-                        <input type="url" name="linkedin_url" id="linkedin_url" class="form-input-profile"
+                        <input type="url" name="linkedinUrl" id="linkedinUrl" class="form-input-profile"
                             placeholder="https://linkedin.com/...">
                     </div>
                 </div>
@@ -438,7 +438,7 @@ require 'includes/sidebar.php';
                     <label class="form-label-profile">HackerRank</label>
                     <div class="social-input-group">
                         <i class="fab fa-hackerrank" style="color:#2ec866;"></i>
-                        <input type="url" name="hackerrank_url" id="hackerrank_url" class="form-input-profile"
+                        <input type="url" name="hackerrankUrl" id="hackerrankUrl" class="form-input-profile"
                             placeholder="https://hackerrank.com/...">
                     </div>
                 </div>
@@ -446,7 +446,7 @@ require 'includes/sidebar.php';
                     <label class="form-label-profile">LeetCode</label>
                     <div class="social-input-group">
                         <i class="fas fa-code" style="color:#ffa116;"></i>
-                        <input type="url" name="leetcode_url" id="leetcode_url" class="form-input-profile"
+                        <input type="url" name="leetcodeUrl" id="leetcodeUrl" class="form-input-profile"
                             placeholder="https://leetcode.com/...">
                     </div>
                 </div>
@@ -527,7 +527,7 @@ require 'includes/sidebar.php';
                 cropper.destroy();
                 cropper = null;
             }
-            document.getElementById('profile_photo').value = '';
+            document.getElementById('profilePhoto').value = '';
         }, 300); // Matches transition duration
     }
 
@@ -556,7 +556,7 @@ require 'includes/sidebar.php';
                 // Create FormData and send immediately to backend
                 const formData = new FormData();
                 formData.append('update_my_profile', 1);
-                formData.append('profile_photo', blob, 'profile.jpg');
+                formData.append('profilePhoto', blob, 'profile.jpg');
                 
                 // Send only the photo update to backend
                 $.ajax({
@@ -628,14 +628,14 @@ require 'includes/sidebar.php';
                 if (d.role === 'azhagiiStudents') {
                     $('#department').val(d.department);
                     $('#year').val(d.year);
-                    $('#roll_number').val(d.roll_number);
+                    $('#rollNumber').val(d.rollNumber);
                     $('#studentFields').show();
                 }
 
-                $('#github_url').val(d.github_url);
-                $('#linkedin_url').val(d.linkedin_url);
-                $('#hackerrank_url').val(d.hackerrank_url);
-                $('#leetcode_url').val(d.leetcode_url);
+                $('#githubUrl').val(d.githubUrl);
+                $('#linkedinUrl').val(d.linkedinUrl);
+                $('#hackerrankUrl').val(d.hackerrankUrl);
+                $('#leetcodeUrl').val(d.leetcodeUrl);
 
                 const pct = d.profile_completion || 0;
                 $('#progressBar').css('width', pct + '%');
@@ -648,8 +648,8 @@ require 'includes/sidebar.php';
                 }
 
                 // Avatar
-                if (d.profile_photo) {
-                    $('#profileAvatarDisplay').html(`<img src="${d.profile_photo}" alt="Avatar">` +
+                if (d.profilePhoto) {
+                    $('#profileAvatarDisplay').html(`<img src="${d.profilePhoto}" alt="Avatar">` +
                         `<div class="upload-overlay">Change</div>`);
                 } else {
                     $('#profileAvatarDisplay').html(d.name.charAt(0).toUpperCase() +
@@ -660,7 +660,7 @@ require 'includes/sidebar.php';
                 const adminRoles = ['superAdmin', 'adminAzhagii'];
                 const isAdmin = adminRoles.includes(d.role);
 
-                if (d.is_locked == 1 && !isAdmin) {
+                if (d.isLocked == 1 && !isAdmin) {
                     // Disable all inputs
                     $('input, textarea, select').not('[type=search]').prop('disabled', true);
                     $('#profileAvatarDisplay').attr('onclick', ''); // Disable click
@@ -674,7 +674,7 @@ require 'includes/sidebar.php';
                         btnArea.append(`
                         <div class="alert alert-warning p-2 text-center" style="font-size:0.85rem;">
                             <i class="fas fa-clock"></i> Unlock Pending<br>
-                            Reason: ${d.unlock_request.request_reason}
+                            Reason: ${d.unlock_request.requestReason}
                         </div>
                     `);
                     } else {
@@ -687,7 +687,7 @@ require 'includes/sidebar.php';
                     }
 
                     $('#completionNote').html('<span class="text-success"><i class="fas fa-lock"></i> Profile Locked</span>');
-                } else if (d.is_locked == 1 && isAdmin) {
+                } else if (d.isLocked == 1 && isAdmin) {
                     // Admin View: Warn but allow edit
                     $('#completionNote').html('<span class="text-warning"><i class="fas fa-unlock"></i> Locked (Admin Override)</span>');
                 }
@@ -706,7 +706,7 @@ require 'includes/sidebar.php';
             formData.append('update_my_profile', 1);
 
             if (croppedBlob) {
-                formData.set('profile_photo', croppedBlob, 'profile.jpg');
+                formData.set('profilePhoto', croppedBlob, 'profile.jpg');
             }
 
             const btn = $(this).find('button[type=submit]');
