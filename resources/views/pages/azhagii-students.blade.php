@@ -34,7 +34,7 @@
                 <td>{{ $s->email }}</td>
                 <td>{{ $s->phone ?? '-' }}</td>
                 <td>{{ $s->gender ?? '-' }}</td>
-                <td>{{ $s->dob ?? '-' }}</td>
+                <td>{{ $s->dob ? $s->dob->format('Y-m-d') : '-' }}</td>
                 <td>{{ $s->college->name ?? '-' }}</td>
                 <td>{{ $s->department ?? '-' }}</td>
                 <td>{{ $s->year ?? '-' }}</td>

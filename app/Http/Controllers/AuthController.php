@@ -16,7 +16,7 @@ class AuthController extends Controller
         if (Auth::check()) {
             return redirect()->route('dashboard');
         }
-        return view('auth.login');
+        return view('auth.login', ['pageTitle' => 'Login']);
     }
 
     public function login(Request $request)
@@ -60,7 +60,7 @@ class AuthController extends Controller
             return redirect()->route('dashboard');
         }
         $colleges = College::where('status', 'active')->orderBy('name')->get();
-        return view('auth.register', compact('colleges'));
+        return view('auth.register', compact('colleges') + ['pageTitle' => 'Register']);
     }
 
     public function register(Request $request)

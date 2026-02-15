@@ -54,7 +54,7 @@ $(document).ready(function() { $('#usersTable').DataTable(); });
 function loadUsers() {
     const role = $('#userRoleFilter').val();
     const collegeId = $('#userCollegeFilter').val();
-    $.post('{{ route("api.users") }}', { role, collegeId }, function(res) {
+    $.post('{{ route("api.users") }}', { role_filter: role, college_filter: collegeId }, function(res) {
         if (res.status === 200) {
             if ($.fn.DataTable.isDataTable('#usersTable')) $('#usersTable').DataTable().destroy();
             let html = '';
@@ -99,7 +99,7 @@ function showUserModal() {
             $.post('{{ route("api.users.store") }}', r.value, function(res) {
                 if (res.status===200) { Swal.fire('Success',res.message,'success').then(() => location.reload()); }
                 else Swal.fire('Error',res.message,'error');
-            },'json');
+            },'json').fail(function(xhr){ var msg='Something went wrong'; try{var r=JSON.parse(xhr.responseText);if(r.message)msg=r.message;}catch(e){} Swal.fire('Error',msg,'error'); });
         }
     });
 }
@@ -111,7 +111,7 @@ function toggleCollegeField(role) {
 }
 
 function editUser(id) {
-    $.post('{{ route("api.users.detail") }}', { id }, function(res) {
+    $.post('{{ route("api.users.detail") }}', { userId: id }, function(res) {
         if (res.status === 200) {
             const u = res.data;
             let collegeOpts = '<option value="">Select College</option>';
@@ -134,7 +134,7 @@ function editUser(id) {
                 if (r.isConfirmed) {
                     $.post('{{ route("api.users.update") }}', r.value, function(res) {
                         if(res.status===200){Swal.fire('Updated',res.message,'success').then(()=>location.reload());}else Swal.fire('Error',res.message,'error');
-                    },'json');
+                    },'json').fail(function(xhr){ var msg='Something went wrong'; try{var r=JSON.parse(xhr.responseText);if(r.message)msg=r.message;}catch(e){} Swal.fire('Error',msg,'error'); });
                 }
             });
         }
@@ -143,7 +143,7 @@ function editUser(id) {
 
 function deleteUser(id) {
     Swal.fire({title:'Delete User?',text:'This cannot be undone.',icon:'warning',showCancelButton:true,confirmButtonColor:'#d33',confirmButtonText:'Delete'}).then(r=>{
-        if(r.isConfirmed){$.post('{{ route("api.users.delete") }}',{id},function(res){if(res.status===200){Swal.fire('Deleted',res.message,'success').then(()=>location.reload());}else Swal.fire('Error',res.message,'error');},'json');}
+        if(r.isConfirmed){$.post('{{ route("api.users.delete") }}',{id},function(res){if(res.status===200){Swal.fire('Deleted',res.message,'success').then(()=>location.reload());}else Swal.fire('Error',res.message,'error');},'json').fail(function(xhr){ var msg='Something went wrong'; try{var r=JSON.parse(xhr.responseText);if(r.message)msg=r.message;}catch(e){} Swal.fire('Error',msg,'error'); });}
     });
 }
 </script>

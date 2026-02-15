@@ -61,7 +61,7 @@
                             </div>
                         </div>
                         <div class="user-dropdown-divider"></div>
-                        <a href="{{ auth()->user()->dashboard_route }}" class="user-dropdown-item"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                        <a href="{{ route(auth()->user()->dashboard_route) }}" class="user-dropdown-item"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
                         <a href="{{ route('profile') }}" class="user-dropdown-item"><i class="fas fa-user-circle"></i> My Profile</a>
                         <div class="user-dropdown-divider"></div>
                         <a href="{{ route('logout') }}" class="user-dropdown-item user-dropdown-item-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
@@ -92,7 +92,7 @@
         const USER_NAME = @json(auth()->user()->name);
         const COLLEGE_ID = {{ auth()->user()->collegeId ?: 0 }};
         const COLLEGE_NAME = @json(auth()->user()->college->name ?? '');
-        const CURRENT_PAGE = @json($currentPage ?? 'dashboard');
+        const CURRENT_PAGE = @json(Route::currentRouteName() ?? 'dashboard');
         const CSRF_TOKEN = '{{ csrf_token() }}';
 
         // Global Scroll Progress
@@ -110,6 +110,25 @@
         // Setup AJAX CSRF
         $.ajaxSetup({
             headers: { 'X-CSRF-TOKEN': CSRF_TOKEN }
+        });
+
+        // Global AJAX error handler
+        $(document).ajaxError(function(event, xhr, settings, thrownError){
+            if(xhr.statusHandled) return; // skip if handled locally
+            var msg = 'An unexpected error occurred.';
+            if(xhr.status === 419) msg = 'Session expired. Please refresh the page and try again.';
+            else if(xhr.status === 401) msg = 'Unauthorized. Please log in again.';
+            else if(xhr.status === 403) msg = 'You do not have permission to perform this action.';
+            else if(xhr.status === 422){
+                try{ var r=JSON.parse(xhr.responseText); if(r.message) msg=r.message; else if(r.errors){ msg=Object.values(r.errors).flat().join('<br>'); }}catch(e){}
+            }
+            else if(xhr.status === 409){
+                try{ var r=JSON.parse(xhr.responseText); if(r.message) msg=r.message; }catch(e){}
+            }
+            else if(xhr.status >= 500) msg = 'Server error. Please try again later.';
+            else if(xhr.status === 0) msg = 'Network error. Please check your connection.';
+            else { try{ var r=JSON.parse(xhr.responseText); if(r.message) msg=r.message; }catch(e){} }
+            Swal.fire('Error', msg, 'error');
         });
     </script>
     <!-- DataTables JS + Export Plugins -->

@@ -78,8 +78,10 @@ $(document).ready(function() {
                 Swal.fire({ icon: 'error', title: 'Login Failed', text: res.message || 'Invalid credentials', confirmButtonColor: '#4285f4' });
                 btn.prop('disabled', false).html(originalText);
             }
-        }, 'json').fail(function() {
-            Swal.fire({ icon: 'error', title: 'Connection Error', text: 'Unable to connect to the server.', confirmButtonColor: '#4285f4' });
+        }, 'json').fail(function(xhr) {
+            var msg = 'Unable to connect to the server.';
+            try { var res = JSON.parse(xhr.responseText); if(res.message) msg = res.message; } catch(e) {}
+            Swal.fire({ icon: 'error', title: 'Login Failed', text: msg, confirmButtonColor: '#4285f4' });
             btn.prop('disabled', false).html(originalText);
         });
     });

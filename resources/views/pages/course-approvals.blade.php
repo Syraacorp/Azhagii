@@ -110,7 +110,7 @@ function loadAllCoursesForApproval(){
             var html='';
             res.data.forEach(function(c,i){
                 var badge='badge-'+(c.status==='active'?'active':c.status==='rejected'?'inactive':'draft');
-                html+='<tr><td>'+(i+1)+'</td><td>'+escapeHtml(c.title)+'</td><td>'+(c.courseCode||'-')+'</td><td>'+escapeHtml(c.creator?c.creator.name:'-')+'</td><td><span class="badge '+badge+'">'+c.status+'</span></td><td>'+(c.semester||'-')+'</td><td>'+(c.syllabusUrl?'<a href="'+c.syllabusUrl+'" target="_blank"><i class="fas fa-file-pdf"></i></a>':'-')+'</td><td>'+(c.createdAt?new Date(c.createdAt).toLocaleDateString():'')+'</td><td>';
+                html+='<tr><td>'+(i+1)+'</td><td>'+escapeHtml(c.title)+'</td><td>'+(c.courseCode||'-')+'</td><td>'+escapeHtml(c.creator?c.creator.name:'-')+'</td><td><span class="badge '+badge+'">'+c.status+'</span></td><td>'+(c.semester||'-')+'</td><td>'+(c.syllabusUrl?'<a href="/'+c.syllabusUrl+'" target="_blank"><i class="fas fa-file-pdf"></i></a>':'-')+'</td><td>'+(c.createdAt?new Date(c.createdAt).toLocaleDateString():'')+'</td><td>';
                 html+='<button class="btn btn-sm btn-outline" onclick="viewCourseDetail('+c.id+')"><i class="fas fa-eye"></i></button>';
                 if(c.status==='pending'){html+=' <button class="btn btn-sm btn-success" onclick="approveCourse('+c.id+')"><i class="fas fa-check"></i></button> <button class="btn btn-sm btn-danger" onclick="rejectCourse('+c.id+')"><i class="fas fa-times"></i></button>';}
                 html+='</td></tr>';
@@ -141,7 +141,7 @@ function loadRejectedCourses(){
 function viewCourseDetail(id){
     $.post('{{ route("api.courses.detail") }}',{courseId:id},function(res){
         if(res.status===200){var c=res.data;
-        Swal.fire({title:escapeHtml(c.title),html:'<div style="text-align:left;"><p><strong>Code:</strong> '+(c.courseCode||'N/A')+'</p><p><strong>Category:</strong> '+(c.category||'N/A')+'</p><p><strong>Semester:</strong> '+(c.semester||'N/A')+'</p><p><strong>Description:</strong> '+(c.description||'N/A')+'</p>'+(c.syllabusUrl?'<p><a href="'+c.syllabusUrl+'" target="_blank">View Syllabus</a></p>':'')+'</div>',width:500});}
+        Swal.fire({title:escapeHtml(c.title),html:'<div style="text-align:left;"><p><strong>Code:</strong> '+(c.courseCode||'N/A')+'</p><p><strong>Category:</strong> '+(c.category||'N/A')+'</p><p><strong>Semester:</strong> '+(c.semester||'N/A')+'</p><p><strong>Description:</strong> '+(c.description||'N/A')+'</p>'+(c.syllabusUrl?'<p><a href="/'+c.syllabusUrl+'" target="_blank">View Syllabus</a></p>':'')+'</div>',width:500});}
     },'json');
 }
 

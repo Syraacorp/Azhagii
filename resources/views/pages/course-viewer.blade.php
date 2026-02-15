@@ -115,6 +115,19 @@
 
         $.ajaxSetup({headers:{'X-CSRF-TOKEN':CSRF_TOKEN}});
 
+        // Global AJAX error handler
+        $(document).ajaxError(function(event, xhr){
+            if(xhr.statusHandled) return;
+            var msg = 'An unexpected error occurred.';
+            if(xhr.status === 419) msg = 'Session expired. Please refresh the page.';
+            else if(xhr.status === 401) msg = 'Unauthorized. Please log in again.';
+            else if(xhr.status === 403) msg = 'You do not have permission to perform this action.';
+            else if(xhr.status >= 500) msg = 'Server error. Please try again later.';
+            else if(xhr.status === 0) msg = 'Network error. Please check your connection.';
+            else { try{ var r=JSON.parse(xhr.responseText); if(r.message) msg=r.message; }catch(e){} }
+            Swal.fire('Error', msg, 'error');
+        });
+
         function toggleModule(header){
             var mod = $(header).closest('.cv-module');
             mod.toggleClass('active');

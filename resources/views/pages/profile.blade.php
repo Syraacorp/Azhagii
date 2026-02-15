@@ -96,7 +96,7 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Date of Birth</label>
-                    <input type="date" name="dob" class="form-input form-input-profile" value="{{ $u->dob }}" {{ $isLocked ? 'disabled' : '' }}>
+                    <input type="date" name="dob" class="form-input form-input-profile" value="{{ $u->dob ? $u->dob->format('Y-m-d') : '' }}" {{ $isLocked ? 'disabled' : '' }}>
                 </div>
             </div>
             <div class="responsive-grid-2">

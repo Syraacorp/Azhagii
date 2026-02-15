@@ -17,7 +17,7 @@ class CourseController extends Controller
             ->withCount(['collegeAssignments', 'enrollments', 'contents', 'subjects'])
             ->orderBy('createdAt', 'desc')
             ->get();
-        return view('pages.manage-courses', compact('courses'));
+        return view('pages.manage-courses', compact('courses') + ['pageTitle' => 'Manage Courses']);
     }
 
     public function list(Request $request)
@@ -204,7 +204,7 @@ class CourseController extends Controller
             ->orderBy('createdAt', 'desc')
             ->get();
 
-        return view('pages.course-approvals', compact('stats', 'pendingCourses'));
+        return view('pages.course-approvals', compact('stats', 'pendingCourses') + ['pageTitle' => 'Course Approvals']);
     }
 
     public function approve(Request $request)
@@ -258,7 +258,7 @@ class CourseController extends Controller
                 ->get();
         }
 
-        return view('pages.my-courses', compact('courses'));
+        return view('pages.my-courses', compact('courses') + ['pageTitle' => 'My Courses']);
     }
 
     // Coordinator Course Create page
@@ -268,7 +268,7 @@ class CourseController extends Controller
         $myCourses = Course::where('createdBy', $user->id)
             ->orderBy('createdAt', 'desc')
             ->get();
-        return view('pages.coordinator-course-create', compact('myCourses'));
+        return view('pages.coordinator-course-create', compact('myCourses') + ['pageTitle' => 'Create Course']);
     }
 
     // Browse Courses (Student)
@@ -283,6 +283,6 @@ class CourseController extends Controller
             ->orderBy('createdAt', 'desc')
             ->get();
 
-        return view('pages.browse-courses', compact('courses', 'enrolledIds'));
+        return view('pages.browse-courses', compact('courses', 'enrolledIds') + ['pageTitle' => 'Browse Courses']);
     }
 }

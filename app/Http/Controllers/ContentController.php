@@ -22,7 +22,7 @@ class ContentController extends Controller
             })->orderBy('title')->get(['id', 'title', 'courseCode']);
         }
 
-        return view('pages.manage-content', compact('courses'));
+        return view('pages.manage-content', compact('courses') + ['pageTitle' => 'Manage Content']);
     }
 
     public function list(Request $request)

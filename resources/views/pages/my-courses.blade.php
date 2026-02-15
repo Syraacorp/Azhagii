@@ -43,7 +43,7 @@ function escapeHtml(t){if(!t)return '';return $('<div>').text(t).html();}
 function viewCourseDetail(id){
     $.post('{{ route("api.courses.detail") }}',{courseId:id},function(res){
         if(res.status===200){var c=res.data;
-        Swal.fire({title:escapeHtml(c.title),html:'<div style="text-align:left;"><p><strong>Code:</strong> '+(c.courseCode||'N/A')+'</p><p><strong>Category:</strong> '+(c.category||'N/A')+'</p><p><strong>Semester:</strong> '+(c.semester||'N/A')+'</p><p><strong>Description:</strong> '+(c.description||'N/A')+'</p>'+(c.syllabusUrl?'<p><a href="'+c.syllabusUrl+'" target="_blank">View Syllabus</a></p>':'')+'</div>',width:500});}
+        Swal.fire({title:escapeHtml(c.title),html:'<div style="text-align:left;"><p><strong>Code:</strong> '+(c.courseCode||'N/A')+'</p><p><strong>Category:</strong> '+(c.category||'N/A')+'</p><p><strong>Semester:</strong> '+(c.semester||'N/A')+'</p><p><strong>Description:</strong> '+(c.description||'N/A')+'</p>'+(c.syllabusUrl?'<p><a href="/'+c.syllabusUrl+'" target="_blank">View Syllabus</a></p>':'')+'</div>',width:500});}
     },'json');
 }
 </script>

@@ -23,7 +23,7 @@ class TopicController extends Controller
             })->orderBy('title')->get(['id', 'title', 'courseCode']);
         }
 
-        return view('pages.manage-topics', compact('courses'));
+        return view('pages.manage-topics', compact('courses') + ['pageTitle' => 'Manage Topics']);
     }
 
     public function list(Request $request)

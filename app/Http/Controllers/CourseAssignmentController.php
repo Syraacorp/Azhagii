@@ -12,7 +12,8 @@ class CourseAssignmentController extends Controller
     public function index()
     {
         $courses = Course::orderBy('title')->get(['id', 'title', 'courseCode']);
-        return view('pages.course-assignments', compact('courses'));
+        $pageTitle = 'Course Assignments';
+        return view('pages.course-assignments', compact('courses', 'pageTitle'));
     }
 
     public function list(Request $request)

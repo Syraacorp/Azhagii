@@ -59,7 +59,8 @@ class DashboardController extends Controller
             ];
         }
 
-        return view('dashboards.superadmin', compact('stats', 'recentUsers', 'folderStats'));
+        $pageTitle = 'Super Admin Dashboard';
+        return view('dashboards.superadmin', compact('stats', 'recentUsers', 'folderStats', 'pageTitle'));
     }
 
     public function admin()
@@ -81,7 +82,8 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
 
-        return view('dashboards.admin', compact('stats', 'userBreakdown', 'recentCourses'));
+        $pageTitle = 'Admin Dashboard';
+        return view('dashboards.admin', compact('stats', 'userBreakdown', 'recentCourses', 'pageTitle'));
     }
 
     public function coordinator()
@@ -105,7 +107,8 @@ class DashboardController extends Controller
             ->limit(8)
             ->get();
 
-        return view('dashboards.coordinator', compact('stats', 'recentActivity'));
+        $pageTitle = 'Coordinator Dashboard';
+        return view('dashboards.coordinator', compact('stats', 'recentActivity', 'pageTitle'));
     }
 
     public function student()
@@ -136,7 +139,8 @@ class DashboardController extends Controller
             ->limit(3)
             ->get();
 
-        return view('dashboards.student', compact('stats', 'profilePct', 'courseProgress', 'continueLearning'));
+        $pageTitle = 'Student Dashboard';
+        return view('dashboards.student', compact('stats', 'profilePct', 'courseProgress', 'continueLearning', 'pageTitle'));
     }
 
     private function formatBytes($bytes, $precision = 2)

@@ -11,7 +11,8 @@ class SubjectController extends Controller
     public function index()
     {
         $courses = Course::orderBy('title')->get(['id', 'title', 'courseCode']);
-        return view('pages.manage-subjects', compact('courses'));
+        $pageTitle = 'Manage Subjects';
+        return view('pages.manage-subjects', compact('courses', 'pageTitle'));
     }
 
     public function list(Request $request)

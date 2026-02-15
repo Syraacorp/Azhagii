@@ -11,7 +11,8 @@ class CollegeController extends Controller
     public function index()
     {
         $colleges = College::withCount('users')->orderBy('name')->get();
-        return view('pages.manage-colleges', compact('colleges'));
+        $pageTitle = 'Manage Colleges';
+        return view('pages.manage-colleges', compact('colleges', 'pageTitle'));
     }
 
     // API Methods

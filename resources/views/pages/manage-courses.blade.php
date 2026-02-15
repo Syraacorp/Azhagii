@@ -1,9 +1,9 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="toolbar">
-    <div class="toolbar-left"></div>
-    <div class="toolbar-right">
+<div class="section-toolbar">
+    <div></div>
+    <div>
         <button class="btn btn-primary" onclick="showCourseModal()"><i class="fas fa-plus"></i> Add Course</button>
     </div>
 </div>
@@ -36,7 +36,7 @@
 
 @push('scripts')
 <script>
-function escapeHtml(str){if(!str)return '';return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function escapeHtml(str){if(!str)return '';return $('<div>').text(str).html();}
 $(document).ready(function(){$('#coursesTable').DataTable();});
 
 function showCourseModal(){

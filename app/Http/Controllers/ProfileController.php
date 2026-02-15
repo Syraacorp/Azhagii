@@ -30,7 +30,7 @@ class ProfileController extends Controller
             $avatarHtml .= '<div class="upload-overlay">Change</div>';
         }
 
-        return view('pages.profile', compact('u', 'pct', 'pctColor', 'isAdmin', 'isLocked', 'avatarHtml'));
+        return view('pages.profile', compact('u', 'pct', 'pctColor', 'isAdmin', 'isLocked', 'avatarHtml') + ['pageTitle' => 'My Profile']);
     }
 
     public function getMyProfile()
@@ -95,6 +95,12 @@ class ProfileController extends Controller
 
         $u->update($data);
 
+        // Auto-lock profile when completion reaches 100%
+        $u->refresh();
+        if ($u->profile_completion == 100 && !$u->isLocked && !in_array($u->role, ['superAdmin', 'adminAzhagii'])) {
+            $u->update(['isLocked' => true]);
+        }
+
         return response()->json(['status' => 200, 'message' => 'Profile updated successfully']);
     }
 
@@ -146,7 +152,7 @@ class ProfileController extends Controller
             ->where('status', 'pending')
             ->orderBy('createdAt', 'desc')
             ->get();
-        return view('pages.profile-requests', compact('requests'));
+        return view('pages.profile-requests', compact('requests') + ['pageTitle' => 'Profile Requests']);
     }
 
     public function resolveRequest(Request $request)

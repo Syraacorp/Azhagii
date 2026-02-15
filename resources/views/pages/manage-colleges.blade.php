@@ -55,7 +55,7 @@ function showCollegeModal() {
             $.post('{{ route("api.colleges.store") }}', { ...r.value }, function(res) {
                 if (res.status === 200) { Swal.fire('Success', res.message, 'success').then(() => location.reload()); }
                 else Swal.fire('Error', res.message, 'error');
-            }, 'json');
+            }, 'json').fail(function(xhr){ var msg='Something went wrong'; try{var r=JSON.parse(xhr.responseText);if(r.message)msg=r.message;}catch(e){} Swal.fire('Error',msg,'error'); });
         }
     });
 }
@@ -79,7 +79,7 @@ function editCollege(id) {
                     $.post('{{ route("api.colleges.update") }}', r.value, function(res) {
                         if (res.status === 200) { Swal.fire('Updated', res.message, 'success').then(() => location.reload()); }
                         else Swal.fire('Error', res.message, 'error');
-                    }, 'json');
+                    }, 'json').fail(function(xhr){ var msg='Something went wrong'; try{var r=JSON.parse(xhr.responseText);if(r.message)msg=r.message;}catch(e){} Swal.fire('Error',msg,'error'); });
                 }
             });
         }
@@ -92,7 +92,7 @@ function deleteCollege(id) {
             $.post('{{ route("api.colleges.delete") }}', { id }, function(res) {
                 if (res.status === 200) { Swal.fire('Deleted', res.message, 'success').then(() => location.reload()); }
                 else Swal.fire('Error', res.message, 'error');
-            }, 'json');
+            }, 'json').fail(function(xhr){ var msg='Something went wrong'; try{var r=JSON.parse(xhr.responseText);if(r.message)msg=r.message;}catch(e){} Swal.fire('Error',msg,'error'); });
         }
     });
 }

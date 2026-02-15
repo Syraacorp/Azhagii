@@ -12,8 +12,6 @@ class College extends Model
         'name', 'code', 'address', 'city', 'status',
     ];
 
-    const CREATED_AT = 'createdAt';
-
     public function users()
     {
         return $this->hasMany(User::class, 'collegeId');

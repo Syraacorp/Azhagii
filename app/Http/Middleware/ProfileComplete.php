@@ -23,7 +23,7 @@ class ProfileComplete
         }
 
         if ($user->profile_completion < 100) {
-            return redirect()->route('profile')->with('incomplete', true);
+            return redirect()->route('profile', ['incomplete' => 1]);
         }
 
         return $next($request);

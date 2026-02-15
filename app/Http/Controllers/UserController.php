@@ -20,7 +20,8 @@ class UserController extends Controller
         }
         $users = $query->orderBy('createdAt', 'desc')->get();
 
-        return view('pages.manage-users', compact('colleges', 'users'));
+        $pageTitle = 'Manage Users';
+        return view('pages.manage-users', compact('colleges', 'users', 'pageTitle'));
     }
 
     public function list(Request $request)
@@ -100,16 +101,19 @@ class UserController extends Controller
             'email' => $request->email,
             'role' => $request->role,
             'collegeId' => $request->collegeId ?: null,
-            'phone' => $request->phone,
             'status' => $request->input('status', 'active'),
-            'bio' => $request->bio,
-            'address' => $request->address,
-            'dob' => $request->dob ?: null,
-            'gender' => $request->gender,
-            'department' => $request->department,
-            'year' => $request->year,
-            'rollNumber' => $request->rollNumber,
         ];
+
+        // Only update optional fields if they are explicitly present in the request
+        $optionalFields = ['phone', 'bio', 'address', 'gender', 'department', 'year', 'rollNumber'];
+        foreach ($optionalFields as $field) {
+            if ($request->has($field)) {
+                $data[$field] = $request->$field;
+            }
+        }
+        if ($request->has('dob')) {
+            $data['dob'] = $request->dob ?: null;
+        }
 
         if ($request->filled('password')) {
             $data['password'] = $request->password;
@@ -146,6 +150,7 @@ class UserController extends Controller
             ->where('role', 'azhagiiStudents')
             ->orderBy('name')
             ->get();
-        return view('pages.azhagii-students', compact('colleges', 'students'));
+        $pageTitle = 'Azhagii Students';
+        return view('pages.azhagii-students', compact('colleges', 'students', 'pageTitle'));
     }
 }

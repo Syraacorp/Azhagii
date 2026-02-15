@@ -19,7 +19,7 @@ class EnrollmentController extends Controller
             ->orderBy('enrolledAt', 'desc')
             ->get();
 
-        return view('pages.my-learning', compact('myCourses'));
+        return view('pages.my-learning', compact('myCourses') + ['pageTitle' => 'My Learning']);
     }
 
     public function courseViewer(Request $request)
@@ -62,7 +62,7 @@ class EnrollmentController extends Controller
             }
         }
 
-        return view('pages.course-viewer', compact('course', 'enrollment', 'completedTopics', 'subjects', 'firstTopic'));
+        return view('pages.course-viewer', compact('course', 'enrollment', 'completedTopics', 'subjects', 'firstTopic') + ['pageTitle' => $course->title]);
     }
 
     public function enroll(Request $request)
@@ -158,6 +158,6 @@ class EnrollmentController extends Controller
                 ->orWhere('createdBy', $user->id);
         })->orderBy('title')->get(['id', 'title', 'courseCode']);
 
-        return view('pages.my-students', compact('courses'));
+        return view('pages.my-students', compact('courses') + ['pageTitle' => 'My Students']);
     }
 }
